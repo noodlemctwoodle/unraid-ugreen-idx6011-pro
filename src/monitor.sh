@@ -3,17 +3,11 @@
 # ugreen-idx6011-pro / monitor.sh
 #
 # Smart front-panel LED daemon for the UGREEN NASync iDX6011 Pro under Unraid.
-# Runs continuously and reacts live:
-#   * empty bay        -> off
-#   * healthy disk     -> green
-#   * pending/realloc  -> amber
-#   * SMART fail / not responding -> red
-#   * LAN link up      -> blue      (LAN down -> off)
-#   * power LED        -> stays white (re-asserted after any CLI write)
+# Live: empty bay -> off, healthy -> green, pending/realloc -> amber,
+#       SMART fail/not-responding -> red, LAN link -> blue, power -> white.
 #
 # diskN LED == physical bay N (top=1 .. bottom=6), confirmed on this unit.
-# Disk-activity BLINK is intentionally not here yet — that needs a CLI patch so the
-# frequent writes don't zero the power LED (see runbook §5a, phase 2).
+# Disk-activity BLINK is deferred (needs a CLI patch so writes don't zero the power LED).
 #
 set -u
 
@@ -22,24 +16,43 @@ BUS=0
 A=0x3a
 export UGREEN_MODEL=idx6011
 
-# single-instance via pidfile (never stop this daemon with pkill -f — the pattern
-# would also match the shell that launched it)
 PIDFILE=/run/ugreen-leds.pid
 echo $$ > "$PIDFILE" 2>/dev/null
 trap 'rm -f "$PIDFILE"' EXIT
 
-REFRESH=2             # main loop interval (seconds) — presence + link react this fast
-SMART_INTERVAL=300    # re-check SMART health every N seconds
+REFRESH=2
+SMART_INTERVAL=300
 
-# ---- bay mapping: HCTL -> physical bay (1=top). diskN LED == bay N ------------
-# Get HCTL with:  lsblk -S -o name,hctl,serial,tran
-# EDIT these to match the physical slots. Extend when the 22 TB drives go in.
-declare -A HCTL_TO_BAY=(
-  ["2:0:0:0"]=1     # sda
-  ["3:0:0:0"]=2     # sdb
-)
+# ---- bay mapping by PHYSICAL SATA PORT (stable across reboots + disk swaps) --------
+# Users never edit this: the map comes from mapping.conf (written by calibrate.sh);
+# if that's absent, the built-in iDX6011 Pro default is used (same wiring on every unit).
+# /dev/sdX and HCTL both reshuffle across reboots, so we key on the fixed port path.
+declare -A PORT_TO_BAY
+MAP_CONF=/boot/config/plugins/ugreen-idx6011-pro/mapping.conf
+MAP_MTIME=""
+load_map(){   # (re)load the bay map from mapping.conf; falls back to the built-in iDX6011 Pro default.
+  local m; m=$(stat -c %Y "$MAP_CONF" 2>/dev/null || echo none)
+  [ "$m" = "$MAP_MTIME" ] && return 1          # unchanged since last load
+  MAP_MTIME="$m"
+  PORT_TO_BAY=()
+  if [ -f "$MAP_CONF" ]; then
+    while read -r port bay _; do
+      [ -z "$port" ] && continue; [ "${port:0:1}" = "#" ] && continue
+      [ -n "$bay" ] && PORT_TO_BAY["$port"]="$bay"
+    done < "$MAP_CONF"
+  fi
+  if [ ${#PORT_TO_BAY[@]} -eq 0 ]; then
+    # Built-in iDX6011 Pro map (identical SATA wiring on every unit; verified by calibration).
+    PORT_TO_BAY=(
+      ["0000:56:00.0/ata3"]=1 ["0000:56:00.0/ata4"]=2   # bays 1-2  (ASMedia ASM1164)
+      ["0000:00:17.0/ata1"]=3 ["0000:00:17.0/ata2"]=4   # bays 3-4  (Intel AHCI)
+      ["0000:56:00.0/ata5"]=5 ["0000:56:00.0/ata6"]=6   # bays 5-6  (ASMedia ASM1164)
+    )
+  fi
+  return 0
+}
+load_map
 
-# ---- colours (R G B) ----
 COL_HEALTHY="0 255 0"
 COL_WARN="255 120 0"
 COL_ERROR="255 0 0"
@@ -49,65 +62,64 @@ BR_LAN=150
 
 LED(){ "$BIN" "$@" >/dev/null 2>&1; }
 
-# power LED: raw sequence (CLI can't drive it on this model)
-power_white(){
-  i2cset -y $BUS $A 0x00 0xa0 0x01 0x00 0x00 0x04 0x00 0x00 0x00 0x00 0x00 0xa5 s
+# power LED (raw i2c — the CLI can't drive it on this model).
+# Full host-takeover incl. mode-reset (0x04); required to light it from a cold/off state.
+power_takeover(){
+  i2cset -y $BUS $A 0x00 0xa0 0x01 0x00 0x00 0x04 0x00 0x00 0x00 0x00 0x00 0xa5 s; sleep 0.03
+  i2cset -y $BUS $A 0x00 0xa0 0x01 0x00 0x00 0x01 0xff 0x00 0x00 0x00 0x01 0xa1 s; sleep 0.03
+  i2cset -y $BUS $A 0x00 0xa0 0x01 0x00 0x00 0x02 0xff 0xff 0xff 0x00 0x03 0xa0 s; sleep 0.03
+  i2cset -y $BUS $A 0x00 0xa0 0x01 0x00 0x00 0x03 0xff 0x00 0x00 0x00 0x01 0xa3 s; sleep 0.03
+  i2cset -y $BUS $A 0x00 0xa0 0x01 0x00 0x00 0x01 0xff 0x00 0x00 0x00 0x01 0xa1 s
+}
+# re-assert every loop (no mode-reset, so no flicker) so a CLI init-probe can never leave power dark
+power_refresh(){
   i2cset -y $BUS $A 0x00 0xa0 0x01 0x00 0x00 0x02 0xff 0xff 0xff 0x00 0x03 0xa0 s
   i2cset -y $BUS $A 0x00 0xa0 0x01 0x00 0x00 0x03 0xff 0x00 0x00 0x00 0x01 0xa3 s
   i2cset -y $BUS $A 0x00 0xa0 0x01 0x00 0x00 0x01 0xff 0x00 0x00 0x00 0x01 0xa1 s
 }
 
-# echo "<bay> /dev/<name>" for each present SATA disk that maps to a bay
-present_bays(){
-  local name hctl
-  while read -r name hctl _; do
-    [ -n "$hctl" ] || continue
-    local bay="${HCTL_TO_BAY[$hctl]:-}"
+present_bays(){  # echo "<bay> /dev/<name>" for each SATA disk mapped to a bay
+  local name tran port bay
+  while read -r name tran; do
+    [ "$tran" = "sata" ] || continue
+    port=$(readlink -f /sys/block/"$name"/device 2>/dev/null | grep -oE "0000:[0-9a-f]{2}:[0-9a-f]{2}\.[0-9]/ata[0-9]+")
+    bay="${PORT_TO_BAY[$port]:-}"
     [ -n "$bay" ] && echo "$bay /dev/$name"
-  done < <(lsblk -S -n -o name,hctl,tran 2>/dev/null | awk '$3=="sata"{print $1,$2}')
+  done < <(lsblk -Sndo name,tran 2>/dev/null)
 }
 
-# disk device -> health colour
 disk_colour(){
   local d="$1" out
-  out=$(smartctl -H "$d" 2>&1)
-  echo "$out" | grep -qiE 'INQUIRY failed|Unable to detect|Smartctl open device.*failed' && { echo "$COL_ERROR"; return; }
-  echo "$out" | grep -qiE 'FAILED|failing' && { echo "$COL_ERROR"; return; }
-  echo "$out" | grep -qiE 'PASSED' || { echo "$COL_ERROR"; return; }
+  out=$(timeout 8 smartctl -H "$d" 2>&1)
+  echo "$out" | grep -qiE "INQUIRY failed|Unable to detect|open device.*failed" && { echo "$COL_ERROR"; return; }
+  echo "$out" | grep -qiE "FAILED|failing" && { echo "$COL_ERROR"; return; }
+  echo "$out" | grep -qiE "PASSED" || { echo "$COL_ERROR"; return; }
   local pend
-  pend=$(smartctl -A "$d" 2>/dev/null | awk '/Current_Pending_Sector|Reallocated_Sector_Ct|Offline_Uncorrectable/{s+=$10} END{print s+0}')
+  pend=$(timeout 8 smartctl -A "$d" 2>/dev/null | awk '/Current_Pending_Sector|Reallocated_Sector_Ct|Offline_Uncorrectable/{s+=$10} END{print s+0}')
   [ "${pend:-0}" -gt 0 ] && { echo "$COL_WARN"; return; }
   echo "$COL_HEALTHY"
 }
 
-declare -A HEALTH_COL     # cached health colour per bay
-declare -A LAST_LED       # last applied state per LED (avoid redundant CLI writes)
+declare -A HEALTH_COL LAST_LED
 last_smart=0
+set_changed(){ [ "${LAST_LED[$1]:-}" = "$2" ] && return 1; LAST_LED[$1]="$2"; return 0; }
 
-set_changed(){ # $1=led $2=state ; returns 0 (and marks) if state differs
-  [ "${LAST_LED[$1]:-}" = "$2" ] && return 1
-  LAST_LED[$1]="$2"; return 0
-}
-
-lan_led(){ # $1=iface $2=led
+lan_led(){
   if [ "$(cat /sys/class/net/$1/carrier 2>/dev/null)" = "1" ]; then
-    set_changed "$2" "up"   && { LED "$2" -on -color $COL_LAN -brightness $BR_LAN; return 0; }
+    set_changed "$2" up   && LED "$2" -on -color $COL_LAN -brightness $BR_LAN
   else
-    set_changed "$2" "down" && { LED "$2" -off; return 0; }
+    set_changed "$2" down && LED "$2" -off
   fi
-  return 1
 }
 
-power_white   # ensure power on at start
+power_takeover   # once, from cold
 
 while true; do
-  changed=0
   now=$(date +%s 2>/dev/null || echo 0)
-
+  load_map && LAST_LED=()      # calibration changed mapping.conf -> reload + re-evaluate all LEDs
   declare -A present=()
   while read -r bay dev; do present[$bay]="$dev"; done < <(present_bays)
 
-  # health: refresh periodically, and immediately for any newly-seen bay
   refresh=0
   [ $((now - last_smart)) -ge $SMART_INTERVAL ] && refresh=1
   for b in "${!present[@]}"; do [ -n "${HEALTH_COL[$b]:-}" ] || refresh=1; done
@@ -119,17 +131,15 @@ while true; do
   for b in 1 2 3 4 5 6; do
     if [ -n "${present[$b]:-}" ]; then
       col="${HEALTH_COL[$b]:-$COL_HEALTHY}"
-      if set_changed "disk$b" "on:$col"; then LED "disk$b" -on -color $col -brightness $BR_DISK; changed=1; fi
+      set_changed "disk$b" "on:$col" && LED "disk$b" -on -color $col -brightness $BR_DISK
     else
-      if set_changed "disk$b" "off"; then LED "disk$b" -off; changed=1; fi
+      set_changed "disk$b" off && LED "disk$b" -off
     fi
   done
 
-  lan_led eth0 network_stat  && changed=1
-  lan_led eth1 network_stat2 && changed=1
+  lan_led eth0 network_stat
+  lan_led eth1 network_stat2
 
-  # any CLI write runs the MCU init probe, which zeros the power LED — re-assert it
-  [ "$changed" = 1 ] && power_white
-
+  power_refresh
   sleep $REFRESH
 done

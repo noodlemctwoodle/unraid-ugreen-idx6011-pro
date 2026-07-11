@@ -76,28 +76,37 @@ incompatible `led_ugreen` module, and launches the monitor.
 
 ## Configuration
 
-Edit `monitor.sh` (top of file):
+**Bay mapping — no code editing.** The plugin ships with the correct iDX6011 Pro
+port→bay map built in (the SATA wiring is identical on every unit), so the LEDs match your
+physical bays out of the box. If they don't, or you want to be certain, run the one-time wizard:
 
-- **Bay mapping** — `HCTL_TO_BAY` maps each disk's HCTL (from `lsblk -S -o name,hctl,serial`)
-  to a physical bay. Extend it when you populate more bays.
-- **Colours** — `COL_HEALTHY`, `COL_WARN`, `COL_ERROR`, `COL_LAN` (R G B).
-- **Timing** — `REFRESH` (loop interval), `SMART_INTERVAL` (health re-check).
+```bash
+bash /boot/config/plugins/ugreen-idx6011-pro/calibrate.sh
+```
+
+It lights each bay LED in turn and you type which disk is in it, then writes `mapping.conf`.
+The monitor **re-reads that file live** (within ~2 s) — no restart needed. Mapping is keyed on
+the fixed **SATA port** (`pci/ataN`), so it survives reboots and disk shuffles.
+
+**Other tunables** (top of `src/monitor.sh`): colours (`COL_HEALTHY` / `COL_WARN` /
+`COL_ERROR` / `COL_LAN`), brightness, and timing (`REFRESH`, `SMART_INTERVAL`).
 
 ## Files
 
 ```
 ugreen-idx6011-pro.plg   Unraid plugin manifest
-src/monitor.sh           the live LED daemon (presence + health + LAN)
+src/monitor.sh           live LED daemon (presence + health + LAN), config-driven bay map
+src/calibrate.sh         interactive bay-mapping wizard (writes mapping.conf; no editing)
 src/start.sh             boot/install: prep i2c + launch the daemon
 src/stop.sh              remove: stop the daemon, blank the LEDs
 src/leds.sh              optional one-shot "set static states" helper
+mapping.conf             (generated) port->bay map; overrides the built-in default
 ```
 
 ## Known limitations
 
 - **No disk-activity blink yet.** Blinking needs frequent CLI writes, which fight the power-LED
   workaround; the clean fix is a small CLI patch (skip the init probe) — planned.
-- **Bay mapping is manual** (`HCTL_TO_BAY`), verified by eye.
 - **Not yet a downloadable release** — the CLI is built locally (see Install).
 
 ## Roadmap
