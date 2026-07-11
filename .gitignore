@@ -1,0 +1,9 @@
+# built artifact — compile locally per the README (do not commit)
+ugreen_leds_cli
+# bundled packages
+*.txz
+# logs / runtime
+*.log
+*.pid
+# never commit secrets
+.env

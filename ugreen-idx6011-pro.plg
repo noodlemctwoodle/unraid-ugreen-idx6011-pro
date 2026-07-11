@@ -1,0 +1,46 @@
+<?xml version='1.0' standalone='yes'?>
+<!DOCTYPE PLUGIN [
+<!ENTITY name    "ugreen-idx6011-pro">
+<!ENTITY author  "noodlemctwoodle">
+<!ENTITY version "2026.07.11">
+<!ENTITY plgdir  "/boot/config/plugins/&name;">
+]>
+
+<PLUGIN name="&name;"
+        author="&author;"
+        version="&version;"
+        min="6.12.0"
+        icon="lightbulb"
+        pluginURL="https://raw.githubusercontent.com/noodlemctwoodle/unraid-ugreen-idx6011-pro/main/&name;.plg">
+
+<CHANGES>
+###2026.07.11
+- Initial release. Smart front-panel LEDs for the UGREEN NASync iDX6011 Pro
+  (power + 2x LAN + 6x disk): drive presence, SMART health (green/amber/red),
+  and LAN link, updated live by a monitor daemon.
+- Disk/LAN LEDs use klein0r's ugreen_leds_cli (iDX6011 protocol); the power LED
+  uses a raw i2c sequence (the CLI can't drive it on this model).
+</CHANGES>
+
+<!--
+  Runs on install AND on every boot (Unraid re-runs plugin install at boot).
+  Staged files under &plgdir; on the flash: ugreen_leds_cli, monitor.sh, start.sh,
+  stop.sh, i2c-tools-*.txz  (see README for how to build/stage them).
+-->
+<FILE Run="/bin/bash">
+<INLINE>
+bash "&plgdir;/start.sh"
+echo ""
+echo "&name; &version; — front-panel LED monitor started"
+echo ""
+</INLINE>
+</FILE>
+
+<REMOVE>
+<INLINE>
+bash "&plgdir;/stop.sh"
+echo "&name; removed (LEDs off)"
+</INLINE>
+</REMOVE>
+
+</PLUGIN>
