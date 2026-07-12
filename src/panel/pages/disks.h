@@ -1,7 +1,7 @@
 /*
  * plugin/src/panel/pages/disks.h
  *
- * Created by Toby G on 12/07/2026.
+ * Created by noodlemctwoodle on 12/07/2026.
  *
  * DISKS page — per-disk health, temp, fs usage
  * Part of panel_dash: #included by panel_dash.c in a fixed order; not a

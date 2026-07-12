@@ -1,7 +1,7 @@
 /*
  * plugin/src/panel/unraid_logo.h
  *
- * Created by Toby G on 12/07/2026.
+ * Created by noodlemctwoodle on 12/07/2026.
  *
  * Official Unraid logo (homarr-labs/dashboard-icons, CC0/MIT icon set), scaled
  * to header size and embedded as PNG bytes. Decoded once via stb_image and

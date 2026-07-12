@@ -2,7 +2,7 @@
 #
 # plugin/src/panel/build.sh
 #
-# Created by Toby G on 12/07/2026.
+# Created by noodlemctwoodle on 12/07/2026.
 #
 # Build the panel_dash dashboard for Unraid. Run inside the i915build container
 # on the box (or any glibc <= Unraid's, x86_64, with libdrm-dev):

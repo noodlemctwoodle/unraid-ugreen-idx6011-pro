@@ -1,7 +1,7 @@
 /*
  * plugin/src/panel/panel_dash.c
  *
- * Created by Toby G on 12/07/2026.
+ * Created by noodlemctwoodle on 12/07/2026.
  *
  * panel_dash — UGREEN iDX6011 Pro front-panel dashboard for Unraid.
  * Renders live system stats on the 258x960 portrait eDP panel via DRM/KMS

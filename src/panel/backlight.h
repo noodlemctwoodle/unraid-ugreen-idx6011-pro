@@ -1,7 +1,7 @@
 /*
  * plugin/src/panel/backlight.h
  *
- * Created by Toby G on 12/07/2026.
+ * Created by noodlemctwoodle on 12/07/2026.
  *
  * EC + i915 backlight control (dimming, screen-off)
  * Part of panel_dash: #included by panel_dash.c in a fixed order; not a

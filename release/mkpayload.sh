@@ -2,7 +2,7 @@
 #
 # plugin/release/mkpayload.sh
 #
-# Created by Toby G on 12/07/2026.
+# Created by noodlemctwoodle on 12/07/2026.
 #
 # Assemble the flash-payload .txz that the .plg downloads, verifies (SHA256) and
 # extracts to /boot/config/plugins/ugreen-idx6011-pro/ on install. Produces

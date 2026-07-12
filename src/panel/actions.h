@@ -1,7 +1,7 @@
 /*
  * plugin/src/panel/actions.h
  *
- * Created by Toby G on 12/07/2026.
+ * Created by noodlemctwoodle on 12/07/2026.
  *
  * non-blocking action spawns (restart / reboot / shutdown / leds)
  * Part of panel_dash: #included by panel_dash.c in a fixed order; not a
