@@ -5,6 +5,6 @@
 # entry, BootOrder) — the grub entry references bzroot-wakefix, so removing that
 # file would break the default boot. Full manual uninstall is documented in
 # docs/front-panel-blueprint.md.
-pkill -x panel_dash2 2>/dev/null
-rm -f /usr/local/bin/panel_dash2
+pkill -x panel_dash 2>/dev/null
+rm -f /usr/local/bin/panel_dash
 exit 0

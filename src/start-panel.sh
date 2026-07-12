@@ -5,7 +5,7 @@
 P=/boot/config/plugins/ugreen-idx6011-pro
 PANEL=$P/panel
 KV=$(uname -r)
-LOG=/var/log/panel_dash2.log
+LOG=/var/log/panel_dash.log
 
 notify(){ /usr/local/emhttp/webGui/scripts/notify -i "$1" -s "Front panel" -d "$2" 2>/dev/null; }
 
@@ -49,7 +49,7 @@ if [ "$(cat /sys/class/drm/card*-eDP-1/status 2>/dev/null | head -1)" = "connect
     [ -f "$WALLPAPER" ] && ARGS="$ARGS --bg $WALLPAPER"
     ( sleep 5; setsid /usr/local/bin/panel_dash $ARGS </dev/null >>$LOG 2>&1 ) </dev/null >/dev/null 2>&1 &
     disown 2>/dev/null
-    echo "$(date) panel_dash2 starting ($ARGS)" >> $LOG
+    echo "$(date) panel_dash starting ($ARGS)" >> $LOG
 else
     echo "$(date) eDP-1 not connected — booted via USB path or overlay missing; dashboard skipped" >> $LOG
     notify warning "LCD not active this boot. Boot via the NVMe grub entry (see plugin docs) to light the panel."

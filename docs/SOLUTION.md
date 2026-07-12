@@ -35,9 +35,9 @@ UGOS is no longer required; if present its grub is used only as an extra fallbac
 | The BIOS powers the front-panel rail **only when it boots a *registered* EFI NVRAM entry** — NOT the auto-generated removable-media "UEFI OS" fallback. Confirmed 2026-07-12: a named `efibootmgr -c` entry pointing at the USB flash lights the panel on a pure USB boot (`BootCurrent=0000`, eDP-1 connected, 0 AUX timeouts). Every earlier "USB = dark" test had gone through the *fallback* entry — the boot **device** was never the variable. (Original NVMe-grub finding still works; it's just no longer required.) | Plugin self-registers a named EFI entry (`assert-boot.sh`) — **no UGOS/NVMe/grub dependency**. UGOS grub, if present, is an opportunistic fallback. |
 | Kernels ≥6.17 removed the DPCD wake-probe eDP relies on here: `d34d6feaf4a7` moved the probe address `DPCD_REV(0x000)` → `TRAINING_PATTERN_SET(0x102)`; `ed3648b9ec4c` disabled the probe for eDP entirely. This panel's eDP→DSI bridge **only wakes on a 0x000 read** (UGOS golden trace: first transaction `0x00000 AUX -> (ret=1) 12`). | Two-line patch, shipped as overlay initrd `bzroot-wakefix` (see §4). Upstream is aware (unmerged fix: "drm/i915/dp: On DPCD init wake the DPRx for eDP", Arun R Murthy, 2026-02). |
 | UGOS works because it boots via the NVMe entry **and** its kernel (pinned to 6.12.30, rebuilt as recently as 2026-06) predates the probe change. UGOS's i915/DRM binaries are bit-stock. There is no vendor display patch. | Nothing to port from UGOS for the display. |
-| Unraid's kernel omits `GPIOLIB_IRQCHIP`, `PINCTRL_METEORLAKE`, `MFD_INTEL_LPSS*`, `I2C_DESIGNWARE*` — so the vendor touch driver *and* i2c-hid can never bind (the HID probe defers forever on GpioInt). The touch chip's `PNP0C50` HID claim is also false (no HID descriptor at any register). | Touch = LPSS/designware modules built out-of-tree (loadable; ABI-safe) + **userspace AXS15231B polling** in panel_dash2. No kernel touch driver. |
-| AXS15231B protocol: write 11-byte command `b5 ab a5 5a 00 00 <len_hi> <len_lo> 00 00 00`, then read `len` bytes in one I2C transaction. Frame: `[0]=gesture [1]=count(low nibble) [2..3]=X(12bit) [4..5]=Y(12bit) [6..7]=frame counter … [14]=checksum(sum of 0..13)`. All-`0x10` frame = idle/release keepalive. Coordinates are already in panel space (0..257 × 0..959), identity orientation. Plain (un-commanded) reads return zeros — that's why naive probing "found nothing". | `touch_init`/`touch_poll` in panel_dash2.c. Chip at address 0x3b on the DesignWare adapter of PCI `00:15.1` (usually `/dev/i2c-17`; auto-discovered by adapter name). |
-| i915 FBC (framebuffer compression) is active on the eDP plane. CPU writes to a dumb buffer do **not** invalidate the compressed copy — the panel freezes on the first frame while memory updates happily. | `drmModeDirtyFB()` after every render (panel_dash2 does this). If you ever see a frozen-but-running dashboard, think FBC. |
+| Unraid's kernel omits `GPIOLIB_IRQCHIP`, `PINCTRL_METEORLAKE`, `MFD_INTEL_LPSS*`, `I2C_DESIGNWARE*` — so the vendor touch driver *and* i2c-hid can never bind (the HID probe defers forever on GpioInt). The touch chip's `PNP0C50` HID claim is also false (no HID descriptor at any register). | Touch = LPSS/designware modules built out-of-tree (loadable; ABI-safe) + **userspace AXS15231B polling** in panel_dash. No kernel touch driver. |
+| AXS15231B protocol: write 11-byte command `b5 ab a5 5a 00 00 <len_hi> <len_lo> 00 00 00`, then read `len` bytes in one I2C transaction. Frame: `[0]=gesture [1]=count(low nibble) [2..3]=X(12bit) [4..5]=Y(12bit) [6..7]=frame counter … [14]=checksum(sum of 0..13)`. All-`0x10` frame = idle/release keepalive. Coordinates are already in panel space (0..257 × 0..959), identity orientation. Plain (un-commanded) reads return zeros — that's why naive probing "found nothing". | `touch_init`/`touch_poll` in `touch.h`. Chip at address 0x3b on the DesignWare adapter of PCI `00:15.1` (usually `/dev/i2c-17`; auto-discovered by adapter name). |
+| i915 FBC (framebuffer compression) is active on the eDP plane. CPU writes to a dumb buffer do **not** invalidate the compressed copy — the panel freezes on the first frame while memory updates happily. | `drmModeDirtyFB()` after every render (panel_dash does this). If you ever see a frozen-but-running dashboard, think FBC. |
 
 Ruled out along the way (each empirically, so nobody re-chases them): kernel version
 (6.12.30/6.12.87/6.18 all behave identically given the same boot path), i915 load
@@ -126,10 +126,13 @@ Loaded via grub: `initrd /bzroot /bzroot-wakefix`.
 modules against the new source with the new `config`, regenerate the overlay.
 Verify vermagic: `modinfo -F vermagic i915.ko` must equal `uname -r` + ` SMP preempt mod_unload`.
 
-## 5. The dashboard daemon (`panel_dash2`)
+## 5. The dashboard daemon (`panel_dash`)
 
-Source: `plugin/src/panel_dash2.c` (single-file C99; v1 kept as `panel_dash.c`).
-Build: `gcc -O2 -w -o panel_dash2 panel_dash2.c -I/usr/include/libdrm -ldrm -lm`
+Source: `plugin/src/panel/` (modular C99). `panel_dash.c` is a thin aggregator that
+`#include`s the concern modules (`draw.h`, `stats*.h`, `ui.h`, `prefs.h`,
+`pageframe.h`, `pages/*.h`, `render.h`, `touch.h`) in dependency order — one
+translation unit, nothing compiled separately.
+Build: `gcc -O2 -w -o panel_dash panel_dash.c -I/usr/include/libdrm -ldrm -lm`
 (with `stb_easy_font.h` + `stb_image.h` alongside — both vendored on the box at
 `/mnt/cache/build/dash/`). Links against Unraid's own `/usr/lib64/libdrm.so.2`.
 Container glibc (2.41) < Unraid glibc (2.43) so binaries port cleanly.
@@ -165,10 +168,10 @@ Runtime essentials:
 ## 6. Boot persistence (what runs on every boot)
 
 - Binary + modules on the flash: `/boot/config/plugins/ugreen-idx6011-pro/`
-  (`panel_dash2`, `modules/intel-lpss.ko`, `modules/intel-lpss-pci.ko`,
+  (`panel_dash`, `modules/intel-lpss.ko`, `modules/intel-lpss-pci.ko`,
   `modules/i2c-designware-core.ko`, `modules/i2c-designware-platform.ko`).
 - `/boot/config/go` block: modprobes stock `mfd_core` + `i2c-dev`, insmods the four
-  out-of-tree LPSS/designware modules, copies `panel_dash2` to `/usr/local/bin`,
+  out-of-tree LPSS/designware modules, copies `panel_dash` to `/usr/local/bin`,
   starts it (5 s delayed) with optional wallpaper at
   `/boot/config/plugins/ugreen-idx6011-pro/wallpaper.png`.
 - Touch modules were built with the same harness as §4 (config symbols:
@@ -199,7 +202,7 @@ initramfs-tools-core acpica-tools grub-efi-amd64-bin binutils curl`, with
 | Need Unraid without the NVMe path | Plain USB boot still works (BIOS pin/F11) — panel stays dark, everything else normal. |
 | Panel dark after Unraid kernel update | Rebuild overlay modules (§4) for the new kernel version. Panel dark ≠ broken box. |
 | Dashboard frozen but process alive | FBC staleness — make sure the running build issues `drmModeDirtyFB` per frame. |
-| Touch dead | Check the LPSS chain: `ls /sys/bus/i2c/devices/` should list `i2c-CUST0000:00` and DesignWare adapters; re-run the go-script insmod block; `TOUCH_DEBUG=1 panel_dash2` to trace. |
+| Touch dead | Check the LPSS chain: `ls /sys/bus/i2c/devices/` should list `i2c-CUST0000:00` and DesignWare adapters; re-run the go-script insmod block; `TOUCH_DEBUG=1 panel_dash` to trace. |
 | Wipe/reinstall everything | Flash config backup procedure as documented in the repo `BACKUP-KEEP-2026-07-12/README.txt`. |
 
 ## 9. Open items (tracked)
@@ -226,10 +229,10 @@ initramfs-tools-core acpica-tools grub-efi-amd64-bin binutils curl`, with
 - **`boot/go-block.sh`** — exact `/boot/config/go` autostart block.
 - **`boot/build-overlay.sh`** — one-command module/overlay/touch-stack rebuild
   (run after every Unraid upgrade).
-- **`src/panel_dash2.c`** + vendored `stb_easy_font.h`/`stb_image.h` + `build.sh`
-  — the dashboard daemon, fully self-contained (v1 `panel_dash.c` kept as the
-  minimal DRM-core reference).
-- **`prebuilt/`** — the verified binaries (`panel_dash2`, `bzroot-wakefix`
+- **`src/panel/`** — the dashboard daemon (modular C99): `panel_dash.c` aggregates
+  the concern modules (`draw`/`stats`/`ui`/`pages`/`render`/`touch`) plus vendored
+  `stb_easy_font.h`/`stb_image.h`; `build.sh` compiles it. Fully self-contained.
+- **`prebuilt/`** — the verified binaries (`panel_dash`, `bzroot-wakefix`
   ⚠️ kernel-6.18.38-bound) for disaster recovery; see its README.
 - Removed as superseded: `OVERNIGHT-REPORT-2026-07-12.md`, `dashboard-customization.md`,
   `edp-regression-fix.md` (their still-true content is absorbed here).

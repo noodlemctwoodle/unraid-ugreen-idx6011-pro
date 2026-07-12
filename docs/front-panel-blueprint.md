@@ -11,7 +11,7 @@ kernel 6.18.38-Unraid**. Version-specific values are marked ⚠️.
 
 ## What you end up with
 
-- Front 258×960 LCD lit, running `panel_dash2`: 5 pages (OVERVIEW / NETWORK /
+- Front 258×960 LCD lit, running `panel_dash`: 5 pages (OVERVIEW / NETWORK /
   DISKS / SYSTEM / ABOUT), touch: swipe L/R = page, U/D = scroll, tap footer =
   next page, long-press = dim. Live stats incl. power draw (RAPL). Optional
   wallpaper. Survives reboots.
@@ -108,7 +108,7 @@ tree if needed (the .patch file is self-describing).
 
 ```sh
 mkdir -p /boot/config/plugins/ugreen-idx6011-pro
-cp plugin/prebuilt/panel_dash2 /boot/config/plugins/ugreen-idx6011-pro/panel_dash2
+cp plugin/prebuilt/panel_dash /boot/config/plugins/ugreen-idx6011-pro/panel_dash
 cat plugin/boot/go-block.sh >> /boot/config/go     # once; block is guarded by an if
 ```
 
@@ -120,10 +120,10 @@ it after 5 s with `--backlight 75 --interval 1` and optional
 ## Step 5 — (Re)build the daemon from source (optional; prebuilt provided)
 
 ```sh
-# source of truth: plugin/src/panel_dash2.c (+ vendored stb_easy_font.h, stb_image.h)
-cp plugin/src/{panel_dash2.c,stb_easy_font.h,stb_image.h,build.sh} /mnt/cache/build/dash/
+# source of truth: plugin/src/panel/ (modular; panel_dash.c + *.h modules + pages/ + vendored stb)
+cp -r plugin/src/panel/* /mnt/cache/build/dash/     # includes pages/ subdir and build.sh
 docker exec i915build bash /build/dash/build.sh
-cp /mnt/cache/build/dash/panel_dash2 /boot/config/plugins/ugreen-idx6011-pro/panel_dash2
+cp /mnt/cache/build/dash/panel_dash /boot/config/plugins/ugreen-idx6011-pro/panel_dash
 ```
 
 CLI: `--bg <png/jpg>` `--backlight <pct>` `--interval <s>` `--once`
@@ -141,9 +141,9 @@ Verification checklist (all over SSH):
 cat /sys/class/drm/card0-eDP-1/status          # -> "connected"
 dmesg | grep -c "AUX A.*timeout"               # -> 0
 cat /sys/class/backlight/intel_backlight/brightness   # -> 144000 (75%)
-pgrep -x panel_dash2                           # -> pid
+pgrep -x panel_dash                           # -> pid
 ls /sys/bus/i2c/devices/ | grep CUST           # -> i2c-CUST0000:00  (touch enumerated)
-head -2 /var/log/panel_dash2.log               # -> "eDP-1: 258x960@60" + "touch: AXS15231B on /dev/i2c-NN"
+head -2 /var/log/panel_dash.log               # -> "eDP-1: 258x960@60" + "touch: AXS15231B on /dev/i2c-NN"
 ```
 
 Touch test: swipe the panel left/right — pages change; up/down — page scrolls.
@@ -181,7 +181,7 @@ Full table in [`SOLUTION.md` §8](SOLUTION.md). The three most likely:
   ports 0x62/0x66, EC-RAM offset 0xA5, 1=full…198=off) drives a second
   `mipi_backlight` path under UGOS — not needed on Unraid.
 - **LEDs**: 9× RGB via on-board MCU — handled by the existing LED plugin
-  (`src/leds.sh`, `src/monitor.sh`).
+  (`src/start.sh` stages the daemon `src/monitor.sh`).
 - **Do-not**: never downgrade Unraid on this box (burns the trial license);
   never insmod pinctrl/gpio modules built with `GPIOLIB_IRQCHIP` (running kernel
   lacks it — `struct gpio_chip` ABI mismatch).

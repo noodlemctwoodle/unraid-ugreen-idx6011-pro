@@ -33,7 +33,7 @@ that source on Unraid 7.3.2 and exercised with a full real-manager lifecycle tes
    - Loads the touch stack: stock `mfd_core` + per-kernel `intel-lpss(-pci)` +
      `i2c-designware-core/platform` from flash + stock `i2c-dev`.
    - If `eDP-1` is `connected` (i.e. we booted via the NVMe path): kills any old
-     daemon **first**, copies the new binary, starts `panel_dash2` with
+     daemon **first**, copies the new binary, starts `panel_dash` with
      `settings.cfg` values. Otherwise posts a warning notification and exits 0.
 
 `<FILE Run="/bin/bash" Method="remove">` → stops both daemons, removes the RAM-side
@@ -48,7 +48,7 @@ would break the default boot. Full manual uninstall = `front-panel-blueprint.md`
 ├── start.sh / stop.sh / monitor.sh / ugreen_leds_cli…   # LED feature (existing)
 ├── start-panel.sh / stop-panel.sh / assert-grub.sh      # LCD feature
 └── panel/
-    ├── panel_dash2                    # daemon binary
+    ├── panel_dash                    # daemon binary
     ├── settings.cfg                   # BRIGHTNESS / INTERVAL / ROTATE
     ├── wallpaper.png                  # optional, user-supplied
     ├── modules/<kver>/*.ko            # touch stack, per kernel version
@@ -58,7 +58,7 @@ would break the default boot. Full manual uninstall = `front-panel-blueprint.md`
 ## Release process (for public distribution)
 
 1. Build artifacts for the target Unraid release: `boot/build-overlay.sh` (overlay +
-   touch modules) and `src/build.sh` (daemon).
+   touch modules) and `src/panel/build.sh` (daemon).
 2. Pack the payload: `tar cJf ugreen-idx6011-pro-<ver>.txz` of the flash layout above
    (root:root ownership).
 3. Attach the txz to a GitHub release; compute `md5sum`.

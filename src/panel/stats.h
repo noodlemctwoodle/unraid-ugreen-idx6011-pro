@@ -1,0 +1,77 @@
+/*
+ * plugin/src/panel/stats.h
+ *
+ * Created by Toby G on 12/07/2026.
+ *
+ * stats_t + related structs, size limits, monotonic clock
+ * Part of panel_dash: #included by panel_dash.c in a fixed order; not a
+ * standalone translation unit (relies on the includes and earlier modules).
+ */
+#ifndef PANEL_STATS_H
+#define PANEL_STATS_H
+
+/* ---------- stats ---------- */
+#define MAX_IFACES 6
+#define MAX_DISKS  12
+#define MAX_CTRS   20
+
+typedef struct {
+    char name[32], ip[44], ip6[48];
+    int up;
+    unsigned long long rx_tot, tx_tot;
+    double rx_kbs, tx_kbs;
+} iface_t;
+
+typedef struct {
+    char name[32], type[16];
+    int present, np, spun, health;   /* health: 0 ok, 1 warn, 2 bad, 3 grey */
+    int temp;                        /* C, -1 = unavailable */
+    long long errors;
+    unsigned long long fs_size, fs_used, size_kib;   /* KiB */
+} disk_t;
+
+typedef struct {
+    char name[40];
+    char state[16];                  /* running / exited / paused / ...      */
+    char status[48];                 /* "Up 3 hours" free text               */
+} ctr_t;
+
+typedef struct {
+    char host[64], ip[48], arr[32];
+    double cpu; long mem_used_mb, mem_tot_mb;
+    double rx_kbs, tx_kbs;
+    double disk_used_pct; double disk_tot_gb, disk_used_gb;
+    int temp_c; long up_s;
+    char prim_if[32];
+    int n_ifaces; iface_t ifc[MAX_IFACES];
+    int n_disks;  disk_t disks[MAX_DISKS];
+    int gpu_avail; double gpu_busy; int gpu_freq;
+    double pwr_sys_w, pwr_pkg_w;          /* RAPL watts; <0 = n/a */
+    char cpu_model[96]; int cpu_threads;
+    long mem_free_mb, mem_cache_mb;
+    double boot_pct, log_pct, docker_pct;  /* <0 = n/a */
+    int npu_avail; double npu_busy; int npu_freq, npu_max_freq;
+    unsigned long long npu_mem;
+    int fans_total, fans_on;
+    int docker;                      /* running count, -1 = n/a */
+    int docker_total;                /* total containers, -1 = n/a */
+    int n_ctrs; ctr_t ctrs[MAX_CTRS];
+    int vm_enabled, vm_count;
+    int pkg_temp, nvme_temp, board_temp;
+    char version[32], kernel[64];
+    unsigned long long resync, resync_pos; char resync_act[32];
+    double resync_mbs;
+    int md_bad;                      /* disabled + invalid + missing */
+    long long sync_errs;
+    int mover;
+    int notif_count, notif_imp;      /* imp: 0 normal, 1 warning, 2 alert */
+    char notif_subj[128];
+} stats_t;
+
+static long now_ms(void){
+    struct timespec ts; clock_gettime(CLOCK_MONOTONIC, &ts);
+    return ts.tv_sec * 1000L + ts.tv_nsec / 1000000L;
+}
+
+
+#endif /* PANEL_STATS_H */

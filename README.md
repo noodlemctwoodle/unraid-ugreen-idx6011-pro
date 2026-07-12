@@ -194,7 +194,7 @@ More: [docs/SOLUTION.md §8](docs/SOLUTION.md) (recovery procedures table).
 Everything builds in a Debian container on the box (the plugin's own docs assume
 `i915build` with `/mnt/cache/build` mounted at `/build`):
 
-- **Dashboard**: `src/panel_dash2.c` + vendored stb headers → [src/build.sh](src/build.sh)
+- **Dashboard**: `src/panel/` (modular C99; `panel_dash.c` aggregates the modules + vendored stb headers) → [src/panel/build.sh](src/panel/build.sh)
 - **Display-module overlay + touch-stack modules**: [boot/build-overlay.sh](boot/build-overlay.sh)
   (applies [boot/i915-edp-wakeprobe-6.18.38.patch](boot/i915-edp-wakeprobe-6.18.38.patch),
   builds against Unraid's own kernel config, packs the overlay with the required
@@ -207,9 +207,9 @@ Everything builds in a Debian container on the box (the plugin's own docs assume
 
 ```
 ugreen-idx6011-pro.plg   Unraid plugin manifest (schema-verified, lifecycle-tested)
-src/                     dashboard C sources + all shell scripts (LED + LCD + boot heal)
+src/                     shell scripts (LED + LCD + boot heal); src/panel/ = modular dashboard C
 boot/                    exact grub entry, go-block, kernel patch, overlay build script
-prebuilt/                verified binaries: panel_dash2, bzroot-wakefix (kernel-bound),
+prebuilt/                verified binaries: panel_dash, bzroot-wakefix (kernel-bound),
                          ugreen_leds_cli (klein0r/iDX6011), i2c-tools txz
 images/                  plugin icon (transparent PNG)
 docs/SOLUTION.md         architecture + every hardware discovery, with evidence
