@@ -289,7 +289,7 @@ eDP"* (Arun R Murthy) addresses the same kernel regression — see
 
 ## License
 
-Plugin scripts and dashboard source: **MIT**.
+Plugin scripts and dashboard source: **MIT** — full text in [LICENSE](LICENSE).
 
 Bundled and derived components keep their upstream licenses:
 
