@@ -10,7 +10,8 @@ running **Unraid** — the full front panel, working natively, no UGOS required 
 [![UGREEN iDX6011 Pro](https://img.shields.io/badge/UGREEN-iDX6011%20Pro-1793d1)](https://nas.ugreen.com)
 [![License](https://img.shields.io/badge/license-MIT%20%2F%20GPL--2.0-blue)](#license)
 
-> Community project. Not affiliated with or endorsed by UGREEN.
+> An independent project built by and for iDX6011 Pro owners — not made,
+> affiliated with, or endorsed by UGREEN.
 
 **Jump to:** [Features](#features) · [Requirements](#requirements) · [How it works](#how-it-works) ·
 [Install](#installation) · [Dashboard](#the-dashboard) · [LEDs](#front-panel-leds) ·
