@@ -33,10 +33,10 @@ static void page_overview(stats_t *st){
 
     card(y, 142, "CPU");
     snprintf(b, sizeof b, "%.0f%%", st->cpu);
-    text(22, y + 34, 4.8f, UN_TEXT, b);
+    text(22, y + 44, 4.8f, UN_TEXT, b);
     if (st->temp_c > 0){
         snprintf(b, sizeof b, "%dC", st->temp_c);
-        text(W - 22 - text_w(2.8f, b), y + 44, 2.8f, st->temp_c > 85 ? UN_BAD : UN_DIM, b);
+        text(W - 22 - text_w(2.8f, b), y + 50, 2.8f, st->temp_c > 85 ? UN_BAD : UN_DIM, b);
     }
     /* psys RAPL is miscalibrated on this board (reads ~0); package matches the webUI */
     double pw = st->pwr_pkg_w;
@@ -50,26 +50,26 @@ static void page_overview(stats_t *st){
 
     card(y, 128, "MEMORY");
     double mp = st->mem_tot_mb ? 100.0 * st->mem_used_mb / st->mem_tot_mb : 0;
-    snprintf(b, sizeof b, "%.1f / %.1f GB", st->mem_used_mb / 1024.0, st->mem_tot_mb / 1024.0);
-    text(22, y + 40, 2.7f, UN_TEXT, b);
     snprintf(b, sizeof b, "%.0f%%", mp);
-    text(W - 22 - text_w(2.0f, b), y + 44, 2.0f, UN_DIM, b);
+    text(W - 22 - text_w(1.9f, b), y + 10, 1.9f, UN_DIM, b);
+    snprintf(b, sizeof b, "%.1f / %.1f GB", st->mem_used_mb / 1024.0, st->mem_tot_mb / 1024.0);
+    text(22, y + 44, 2.4f, UN_TEXT, b);
     bar(22, y + 94, W - 44, 18, mp, level_col(mp));
     y += 140;
 
     card(y, 128, "NETWORK");
     text(W - 22 - text_w(1.7f, st->prim_if), y + 10, 1.7f, UN_DIM, st->prim_if);
     fmt_rate(b + 4, sizeof(b) - 4, st->rx_kbs); memcpy(b, "DN  ", 4);
-    text(22, y + 40, 2.5f, UN_TEXT, b);
+    text(22, y + 44, 2.5f, UN_TEXT, b);
     fmt_rate(b + 4, sizeof(b) - 4, st->tx_kbs); memcpy(b, "UP  ", 4);
-    text(22, y + 82, 2.5f, UN_TEXT, b);
+    text(22, y + 86, 2.5f, UN_TEXT, b);
     y += 140;
 
     card(y, 128, "STORAGE");
-    snprintf(b, sizeof b, "%.0f / %.0f GB", st->disk_used_gb, st->disk_tot_gb);
-    text(22, y + 40, 2.7f, UN_TEXT, b);
     snprintf(b, sizeof b, "%.0f%%", st->disk_used_pct);
-    text(W - 22 - text_w(2.0f, b), y + 44, 2.0f, UN_DIM, b);
+    text(W - 22 - text_w(1.9f, b), y + 10, 1.9f, UN_DIM, b);
+    snprintf(b, sizeof b, "%.0f / %.0f GB", st->disk_used_gb, st->disk_tot_gb);
+    text(22, y + 44, 2.4f, UN_TEXT, b);
     bar(22, y + 94, W - 44, 18, st->disk_used_pct, level_col(st->disk_used_pct));
     y += 140;
 

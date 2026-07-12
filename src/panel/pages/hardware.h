@@ -16,12 +16,12 @@ static void page_hardware(stats_t *st){
 
     card(y, 152, "CPU");
     snprintf(b, sizeof b, "%.0f%%", st->cpu);
-    text(22, y + 30, 3.6f, UN_TEXT, b);
+    text(22, y + 44, 3.6f, UN_TEXT, b);
     if (st->cpu_threads > 0){
         snprintf(b, sizeof b, "%dT", st->cpu_threads);
         text(W - 22 - text_w(1.8f, b), y + 12, 1.8f, UN_DIM, b);
     }
-    spark(22, y + 78, W - 44, 62, h_cpu, h_cnt, h_pos, UN_ORANGE_M);
+    spark(22, y + 84, W - 44, 62, h_cpu, h_cnt, h_pos, UN_ORANGE_M);
     y += 164;
 
     card(y, 84, "CPU TEMP");
@@ -36,51 +36,51 @@ static void page_hardware(stats_t *st){
     }
     y += 96;
 
-    card(y, 108, "MEMORY");
+    card(y, 118, "MEMORY");
     double mp = st->mem_tot_mb ? 100.0 * st->mem_used_mb / st->mem_tot_mb : 0;
     snprintf(b, sizeof b, "%.1f / %.1f GB", st->mem_used_mb / 1024.0, st->mem_tot_mb / 1024.0);
-    text(22, y + 34, 2.4f, UN_TEXT, b);
+    text(22, y + 44, 2.4f, UN_TEXT, b);
     snprintf(b, sizeof b, "%.0f%%", mp);
-    text(W - 22 - text_w(1.9f, b), y + 37, 1.9f, UN_DIM, b);
-    bar(22, y + 74, W - 44, 16, mp, level_col(mp));
-    y += 120;
+    text(W - 22 - text_w(1.9f, b), y + 47, 1.9f, UN_DIM, b);
+    bar(22, y + 84, W - 44, 16, mp, level_col(mp));
+    y += 130;
 
     card(y, 152, "GPU");
     if (st->gpu_avail){
         snprintf(b, sizeof b, "%.0f%%", st->gpu_busy);
-        text(22, y + 30, 3.6f, UN_TEXT, b);
+        text(22, y + 44, 3.6f, UN_TEXT, b);
         if (st->gpu_freq >= 0){
             snprintf(b, sizeof b, "%d MHz", st->gpu_freq);
             text(W - 22 - text_w(1.9f, b), y + 12, 1.9f, UN_DIM, b);
         }
-        spark(22, y + 78, W - 44, 62, h_gpu, h_cnt, h_pos, UN_ORANGE);
+        spark(22, y + 84, W - 44, 62, h_gpu, h_cnt, h_pos, UN_ORANGE);
     } else {
-        text(22, y + 64, 2.0f, UN_DIM, "not available");
+        text(22, y + 70, 2.0f, UN_DIM, "not available");
     }
     y += 164;
 
-    card(y, 66, "NPU");
+    card(y, 76, "NPU");
     if (st->npu_avail){
         if (st->npu_freq > 0) snprintf(b, sizeof b, "busy %.0f%%  %d/%d MHz",
                                        st->npu_busy, st->npu_freq, st->npu_max_freq);
         else                  snprintf(b, sizeof b, "present  (idle)");
-        text(22, y + 36, 1.9f, UN_TEXT, b);
+        text(22, y + 44, 1.9f, UN_TEXT, b);
     } else {
-        text(22, y + 36, 1.9f, UN_DIM, "not present");
+        text(22, y + 44, 1.9f, UN_DIM, "not present");
     }
-    y += 78;
+    y += 88;
 
-    card(y, 66, "POWER");
+    card(y, 76, "POWER");
     if (st->pwr_pkg_w >= 0){
         if (st->pwr_sys_w > st->pwr_pkg_w)
             snprintf(b, sizeof b, "%.1f W  (cpu %.1f W)", st->pwr_sys_w, st->pwr_pkg_w);
         else
             snprintf(b, sizeof b, "%.1f W", st->pwr_pkg_w);
-        text(22, y + 34, 2.2f, UN_TEXT, b);
+        text(22, y + 44, 2.2f, UN_TEXT, b);
     } else {
-        text(22, y + 36, 1.9f, UN_DIM, "n/a");
+        text(22, y + 44, 1.9f, UN_DIM, "n/a");
     }
-    page_end = y + 78;
+    page_end = y + 88;
 }
 
 

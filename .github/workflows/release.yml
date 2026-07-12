@@ -64,12 +64,14 @@ jobs:
         run: bash release/mkpayload.sh "$VER"
 
       - name: Sync SHA256 into the .plg
+        id: sha
         if: steps.exists.outputs.already == 'false'
         env:
           VER: ${{ steps.meta.outputs.version }}
         run: |
           SHA=$(sha256sum "release/ugreen-idx6011-pro-$VER.txz" | awk '{print $1}')
           echo "payload SHA256: $SHA"
+          echo "sha256=$SHA" >> "$GITHUB_OUTPUT"
           sed -i -E "s#<SHA256>[0-9a-fA-F]*</SHA256>#<SHA256>${SHA}</SHA256>#" ugreen-idx6011-pro.plg
 
       - name: Commit .plg hash if changed
@@ -87,17 +89,46 @@ jobs:
             git push
           fi
 
-      - name: Extract release notes from CHANGES
+      - name: Build release notes
         if: steps.exists.outputs.already == 'false'
         env:
           VER: ${{ steps.meta.outputs.version }}
+          SHA: ${{ steps.sha.outputs.sha256 }}
         run: |
+          # changelog block for this version, from the .plg CHANGES
           awk -v v="###${VER}" '
             $0==v {grab=1; next}
             /^###/ {if (grab) exit}
             grab {print}
-          ' ugreen-idx6011-pro.plg > notes.md
-          [ -s notes.md ] || echo "Release ${VER}" > notes.md
+          ' ugreen-idx6011-pro.plg > changelog.txt
+          [ -s changelog.txt ] || echo "- maintenance release" > changelog.txt
+          PLG="https://raw.githubusercontent.com/noodlemctwoodle/unraid-ugreen-idx6011-pro/main/ugreen-idx6011-pro.plg"
+          {
+            echo 'Touch **LCD dashboard** + smart **front-panel LEDs** for the **UGREEN NASync iDX6011 Pro** running **Unraid** - the full front panel, working natively, no UGOS required.'
+            echo ''
+            echo '## Install / update'
+            echo ''
+            echo 'In the Unraid web UI: **Plugins -> Install Plugin**, paste this URL and install:'
+            echo ''
+            echo '```'
+            echo "$PLG"
+            echo '```'
+            echo ''
+            echo 'Then **reboot**. The plugin downloads a SHA256-verified payload, stages everything, and registers its own EFI boot entry; the 258x960 touch panel lights once the box boots that entry.'
+            echo ''
+            echo 'If the panel stays dark after rebooting, make the entry first in the BIOS: **Boot > UEFI USB Hard Disk Drive BBS Priorities > `Unraid (iDX6011 panel)`**.'
+            echo ''
+            echo '> **Kernel-matched:** the bundled touch modules + display overlay are built for **kernel 6.18.38-Unraid (Unraid 7.3.2)**. On a different Unraid kernel the panel stays dark until you rebuild them with `boot/build-overlay.sh` (see the runbook).'
+            echo ''
+            echo "## What's changed in ${VER}"
+            echo ''
+            cat changelog.txt
+            echo ''
+            echo '---'
+            echo "**Payload:** \`ugreen-idx6011-pro-${VER}.txz\`  |  **SHA256:** \`${SHA}\`"
+            echo ''
+            echo 'Docs & source: https://github.com/noodlemctwoodle/unraid-ugreen-idx6011-pro#readme'
+          } > notes.md
           echo "---- notes ----"; cat notes.md
 
       - name: Publish release

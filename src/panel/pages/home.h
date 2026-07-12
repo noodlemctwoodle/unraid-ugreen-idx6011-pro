@@ -47,10 +47,11 @@ static void page_home(stats_t *st){
 
     fmt_rate_s(r1, sizeof r1, st->rx_kbs);
     fmt_rate_s(r2, sizeof r2, st->tx_kbs);
-    tile(10, y, W - 20, th, "NETWORK");
-    snprintf(b, sizeof b, "D %s", r1); text(24, y + 30, 2.2f, UN_TEXT, b);
-    snprintf(b, sizeof b, "U %s", r2); text(24, y + 56, 2.2f, UN_TEXT, b);
-    y += th + 10;
+    int nth = th + 12;   /* taller: label + two rate lines need padding both ends */
+    tile(10, y, W - 20, nth, "NETWORK");
+    snprintf(b, sizeof b, "D %s", r1); text(24, y + 38, 2.2f, UN_TEXT, b);
+    snprintf(b, sizeof b, "U %s", r2); text(24, y + 64, 2.2f, UN_TEXT, b);
+    y += nth + 10;
 
     snprintf(b, sizeof b, "%.0f%%", st->disk_used_pct);
     home_tile(y, th, "STORAGE", b, UN_TEXT, st->disk_used_pct, level_col(st->disk_used_pct));

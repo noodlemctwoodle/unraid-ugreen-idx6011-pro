@@ -18,9 +18,9 @@ static void page_docker(stats_t *st){
     if (st->docker >= 0){
         snprintf(b, sizeof b, "%d / %d running", st->docker, st->docker_total);
         trunc_fit(b, 2.3f, W - 44);
-        text(22, y + 38, 2.3f, UN_TEXT, b);
+        text(22, y + 44, 2.3f, UN_TEXT, b);
     } else {
-        text(22, y + 38, 2.0f, UN_DIM, "docker n/a");
+        text(22, y + 44, 2.0f, UN_DIM, "docker n/a");
     }
     y += 88;
 

@@ -19,13 +19,21 @@ static int settings_row(int y, int wid, const char *label, const char *val){
     return y + 62;
 }
 
-static int settings_button(int y, int wid, const char *label, uint32_t fill,
-                           uint32_t txt_col){
-    rect(10, y, W - 20, 56, fill, 255);
+/* single- or two-line action button (l2 != NULL => taller, subtitle on its own line) */
+static int settings_button(int y, int wid, const char *l1, const char *l2,
+                           uint32_t fill, uint32_t txt_col){
+    int two = (l2 && l2[0]);
+    int h = two ? 90 : 76;
+    rect(10, y, W - 20, h, fill, 255);
     rect(10, y, W - 20, 1, UN_GREY_70, 255);
-    text_bold((W - text_w(2.2f, label)) / 2 - 1, y + 19, 2.2f, txt_col, label);
-    hb_add(wid, 10, y, W - 20, 56);
-    return y + 68;
+    if (two){
+        text_bold((W - text_w(2.3f, l1)) / 2 - 1, y + 20, 2.3f, txt_col, l1);
+        text_c(y + 58, 1.7f, txt_col, l2);
+    } else {
+        text_bold((W - text_w(2.4f, l1)) / 2 - 1, y + 28, 2.4f, txt_col, l1);
+    }
+    hb_add(wid, 10, y - 6, W - 20, h + 12);   /* padded into the gaps for easier tapping */
+    return y + h + 14;
 }
 
 static void page_settings(stats_t *st){
@@ -59,19 +67,19 @@ static void page_settings(stats_t *st){
     y = settings_row(y, WID_NIGHT, "Night mode", cfg_night ? "on" : "off");
     y += 8;
 
-    y = settings_button(y, WID_RESTART, "RESTART DASH", UN_GREY_80, UN_TEXT);
+    y = settings_button(y, WID_RESTART, "RESTART DASH", NULL, UN_GREY_80, UN_TEXT);
 
     if (confirm_which == WID_REBOOT && nowms < confirm_until){
-        snprintf(b, sizeof b, "TAP TO CONFIRM (%lds)", (confirm_until - nowms) / 1000 + 1);
-        y = settings_button(y, WID_REBOOT, b, UN_BAD, UN_TEXT);
+        snprintf(b, sizeof b, "%lds", (confirm_until - nowms) / 1000 + 1);
+        y = settings_button(y, WID_REBOOT, "TAP TO CONFIRM", b, UN_BAD, UN_TEXT);
     } else {
-        y = settings_button(y, WID_REBOOT, "REBOOT (hold)", UN_GREY_80, UN_ORANGE);
+        y = settings_button(y, WID_REBOOT, "REBOOT", "hold to confirm", UN_GREY_80, UN_ORANGE);
     }
     if (confirm_which == WID_SHUTDOWN && nowms < confirm_until){
-        snprintf(b, sizeof b, "TAP TO CONFIRM (%lds)", (confirm_until - nowms) / 1000 + 1);
-        y = settings_button(y, WID_SHUTDOWN, b, UN_BAD, UN_TEXT);
+        snprintf(b, sizeof b, "%lds", (confirm_until - nowms) / 1000 + 1);
+        y = settings_button(y, WID_SHUTDOWN, "TAP TO CONFIRM", b, UN_BAD, UN_TEXT);
     } else {
-        y = settings_button(y, WID_SHUTDOWN, "SHUTDOWN (hold)", UN_GREY_80, UN_ORANGE);
+        y = settings_button(y, WID_SHUTDOWN, "SHUTDOWN", "hold to confirm", UN_GREY_80, UN_ORANGE);
     }
     y += 4;
     text_c(y, 1.4f, 0x666666, "hold, then tap to confirm");
