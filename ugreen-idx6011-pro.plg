@@ -50,9 +50,12 @@
 <FILE Run="/bin/bash">
 <INLINE>
 # --- stage the flash payload from the downloaded, SHA256-verified archive ---
+# Re-extract when the archive is newer than the marker, so a re-published payload
+# at the same version (Unraid re-downloads it on SHA change) still stages.
 MARK="&plgdir;/.payload-&version;"
-if [ ! -f "$MARK" ] &amp;&amp; [ -f "&plgdir;/&name;-&version;.txz" ]; then
-  tar xJf "&plgdir;/&name;-&version;.txz" -C "&plgdir;" &amp;&amp; touch "$MARK"
+TXZ="&plgdir;/&name;-&version;.txz"
+if [ -f "$TXZ" ] &amp;&amp; { [ ! -f "$MARK" ] || [ "$TXZ" -nt "$MARK" ]; }; then
+  tar xJf "$TXZ" -C "&plgdir;" &amp;&amp; touch "$MARK"
 fi
 # --- seed settings once (user edits then survive updates) ---
 if [ ! -f "&plgdir;/panel/settings.cfg" ]; then
