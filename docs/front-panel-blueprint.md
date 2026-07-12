@@ -46,6 +46,10 @@ BootOrder is honoured. `BootNext` is unreliable on this firmware — set the per
 order. The firmware may reshuffle BootOrder after updates, so `assert-boot.sh`
 re-asserts it every boot.
 
+⚠️ On this firmware the OS-set EFI BootOrder does **not** override the per-class USB
+sub-priority. If the box still boots the wrong entry, promote it in the BIOS:
+**Boot → UEFI USB Hard Disk Drive BBS Priorities → `Unraid (iDX6011 panel)`**.
+
 No UGOS, NVMe, or grub is involved — a box with UGOS wiped boots the panel
 identically. The USB's own syslinux is left standard, so a plain USB boot still works
 for headless recovery (it goes through the removable-media fallback, which does not
@@ -141,7 +145,7 @@ Full table in [`SOLUTION.md` §8](SOLUTION.md). The three most likely:
 
 | Symptom | Cause → fix |
 |---|---|
-| Boots the wrong OS / USB not found | Reinsert the USB flash; ensure the `Unraid (iDX6011 panel)` EFI entry is first (`efibootmgr -o`) → Step 1 |
+| Boots the wrong OS / USB not found | Reinsert the USB flash; in the BIOS put the panel entry first: Boot → UEFI USB Hard Disk Drive BBS Priorities → `Unraid (iDX6011 panel)` → Step 1 |
 | Panel dark, `PP_STATUS 0x00000000` in dmesg | Booted via the removable-media fallback, not the registered entry → Step 1 |
 | Dashboard frozen but process running | Build lacks per-frame `drmModeDirtyFB` (i915 FBC) → rebuild from current source |
 

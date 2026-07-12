@@ -48,6 +48,15 @@ jobs:
             echo "already=false" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Build panel_dash from source
+        if: steps.exists.outputs.already == 'false'
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libdrm-dev
+          bash src/panel/build.sh
+          ls -la src/panel/panel_dash
+          file src/panel/panel_dash || true
+
       - name: Build payload
         if: steps.exists.outputs.already == 'false'
         env:

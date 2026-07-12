@@ -174,7 +174,7 @@ initramfs-tools-core acpica-tools grub-efi-amd64-bin binutils curl`, with
 
 | Scenario | Fix |
 |---|---|
-| Box boots the wrong OS / panel dark | Ensure the `Unraid (iDX6011 panel)` EFI entry is first in BootOrder (`efibootmgr -o <num>,…`); reinsert the USB flash if missing. `assert-boot.sh` re-asserts this every boot. |
+| Box boots the wrong OS / panel dark | In the BIOS, put the panel entry first: **Boot → UEFI USB Hard Disk Drive BBS Priorities → `Unraid (iDX6011 panel)`**. The OS-set EFI BootOrder (`efibootmgr -o`) does not override this per-class USB priority on this firmware. Reinsert the USB flash if missing. |
 | Recovery boot with panel dark | A plain USB boot (BIOS pin/F11) via the removable-media fallback works — panel stays dark, everything else normal. |
 | Panel dark after Unraid kernel update | Rebuild overlay modules (§4) for the new kernel version. Panel dark ≠ broken box. |
 | Dashboard frozen but process alive | FBC staleness — make sure the running build issues `drmModeDirtyFB` per frame. |

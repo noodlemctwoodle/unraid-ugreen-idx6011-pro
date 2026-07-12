@@ -35,7 +35,12 @@ install -d "$STAGE/images"
 install -m0644 "images/$NAME.png" "$STAGE/images/"
 # --- dashboard binary + per-kernel touch modules + display overlay -----------
 install -d "$STAGE/panel/modules/$KVER" "$STAGE/panel/overlay/$KVER"
-install -m0755 prebuilt/panel_dash "$STAGE/panel/panel_dash"
+# dashboard binary: prefer a freshly-built one (CI / src/panel/build.sh); the
+# committed prebuilt/panel_dash is the fallback for hosts without a toolchain.
+DASH=prebuilt/panel_dash
+[ -x src/panel/panel_dash ] && DASH=src/panel/panel_dash
+echo "  panel_dash from: $DASH"
+install -m0755 "$DASH" "$STAGE/panel/panel_dash"
 install -m0644 "prebuilt/modules/$KVER"/*.ko "$STAGE/panel/modules/$KVER/"
 install -m0644 prebuilt/bzroot-wakefix "$STAGE/panel/overlay/$KVER/bzroot-wakefix"
 

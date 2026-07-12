@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name    "ugreen-idx6011-pro">
 <!ENTITY author  "noodlemctwoodle">
-<!ENTITY version "2026.07.12g">
+<!ENTITY version "2026.07.12h">
 <!ENTITY plgdir  "/boot/config/plugins/&name;">
 ]>
 
@@ -15,6 +15,17 @@
         pluginURL="https://raw.githubusercontent.com/noodlemctwoodle/unraid-ugreen-idx6011-pro/main/&name;.plg">
 
 <CHANGES>
+###2026.07.12h
+- Fix touch: some panels' touch controller idles with an all-0x18 keepalive frame
+  instead of all-0x10; the daemon treated that as a bad frame and never saw finger-up,
+  so taps/swipes never completed and touch appeared dead. Idle is now detected by
+  frame uniformity, robust to either fill byte.
+- Install/boot guidance now names the exact BIOS setting to make the panel entry
+  boot first: Boot > UEFI USB Hard Disk Drive BBS Priorities >
+  'Unraid (iDX6011 panel)'. On this firmware the OS-set EFI BootOrder does not
+  override the per-class USB BBS priority, so this manual step is required once.
+- Release build: CI now compiles panel_dash from source each release (was a committed
+  binary), so source fixes ship automatically.
 ###2026.07.12g
 - Install prints a clear "REBOOT REQUIRED" banner, and the boot notification now
   says to reboot, when the panel did not come up this boot. A fresh install stages
@@ -111,11 +122,17 @@ echo "&name; &version; — front-panel LEDs + LCD dashboard started"
 # registered, so it stays dark until the next reboot. Make that obvious.
 if [ "$(cat /sys/class/drm/card*-eDP-1/status 2>/dev/null | head -1)" != "connected" ]; then
   echo ""
-  echo "  ****************************************************************"
-  echo "  *  REBOOT REQUIRED to activate the front-panel LCD.            *"
-  echo "  *  It lights after rebooting via the 'Unraid (iDX6011 panel)'  *"
-  echo "  *  EFI boot entry this plugin just registered.                 *"
-  echo "  ****************************************************************"
+  echo "  =============================================================="
+  echo "   ACTION REQUIRED to light the front-panel LCD"
+  echo ""
+  echo "   1) Set the USB boot priority in the BIOS so the panel entry"
+  echo "      is first:"
+  echo "        Boot > UEFI USB Hard Disk Drive BBS Priorities"
+  echo "             > 'Unraid (iDX6011 panel)'"
+  echo ""
+  echo "   2) Reboot. The LCD lights once you boot via that entry"
+  echo "      (this plugin registered it; the panel is dark until then)."
+  echo "  =============================================================="
   echo ""
 fi
 true

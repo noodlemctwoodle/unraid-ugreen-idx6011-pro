@@ -1,6 +1,8 @@
 # built artifacts — do not commit stray build outputs (compile locally per README)
 ugreen_leds_cli
 *.txz
+# dashboard binary compiled by src/panel/build.sh (CI builds it per release)
+/src/panel/panel_dash
 # exception: prebuilt/ holds the intentional, verified disaster-recovery copies
 !prebuilt/ugreen_leds_cli
 !prebuilt/*.txz

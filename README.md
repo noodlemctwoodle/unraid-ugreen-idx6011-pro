@@ -186,8 +186,8 @@ All of these are editable live from the **SETTINGS** page on the panel itself.
 
 | Symptom | Cause → fix |
 |---------|-------------|
-| Boots the wrong OS / not Unraid | USB flash missing/unreadable, or the EFI entry isn't first → reinsert the flash and set the `Unraid (iDX6011 panel)` entry first (`efibootmgr -o`) |
-| Panel dark, dmesg shows `PP_STATUS: 0x00000000` | Booted via the removable-media fallback, not the registered EFI entry → make the `Unraid (iDX6011 panel)` entry first (`efibootmgr -o`) |
+| Boots the wrong OS / not Unraid | Reinsert the USB flash, then in the BIOS put the panel entry first: **Boot → UEFI USB Hard Disk Drive BBS Priorities → `Unraid (iDX6011 panel)`** |
+| Panel dark, dmesg shows `PP_STATUS: 0x00000000` | Booted via the removable-media fallback, not the registered entry. The OS-set BootOrder (`efibootmgr -o`) may not override the per-class USB priority on this firmware — set it in the BIOS: **Boot → UEFI USB Hard Disk Drive BBS Priorities → `Unraid (iDX6011 panel)`** |
 | Panel dark after an Unraid upgrade | Kernel changed → rebuild the overlay (above) |
 | Dashboard frozen but process running | i915 framebuffer compression serving a stale frame → update to a build with per-frame `DirtyFB` (any current one) |
 | Touch dead | `ls /sys/bus/i2c/devices/` should list `i2c-CUST0000:00` — if not, the LPSS module chain didn't load; re-run the plugin install |

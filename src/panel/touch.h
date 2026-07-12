@@ -153,8 +153,12 @@ static int touch_poll(touch_event_t *ev){
         if (axs_frame(tfd, b) >= 0){
             unsigned char crc = 0;
             for (int i = 0; i < AXS_FRAME_LEN - 1; i++) crc += b[i];
-            int idle_fill = 1;                           /* 0x10-fill = release/idle */
-            for (int i = 0; i < AXS_FRAME_LEN; i++) if (b[i] != 0x10){ idle_fill = 0; break; }
+            int idle_fill = 1;              /* uniform-fill frame = release/idle keepalive.
+                                             * The fill byte is firmware-dependent (0x10 on
+                                             * some revs, 0x18 on this panel) — a real touch
+                                             * frame is never uniform, so detect by uniformity
+                                             * rather than a hard-coded value. */
+            for (int i = 1; i < AXS_FRAME_LEN; i++) if (b[i] != b[0]){ idle_fill = 0; break; }
             int pts = idle_fill ? 0 : (b[1] & 0x0f);
             if (idle_fill || crc == b[AXS_FRAME_LEN - 1]){
                 if (pts > 0){
