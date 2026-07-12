@@ -8,12 +8,18 @@ Markdown="true"
  * Writes /update.php -> the plugin's panel/settings.cfg on flash, then runs
  * restart.sh (installed under the webGUI docroot so update.php accepts it as
  * a #command) to re-apply the dashboard + LED colours live.
+ * The picker CSS/JS live in external assets (idxcp.css / idxcp.js): an inline
+ * <script> placed after a markdown="1" form is mangled by Unraid's MarkdownExtra
+ * pass, whereas external <link>/<script src> one-liners are markdown-safe.
  * Colours are stored as BARE 6-hex (no leading #) to match the daemon's writer
  * and to round-trip cleanly through parse_ini_file. */
 $plugin  = 'ugreen-idx6011-pro';
 $cfgfile = "/boot/config/plugins/$plugin/panel/settings.cfg";
 $cfg     = file_exists($cfgfile) ? (@parse_ini_file($cfgfile) ?: []) : [];
 $val = function($k, $def = '') use ($cfg) { return isset($cfg[$k]) ? $cfg[$k] : $def; };
+$asset = function($f) use ($plugin) {                 /* cache-busted webGUI asset URL */
+    return "/plugins/$plugin/$f?v=" . (@filemtime("/usr/local/emhttp/plugins/$plugin/$f") ?: '1');
+};
 
 /* detect real network interfaces for the "primary" picker */
 $ifaces = [];
@@ -31,39 +37,30 @@ function opts($items, $cur) {
              ((string)$cur === (string)$v ? ' selected' : '') . '>' .
              htmlspecialchars($lbl) . '</option>';
 }
-/* emit a colour control: hidden native picker + swatch + hex field + reset dot.
- * $cls tags the section (idx-theme / idx-led) for the per-section reset buttons. */
+/* emit a colour control: swatch chip (opens native picker) + # + hex field, a
+ * preset-dot ribbon, and a rotating reset. $cls tags the section (idx-theme /
+ * idx-led) for the per-section reset buttons. Stores/loads BARE 6-hex. */
 function colorField($cfg, $name, $default, $cls) {
     $def = strtolower(ltrim($default, '#'));
     $v   = isset($cfg[$name]) ? strtolower(ltrim(trim($cfg[$name]), '#')) : '';
     if (!preg_match('/^[0-9a-f]{6}$/', $v)) $v = $def;
     $n = htmlspecialchars($name);
-    echo '<span class="idx-cp">'
-       . '<input type="color" class="idx-cp-native" tabindex="-1" aria-hidden="true" value="#'.$v.'">'
-       . '<span class="idx-cp-swatch" tabindex="0" role="button" aria-label="'._('Pick colour').'" title="'._('Pick colour').'" style="background:#'.$v.'"></span>'
-       . '<span class="idx-cp-hash">#</span>'
-       . '<input type="text" class="idx-cp-hex '.$cls.'" name="'.$n.'" value="'.$v.'"'
-       . ' data-default="'.$def.'" maxlength="7" spellcheck="false" autocomplete="off"'
-       . ' pattern="[0-9A-Fa-f]{3,6}" aria-label="'.$n.' hex">'
-       . '<button type="button" class="idx-cp-reset" title="'._('Restore default').'" aria-label="'._('Restore default').'">&#8634;</button>'
+    echo '<span class="idxcp" data-label="'.$n.'">'
+       . '<span class="idxcp-field">'
+       .   '<button type="button" class="idxcp-chip" aria-label="'.$n.' '._('colour').'"></button>'
+       .   '<span class="idxcp-hash" aria-hidden="true">#</span>'
+       .   '<input class="idxcp-hex '.$cls.'" type="text" name="'.$n.'" value="'.$v.'" data-default="'.$def.'"'
+       .        ' maxlength="7" spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="'.$n.' hex">'
+       .   '<input class="idxcp-native" type="color" tabindex="-1" aria-hidden="true" value="#'.$v.'">'
+       . '</span>'
+       . '<span class="idxcp-presets" role="group" aria-label="'.$n.' '._('presets').'"></span>'
+       . '<button type="button" class="idxcp-reset" title="'._('Restore default').'" aria-label="'._('Restore default').'"></button>'
        . '</span>';
 }
 ?>
-<style>
-.idx-cp{display:inline-flex;align-items:center;gap:7px;vertical-align:middle}
-.idx-cp-native{position:absolute;width:1px;height:1px;padding:0;margin:-1px;border:0;opacity:0;overflow:hidden;pointer-events:none}
-.idx-cp-swatch{width:26px;height:26px;border-radius:7px;cursor:pointer;flex:0 0 auto;
-  border:1px solid rgba(255,255,255,.28);
-  box-shadow:inset 0 0 0 2px rgba(0,0,0,.35),0 1px 3px rgba(0,0,0,.45);
-  transition:transform .08s ease,box-shadow .12s ease}
-.idx-cp-swatch:hover{transform:scale(1.08);box-shadow:inset 0 0 0 2px rgba(0,0,0,.35),0 2px 6px rgba(0,0,0,.55)}
-.idx-cp-swatch:focus-visible{outline:2px solid #ff8c2f;outline-offset:2px}
-.idx-cp-hash{color:#8a8a8a;font-family:ui-monospace,Menlo,Consolas,monospace;margin-right:-4px;user-select:none}
-.idx-cp-hex{width:84px;font-family:ui-monospace,Menlo,Consolas,monospace;text-transform:lowercase;letter-spacing:.5px}
-.idx-cp-reset{background:none;border:0;color:#8a8a8a;cursor:pointer;font-size:16px;line-height:1;padding:2px 5px;border-radius:6px;transition:color .12s,background .12s}
-.idx-cp-reset:hover{color:#ff8c2f;background:rgba(255,255,255,.07)}
-.idx-defbtn{font-size:.85em;margin-top:2px}
-</style>
+<link rel="stylesheet" href="<?=$asset('idxcp.css')?>">
+<script src="<?=$asset('idxcp.js')?>"></script>
+
 <form markdown="1" name="idx_settings" method="POST" action="/update.php" target="progressFrame">
 <input type="hidden" name="#file" value="<?=$plugin?>/panel/settings.cfg">
 <input type="hidden" name="#command" value="plugins/<?=$plugin?>/restart.sh">
@@ -135,7 +132,7 @@ _(Power light)_:
 : <select name="LED_POWER" class="idx-led" data-default="1"><?php opts([1=>'On',0=>'Off'], $val('LED_POWER','1')); ?></select>
 
 _(Activity mode &mdash; light disk/LAN LEDs only while busy)_:
-: <select name="LED_ACTIVITY" class="idx-led" data-default="0"><?php opts([0=>'Off &mdash; always solid',1=>'On &mdash; pulse on I/O'], $val('LED_ACTIVITY','0')); ?></select>
+: <select name="LED_ACTIVITY" class="idx-led" data-default="0"><?php opts([0=>'Off — always solid',1=>'On — pulse on I/O'], $val('LED_ACTIVITY','0')); ?></select>
 
 _(Network / LAN light)_:
 : <?php colorField($cfg,'LED_LAN','0064ff','idx-led'); ?>
@@ -158,42 +155,6 @@ _(Disk light &mdash; spun down / asleep)_:
 &nbsp;
 : <span class="buttons-spaced"><input type="submit" name="#apply" value="_(Apply)_" disabled><input type="button" value="_(Done)_" onclick="done()"></span>
 </form>
-<script>
-(function(){
-  function norm(h){ h=(h||'').replace(/[^0-9a-fA-F]/g,'').toLowerCase();
-    if(h.length===3) h=h.split('').map(function(c){return c+c;}).join('');
-    return /^[0-9a-f]{6}$/.test(h)?h:null; }
-  /* Unraid's change-listener ignores type=color; enable Apply explicitly. */
-  function markChanged(el){ var f=el.closest('form'); if(!f) return;
-    f.querySelectorAll('input[value="Apply"]').forEach(function(b){b.disabled=false;});
-    try{ formHasUnsavedChanges=true; }catch(e){} }
-  function setVal(cp, hex, fire){
-    var h=norm(hex); if(!h) return;
-    var hexIn=cp.querySelector('.idx-cp-hex'), sw=cp.querySelector('.idx-cp-swatch'), nat=cp.querySelector('.idx-cp-native');
-    hexIn.value=h; sw.style.background='#'+h; if(nat) nat.value='#'+h;
-    if(fire){ hexIn.dispatchEvent(new Event('change',{bubbles:true})); markChanged(hexIn); }
-  }
-  document.querySelectorAll('.idx-cp').forEach(function(cp){
-    var hexIn=cp.querySelector('.idx-cp-hex'), sw=cp.querySelector('.idx-cp-swatch'),
-        nat=cp.querySelector('.idx-cp-native'), rst=cp.querySelector('.idx-cp-reset');
-    setVal(cp, hexIn.value, false);
-    sw.addEventListener('click', function(){ if(nat) nat.click(); });
-    sw.addEventListener('keydown', function(e){ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); if(nat) nat.click(); }});
-    if(nat) nat.addEventListener('input', function(){ setVal(cp, nat.value, true); });
-    hexIn.addEventListener('input', function(){ var h=norm(hexIn.value);
-      if(h){ sw.style.background='#'+h; if(nat) nat.value='#'+h; markChanged(hexIn); } });
-    hexIn.addEventListener('blur', function(){ setVal(cp, hexIn.value, true); });
-    if(rst) rst.addEventListener('click', function(){ setVal(cp, hexIn.getAttribute('data-default'), true); });
-  });
-  window.idxReset=function(cls){
-    document.querySelectorAll('.idx-cp-hex.'+cls).forEach(function(hexIn){
-      setVal(hexIn.closest('.idx-cp'), hexIn.getAttribute('data-default'), true); });
-    document.querySelectorAll('select.'+cls+'[data-default]').forEach(function(el){
-      el.value=el.getAttribute('data-default');
-      el.dispatchEvent(new Event('change',{bubbles:true})); markChanged(el); });
-  };
-})();
-</script>
 
 > Changes are written to the plugin's `settings.cfg` and the dashboard restarts to
 > apply them. The same settings are editable live from the panel's own **SETTINGS**
