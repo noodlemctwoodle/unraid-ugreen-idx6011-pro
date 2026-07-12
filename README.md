@@ -280,6 +280,8 @@ Built on the work of others — this would not exist without:
   `stb_image_write` (public domain / MIT)
 - [homarr-labs/dashboard-icons](https://github.com/homarr-labs/dashboard-icons) — the
   official Unraid header mark embedded in the dashboard (Apache-2.0 icon set)
+- **Deivizzz** — the plugin icon: original line-art of the iDX6011 Pro, used in the
+  Unraid plugin manager and the Community Applications listing
 - [libdrm](https://gitlab.freedesktop.org/mesa/drm) — DRM dumb-buffer rendering the
   dashboard links against at runtime (MIT)
 
