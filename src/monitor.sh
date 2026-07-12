@@ -8,8 +8,10 @@
 #       power -> white. Colours + power/activity toggles come from settings.cfg.
 #
 # diskN LED == physical bay N (top=1 .. bottom=6), confirmed on this unit.
-# Activity mode (LED_ACTIVITY=1): a disk/LAN LED is lit only while it moved data
-# in the last tick, otherwise off — a coarse (per-REFRESH) activity indicator.
+# Activity mode (LED_ACTIVITY=1): a disk/LAN LED hardware-blinks (controller-driven,
+# via the CLI -blink mode) while it moved data in the last tick, and shows a solid
+# health colour when idle — never dark. Set once per tick, so power_refresh keeps
+# the power LED lit through the state changes.
 # Spun-down disks are detected with hdparm -C (no wake) and shown in COL_STANDBY.
 #
 set -u
@@ -77,6 +79,7 @@ COL_LAN=$(hex2rgb     "$(cfg_get LED_LAN)"       "0 100 255")
 POWER_LED=$(cfg_get LED_POWER); POWER_LED=${POWER_LED:-1}   # 1 = white power LED, 0 = off
 COL_STANDBY=$(hex2rgb "$(cfg_get LED_DISK_STANDBY)" "255 255 255")  # spun-down/standby disks
 ACTIVITY=$(cfg_get LED_ACTIVITY); ACTIVITY=${ACTIVITY:-0}           # 1 = blink disk/LAN on I/O
+BLINK_ON=60; BLINK_OFF=60                                           # hardware blink timing (ms)
 BR_DISK=110
 BR_LAN=150
 
@@ -140,12 +143,12 @@ net_active(){
 }
 set_changed(){ [ "${LAST_LED[$1]:-}" = "$2" ] && return 1; LAST_LED[$1]="$2"; return 0; }
 
-lan_led(){   # down -> off; up -> LAN colour (activity mode: lit only while traffic flows)
+lan_led(){   # down -> off; up -> solid LAN colour; activity mode -> hardware-blink while traffic flows
   if [ "$(cat /sys/class/net/$1/carrier 2>/dev/null)" = "1" ]; then
-    if [ "$ACTIVITY" = 1 ] && ! net_active "$1"; then
-      set_changed "$2" idle && LED "$2" -off
+    if [ "$ACTIVITY" = 1 ] && net_active "$1"; then
+      set_changed "$2" blink && LED "$2" -blink $BLINK_ON $BLINK_OFF -color $COL_LAN -brightness $BR_LAN
     else
-      set_changed "$2" up   && LED "$2" -on -color $COL_LAN -brightness $BR_LAN
+      set_changed "$2" up    && LED "$2" -on -color $COL_LAN -brightness $BR_LAN
     fi
   else
     set_changed "$2" down && LED "$2" -off
@@ -174,14 +177,14 @@ while true; do
 
   for b in 1 2 3 4 5 6; do
     d="${present[$b]:-}"
+    col="${HEALTH_COL[$b]:-$COL_HEALTHY}"
     if [ -z "$d" ]; then
       set_changed "disk$b" off && LED "disk$b" -off
-    elif disk_standby "$d"; then                          # spun down -> standby colour (white)
+    elif disk_standby "$d"; then                          # spun down -> solid standby colour
       set_changed "disk$b" "sb:$COL_STANDBY" && LED "disk$b" -on -color $COL_STANDBY -brightness $BR_DISK
-    elif [ "$ACTIVITY" = 1 ] && ! disk_active "$d"; then  # awake, activity mode, idle -> off
-      set_changed "disk$b" idle && LED "disk$b" -off
-    else                                                  # awake -> health colour
-      col="${HEALTH_COL[$b]:-$COL_HEALTHY}"
+    elif [ "$ACTIVITY" = 1 ] && disk_active "$d"; then    # awake + activity + I/O -> blink health colour
+      set_changed "disk$b" "bl:$col" && LED "disk$b" -blink $BLINK_ON $BLINK_OFF -color $col -brightness $BR_DISK
+    else                                                  # awake, idle (or activity off) -> solid health colour
       set_changed "disk$b" "on:$col" && LED "disk$b" -on -color $col -brightness $BR_DISK
     fi
   done
