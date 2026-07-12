@@ -1,0 +1,10 @@
+version: 2
+updates:
+  # Keep the GitHub Actions used by the release and CodeQL workflows current
+  # (e.g. actions/checkout, github/codeql-action) — surfaces version bumps as PRs.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: ci
