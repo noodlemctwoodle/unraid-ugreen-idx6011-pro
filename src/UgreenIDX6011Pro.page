@@ -1,0 +1,65 @@
+Menu="Utilities"
+Title="UGREEN iDX6011 Pro"
+Icon="hdd-o"
+Markdown="true"
+---
+<?php
+/* UGREEN iDX6011 Pro front-panel settings. Writes /update.php -> the plugin's
+   panel/settings.cfg on flash, then restarts the dashboard (start-panel.sh). */
+$plugin  = 'ugreen-idx6011-pro';
+$cfgfile = "/boot/config/plugins/$plugin/panel/settings.cfg";
+$cfg     = file_exists($cfgfile) ? (@parse_ini_file($cfgfile) ?: []) : [];
+$val = function($k, $def = '') use ($cfg) { return isset($cfg[$k]) ? $cfg[$k] : $def; };
+
+/* detect real network interfaces for the "primary" picker */
+$ifaces = [];
+foreach (glob('/sys/class/net/*') as $p) {
+    $n = basename($p);
+    if ($n === 'lo' || $n === 'bonding_masters') continue;
+    if (preg_match('/^(veth|docker|tunl|sit|vnet|br-|dummy|wg)/', $n)) continue;
+    $ifaces[] = $n;
+}
+sort($ifaces);
+
+function opts($items, $cur) {
+    foreach ($items as $v => $lbl)
+        echo '<option value="' . htmlspecialchars($v) . '"' .
+             ((string)$cur === (string)$v ? ' selected' : '') . '>' .
+             htmlspecialchars($lbl) . '</option>';
+}
+?>
+<form markdown="1" method="POST" action="/update.php" target="progressFrame">
+<input type="hidden" name="#file" value="<?=$plugin?>/panel/settings.cfg">
+<input type="hidden" name="#command" value="/boot/config/plugins/<?=$plugin?>/start-panel.sh">
+
+_(LCD brightness, %)_:
+: <input type="number" name="BRIGHTNESS" min="5" max="100" step="1" value="<?=htmlspecialchars($val('BRIGHTNESS','75'))?>">
+
+_(Stats refresh, seconds)_:
+: <input type="number" name="INTERVAL" min="1" max="10" step="1" value="<?=htmlspecialchars($val('INTERVAL','1'))?>">
+
+_(Auto-rotate pages every)_:
+: <select name="ROTATE"><?php opts([0=>'Off',10=>'10 seconds',20=>'20 seconds',30=>'30 seconds',60=>'60 seconds'], $val('ROTATE','0')); ?></select>
+
+_(Screen off after idle)_:
+: <select name="SCREEN_OFF_MIN"><?php opts([0=>'Never',1=>'1 minute',5=>'5 minutes',15=>'15 minutes'], $val('SCREEN_OFF_MIN','0')); ?></select>
+
+_(Night mode &mdash; clamp brightness to 15%)_:
+: <select name="NIGHT"><?php opts([0=>'Off',1=>'On'], $val('NIGHT','0')); ?></select>
+
+_(Front-panel LEDs)_:
+: <select name="LEDS"><?php opts([1=>'On',0=>'Off'], $val('LEDS','1')); ?></select>
+
+_(Primary network interface &mdash; shown on Overview &amp; Home)_:
+: <select name="PRIMARY_IFACE">
+  <option value=""<?=$val('PRIMARY_IFACE','')===''?' selected':''?>>Auto (default route)</option>
+  <?php foreach ($ifaces as $n) echo '<option value="' . htmlspecialchars($n) . '"' . ($val('PRIMARY_IFACE','') === $n ? ' selected' : '') . '>' . htmlspecialchars($n) . '</option>'; ?>
+  </select>
+
+&nbsp;
+: <span class="buttons-spaced"><input type="submit" value="_(Apply)_"><input type="button" value="_(Done)_" onclick="done()"></span>
+</form>
+
+> Changes are written to the plugin's `settings.cfg` and the dashboard restarts to
+> apply them. The same settings are editable live from the panel's own **SETTINGS**
+> page.
