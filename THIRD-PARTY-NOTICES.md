@@ -15,10 +15,13 @@ upstream licenses:
 - the embedded Unraid header icon (from
   [homarr-labs/dashboard-icons](https://github.com/homarr-labs/dashboard-icons)) —
   Apache-2.0
+- the plugin icon (`images/ugreen-idx6011-pro.png`) — original line-art of the
+  iDX6011 Pro by **Deivizzz**, contributed for use in this project
 
 ## Trademarks
 
-"Unraid" and the Unraid mark are trademarks of Lime Technology, Inc.; "UGREEN" /
-"NASync" and the product-photo plugin icon (`images/ugreen-idx6011-pro.png`) are
-trademarks/property of UGREEN. This is an unaffiliated community project; marks are
-used for identification only.
+"Unraid" and the Unraid mark are trademarks of Lime Technology, Inc.; "UGREEN" and
+"NASync" are trademarks of UGREEN. The plugin icon is an original illustration (by
+Deivizzz) that depicts the UGREEN iDX6011 Pro; the depicted device design remains
+UGREEN's. This is an unaffiliated community project; marks are used for
+identification only.
