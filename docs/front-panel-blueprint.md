@@ -11,68 +11,47 @@ kernel 6.18.38-Unraid**. Version-specific values are marked ⚠️.
 
 ## What you end up with
 
-- Front 258×960 LCD lit, running `panel_dash`: 5 pages (OVERVIEW / NETWORK /
-  DISKS / SYSTEM / ABOUT), touch: swipe L/R = page, U/D = scroll, tap footer =
-  next page, long-press = dim. Live stats incl. power draw (RAPL). Optional
-  wallpaper. Survives reboots.
-- Unraid still boots from / licenses against the USB flash. UGOS remains bootable
-  (grub menu entry 0).
+- Front 258×960 LCD lit, running `panel_dash`: 7 pages (HOME / OVERVIEW / HARDWARE /
+  NETWORK / DISKS / DOCKER / SETTINGS), touch: swipe L/R = page, drag = scroll, tap
+  footer = next page, long-press = dim, on-screen Settings. Live stats incl. power
+  draw (RAPL). Optional wallpaper. Survives reboots.
+- Unraid boots from / licenses against the USB flash. UGOS is not required.
 
 ## Prerequisites
 
 - Unraid installed on a USB flash **labelled `UNRAID`**, plugged in permanently.
-- UGOS still intact on the internal NVMe (we use its EFI partition + grub).
+- `efibootmgr` available (standard on Unraid) to register the boot entry. No UGOS/NVMe needed.
 - Array started once so Docker works (needed only for builds).
 - Repo files: `plugin/boot/*`, `plugin/src/*`, `plugin/prebuilt/*`.
 
 ---
 
-## Step 1 — Boot order: NVMe entry first
+## Step 1 — Register the EFI boot entry that powers the panel
 
-The BIOS powers the panel **only** when booting the NVMe ("debian") EFI entry.
+The BIOS powers the panel rail **only** when it boots a *registered* EFI NVRAM entry
+(not the auto-generated removable-media fallback). Register a named entry for the USB
+flash and keep it first in the boot order — this is exactly what the plugin's
+`assert-boot.sh` does at every boot; the manual equivalent:
 
 ```sh
-efibootmgr                      # find the "debian" entry (was Boot0001 here)
-efibootmgr -o 0001,0002,0003,0004,0005
+blkid -L UNRAID                 # find the USB flash partition, e.g. /dev/sda1
+# register a named entry pointing at the flash's EFI bootloader:
+efibootmgr -c -d /dev/sda -p 1 -L "Unraid (iDX6011 panel)" -l '\EFI\BOOT\BOOTX64.EFI'
+efibootmgr                      # note the new BootNNNN number
+efibootmgr -o NNNN,<rest>       # keep our entry first
 ```
 
 ⚠️ If the BIOS has a boot-override "pin", clear it in BIOS setup (F11/Del) so the
-BootOrder above is honoured. `BootNext` is unreliable on this firmware — set the
-permanent order instead.
+BootOrder is honoured. `BootNext` is unreliable on this firmware — set the permanent
+order. The firmware may reshuffle BootOrder after updates, so `assert-boot.sh`
+re-asserts it every boot.
 
-## Step 2 — Grub menu entry on the UGOS ESP
+No UGOS, NVMe, or grub is involved — a box with UGOS wiped boots the panel
+identically. The USB's own syslinux is left standard, so a plain USB boot still works
+for headless recovery (it goes through the removable-media fallback, which does not
+power the panel).
 
-```sh
-mkdir -p /mnt/ugos-boot
-mount /dev/nvme0n1p1 /mnt/ugos-boot
-cp /mnt/ugos-boot/EFI/debian/grub.cfg /mnt/ugos-boot/EFI/debian/grub.cfg.pre-unraid   # once
-# now install the exact config from the repo:
-#   plugin/boot/grub-menuentry.cfg  (grub ignores the leading # comment lines)
-vi /mnt/ugos-boot/EFI/debian/grub.cfg
-umount /mnt/ugos-boot
-```
-
-The UNRAID entry (exact, also in `plugin/boot/grub-menuentry.cfg`):
-
-```
-menuentry "UNRAID (kernel from USB flash)" {
-	insmod part_msdos
-	insmod fat
-	search --no-floppy --file --set=root /bzimage
-	linux /bzimage drm.debug=0x106 log_buf_len=64M
-	initrd /bzroot /bzroot-wakefix
-}
-```
-
-Notes, so nothing is ambiguous:
-- `set default="1"` selects this entry (0-indexed; UGOS stays entry 0). Timeout 3 s.
-- `search --file /bzimage` finds the USB by content, not label (grub cannot read
-  this flash's FAT label). If the USB is absent the entry errors → UGOS still boots.
-- The two `drm.debug…` args are diagnostic leftovers — safe to keep, fine to drop.
-- ⚠️ A UGOS firmware update may regenerate `grub.cfg` (from its `grub.am`
-  template). If the panel stops coming up after a UGOS update, redo this step.
-
-## Step 3 — Build the patched modules + overlay + touch modules
+## Step 2 — Build the patched modules + overlay + touch modules
 
 One script does all of it (container build, correct config, correct xz flags):
 
@@ -104,20 +83,23 @@ What it does (details in the script, every flag mandatory):
 changes are small and their contexts rarely move — regenerate against the new
 tree if needed (the .patch file is self-describing).
 
-## Step 4 — go-script block + daemon on the flash
+## Step 3 — Stage the plugin files on the flash
 
 ```sh
-mkdir -p /boot/config/plugins/ugreen-idx6011-pro
-cp plugin/prebuilt/panel_dash /boot/config/plugins/ugreen-idx6011-pro/panel_dash
-cat plugin/boot/go-block.sh >> /boot/config/go     # once; block is guarded by an if
+P=/boot/config/plugins/ugreen-idx6011-pro
+mkdir -p $P/panel
+cp plugin/prebuilt/panel_dash $P/panel/panel_dash
+cp plugin/src/start-panel.sh plugin/src/stop-panel.sh plugin/src/assert-boot.sh $P/
+# (LED feature too, if used: start.sh stop.sh monitor.sh ugreen_leds_cli i2c-tools-*.txz)
 ```
 
-The block (exact copy in `plugin/boot/go-block.sh`): loads `mfd_core` (stock) +
-the four flash modules + `i2c-dev`, copies the daemon to `/usr/local/bin`, starts
-it after 5 s with `--backlight 75 --interval 1` and optional
-`/boot/config/plugins/ugreen-idx6011-pro/wallpaper.png`.
+`start-panel.sh` (run by the .plg on install and every boot, or by hand) re-asserts
+the EFI entry via `assert-boot.sh`, loads `mfd_core` (stock) + the four flash modules
++ `i2c-dev`, copies the daemon to `/usr/local/bin`, and starts it after 5 s with
+`--backlight 75 --interval 1` and optional `$P/panel/wallpaper.png`. Installing the
+`.plg` does all of this for you.
 
-## Step 5 — (Re)build the daemon from source (optional; prebuilt provided)
+## Step 4 — (Re)build the daemon from source (optional; prebuilt provided)
 
 ```sh
 # source of truth: plugin/src/panel/ (modular; panel_dash.c + *.h modules + pages/ + vendored stb)
@@ -130,9 +112,9 @@ CLI: `--bg <png/jpg>` `--backlight <pct>` `--interval <s>` `--once`
 `--touch </dev/i2c-N>` `--no-touch` `--cal <s|x|y>` `--rotate <sec>`
 (auto-rotate is OFF unless `--rotate` given). Debug: `TOUCH_DEBUG=1` env.
 
-## Step 6 — Reboot and verify
+## Step 5 — Reboot and verify
 
-Reboot. Expected sequence: grub menu (2 entries, UNRAID default after 3 s) →
+Reboot. Expected sequence: firmware boots the `Unraid (iDX6011 panel)` EFI entry →
 Unraid boots → panel lights within ~30 s of boot.
 
 Verification checklist (all over SSH):
@@ -151,7 +133,7 @@ Touch test: swipe the panel left/right — pages change; up/down — page scroll
 ## After an Unraid upgrade
 
 The kernel version changes → the overlay's modules no longer load → panel dark
-(everything else fine). Fix = rerun **Step 3** (and only Step 3), then reboot.
+(everything else fine). Fix = rerun **Step 2** (and only Step 2), then reboot.
 
 ## Troubleshooting
 
@@ -159,8 +141,8 @@ Full table in [`SOLUTION.md` §8](SOLUTION.md). The three most likely:
 
 | Symptom | Cause → fix |
 |---|---|
-| Boots UGOS instead of Unraid | USB missing/unreadable (grub search failed) → reinsert |
-| Panel dark, `PP_STATUS 0x00000000` in dmesg | Booted via USB path, not NVMe grub → Step 1/2 |
+| Boots the wrong OS / USB not found | Reinsert the USB flash; ensure the `Unraid (iDX6011 panel)` EFI entry is first (`efibootmgr -o`) → Step 1 |
+| Panel dark, `PP_STATUS 0x00000000` in dmesg | Booted via the removable-media fallback, not the registered entry → Step 1 |
 | Dashboard frozen but process running | Build lacks per-frame `drmModeDirtyFB` (i915 FBC) → rebuild from current source |
 
 ---

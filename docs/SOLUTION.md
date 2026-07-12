@@ -26,13 +26,13 @@ BIOS (powers panel rail ONLY for a *registered* EFI entry, not the removable fal
 ```
 
 The USB flash stays plugged in — Unraid finds it by label for the license and /boot.
-UGOS is no longer required; if present its grub is used only as an extra fallback.
+UGOS is not required at all — a box with UGOS wiped boots the panel identically.
 
 ## 2. Why each piece exists (the discoveries)
 
 | Fact (all empirically proven) | Consequence |
 |---|---|
-| The BIOS powers the front-panel rail **only when it boots a *registered* EFI NVRAM entry** — NOT the auto-generated removable-media "UEFI OS" fallback. Confirmed 2026-07-12: a named `efibootmgr -c` entry pointing at the USB flash lights the panel on a pure USB boot (`BootCurrent=0000`, eDP-1 connected, 0 AUX timeouts). Every earlier "USB = dark" test had gone through the *fallback* entry — the boot **device** was never the variable. (Original NVMe-grub finding still works; it's just no longer required.) | Plugin self-registers a named EFI entry (`assert-boot.sh`) — **no UGOS/NVMe/grub dependency**. UGOS grub, if present, is an opportunistic fallback. |
+| The BIOS powers the front-panel rail **only when it boots a *registered* EFI NVRAM entry** — NOT the auto-generated removable-media "UEFI OS" fallback. Confirmed 2026-07-12: a named `efibootmgr -c` entry pointing at the USB flash lights the panel on a pure USB boot (`BootCurrent=0000`, eDP-1 connected, 0 AUX timeouts). Every earlier "USB = dark" test had gone through the *fallback* entry — the boot **device** was never the variable. | Plugin self-registers a named EFI entry (`assert-boot.sh`) — **no UGOS/NVMe/grub dependency**. |
 | Kernels ≥6.17 removed the DPCD wake-probe eDP relies on here: `d34d6feaf4a7` moved the probe address `DPCD_REV(0x000)` → `TRAINING_PATTERN_SET(0x102)`; `ed3648b9ec4c` disabled the probe for eDP entirely. This panel's eDP→DSI bridge **only wakes on a 0x000 read** (UGOS golden trace: first transaction `0x00000 AUX -> (ret=1) 12`). | Two-line patch, shipped as overlay initrd `bzroot-wakefix` (see §4). Upstream is aware (unmerged fix: "drm/i915/dp: On DPCD init wake the DPRx for eDP", Arun R Murthy, 2026-02). |
 | UGOS works because it boots via the NVMe entry **and** its kernel (pinned to 6.12.30, rebuilt as recently as 2026-06) predates the probe change. UGOS's i915/DRM binaries are bit-stock. There is no vendor display patch. | Nothing to port from UGOS for the display. |
 | Unraid's kernel omits `GPIOLIB_IRQCHIP`, `PINCTRL_METEORLAKE`, `MFD_INTEL_LPSS*`, `I2C_DESIGNWARE*` — so the vendor touch driver *and* i2c-hid can never bind (the HID probe defers forever on GpioInt). The touch chip's `PNP0C50` HID claim is also false (no HID descriptor at any register). | Touch = LPSS/designware modules built out-of-tree (loadable; ABI-safe) + **userspace AXS15231B polling** in panel_dash. No kernel touch driver. |
@@ -49,9 +49,8 @@ address.
 
 ## 3. The boot path (registered EFI entry — UGOS-independent)
 
-**Primary (no UGOS needed):** the plugin's `assert-boot.sh` registers and re-orders a
-named EFI entry for the USB flash and points the flash's default syslinux entry at
-`initrd=/bzroot,/bzroot-wakefix`:
+The plugin's `assert-boot.sh` registers and re-orders a named EFI entry for the USB
+flash, and points the flash's default syslinux entry at `initrd=/bzroot,/bzroot-wakefix`:
 
 ```sh
 efibootmgr -c -d <usb-disk> -p 1 -L "Unraid (iDX6011 panel)" -l '\\EFI\\BOOT\\BOOTX64.EFI'
@@ -60,36 +59,12 @@ efibootmgr -c -d <usb-disk> -p 1 -L "Unraid (iDX6011 panel)" -l '\\EFI\\BOOT\\BO
 
 The firmware may reshuffle BootOrder, so the plugin re-asserts every boot; on a
 wiped-UGOS box the named entry is the only one, so it always wins. The i915
-wake-probe overlay (§4) is still required either way.
+wake-probe overlay (§4) is still required either way. Nothing on the UGOS NVMe/grub
+side is touched or needed — a box with UGOS wiped boots the panel identically.
 
-### Fallback: UGOS NVMe grub entry (only if UGOS is present)
-
-File: `nvme0n1p1:/EFI/debian/grub.cfg` (UGOS ESP; backup of original at `grub.cfg.pre-unraid`)
-
-```
-set default="1"
-set timeout="3"
-
-menuentry "UGOSPRO-NAS" {
-	linux /boot/vmlinuz2 root=PARTUUID=bf054169-c92b-f24e-9eae-c336b9186abb rootwait console=tty0 overlay=/dev/mmcblk0p7 overlayfs=ext4 net.ifnames=0 quiet splash biosdevname=0
-	initrd	/boot/initrd2.img
-}
-menuentry "UNRAID (kernel from USB flash)" {
-	insmod part_msdos
-	insmod fat
-	search --no-floppy --file --set=root /bzimage
-	linux /bzimage drm.debug=0x106 log_buf_len=64M
-	initrd /bzroot /bzroot-wakefix
-}
-```
-
-- BootOrder must have the NVMe entry (`Boot0001* debian`) first: `efibootmgr -o 0001,0002,...`
-- UGOS remains selectable (entry 0). If the USB is absent, grub's `search` fails → boot UGOS.
-- TODO (cleanup): drop `drm.debug=0x106 log_buf_len=64M` once fully bedded in.
-- **Risk**: a UGOS firmware update may regenerate grub.cfg (their template is `grub.am`).
-  The future .plg should re-assert this entry on every Unraid boot.
-- The USB's own syslinux is intact and standard — a direct USB boot still works fine
-  (headless/no-panel, e.g. for recovery).
+The USB's own syslinux is intact and standard, so a plain USB boot still works for
+headless/no-panel recovery (it just goes through the removable-media fallback entry,
+which does not power the panel rail).
 
 ## 4. The i915 wake-probe overlay (`/boot/bzroot-wakefix`)
 
@@ -120,7 +95,8 @@ lib/modules/6.18.38-Unraid/kernel/drivers/gpu/drm/i915/i915.ko.xz
 lib/modules/6.18.38-Unraid/kernel/drivers/gpu/drm/display/drm_display_helper.ko.xz
 ```
 `find . | cpio -o -H newc > /boot/bzroot-wakefix` (plain cpio, uncompressed).
-Loaded via grub: `initrd /bzroot /bzroot-wakefix`.
+Loaded via the flash's syslinux (booted through the registered EFI entry):
+`append initrd=/bzroot,/bzroot-wakefix`.
 
 **Kernel-update procedure**: any Unraid upgrade changes the kernel → rebuild both
 modules against the new source with the new `config`, regenerate the overlay.
@@ -170,10 +146,11 @@ Runtime essentials:
 - Binary + modules on the flash: `/boot/config/plugins/ugreen-idx6011-pro/`
   (`panel_dash`, `modules/intel-lpss.ko`, `modules/intel-lpss-pci.ko`,
   `modules/i2c-designware-core.ko`, `modules/i2c-designware-platform.ko`).
-- `/boot/config/go` block: modprobes stock `mfd_core` + `i2c-dev`, insmods the four
-  out-of-tree LPSS/designware modules, copies `panel_dash` to `/usr/local/bin`,
-  starts it (5 s delayed) with optional wallpaper at
-  `/boot/config/plugins/ugreen-idx6011-pro/wallpaper.png`.
+- The plugin's `start-panel.sh` (run by the .plg on install and every boot):
+  re-asserts the EFI entry (`assert-boot.sh`), modprobes stock `mfd_core` + `i2c-dev`,
+  insmods the four out-of-tree LPSS/designware modules, copies `panel_dash` to
+  `/usr/local/bin`, and starts it (5 s delayed) with optional wallpaper at
+  `/boot/config/plugins/ugreen-idx6011-pro/panel/wallpaper.png`.
 - Touch modules were built with the same harness as §4 (config symbols:
   `MFD_INTEL_LPSS(_PCI)`, `I2C_DESIGNWARE_CORE/PLATFORM` as `m`). `pinctrl-meteorlake`
   and `i2c-hid` are NOT loadable on this kernel (missing `GPIOLIB_IRQCHIP` — ABI
@@ -197,25 +174,22 @@ initramfs-tools-core acpica-tools grub-efi-amd64-bin binutils curl`, with
 
 | Scenario | Fix |
 |---|---|
-| Box boots UGOS instead of Unraid | USB missing/unreadable → grub `search` failed. Reinsert USB, reboot. |
-| Grub entry lost (UGOS update) | Re-add the §3 menuentry to `nvme0n1p1:/EFI/debian/grub.cfg` (backup: `grub.cfg.pre-unraid` alongside). |
-| Need Unraid without the NVMe path | Plain USB boot still works (BIOS pin/F11) — panel stays dark, everything else normal. |
+| Box boots the wrong OS / panel dark | Ensure the `Unraid (iDX6011 panel)` EFI entry is first in BootOrder (`efibootmgr -o <num>,…`); reinsert the USB flash if missing. `assert-boot.sh` re-asserts this every boot. |
+| Recovery boot with panel dark | A plain USB boot (BIOS pin/F11) via the removable-media fallback works — panel stays dark, everything else normal. |
 | Panel dark after Unraid kernel update | Rebuild overlay modules (§4) for the new kernel version. Panel dark ≠ broken box. |
 | Dashboard frozen but process alive | FBC staleness — make sure the running build issues `drmModeDirtyFB` per frame. |
-| Touch dead | Check the LPSS chain: `ls /sys/bus/i2c/devices/` should list `i2c-CUST0000:00` and DesignWare adapters; re-run the go-script insmod block; `TOUCH_DEBUG=1 panel_dash` to trace. |
+| Touch dead | Check the LPSS chain: `ls /sys/bus/i2c/devices/` should list `i2c-CUST0000:00` and DesignWare adapters; re-run `start-panel.sh` (reloads the modules); `TOUCH_DEBUG=1 panel_dash` to trace. |
 | Wipe/reinstall everything | Flash config backup procedure as documented in the repo `BACKUP-KEEP-2026-07-12/README.txt`. |
 
 ## 9. Open items (tracked)
 
-1. Remove `drm.debug=0x106 log_buf_len=64M` from the grub entry (diagnostic leftovers).
-2. Test stock (unpatched) modules on the NVMe boot path — if the BIOS pre-trains the
-   bridge, the wake-probe overlay may be redundant; would simplify to "grub entry only".
-3. Rebuild i915 without the FIX-D retry block (50 s boot penalty in failure cases).
-4. Package as a proper `.plg` plugin: assert grub entry + BootOrder, install overlay,
-   deploy binary/modules, manage the go-script block, plugin settings page
-   (wallpaper, brightness, page config).
-5. Optional: gesture support (chip reports a gesture byte), multi-touch (frame len 21+),
-   Unraid notification actions on tap, drag-scrolling (currently swipe-step).
+1. Test stock (unpatched) modules on the boot path — if the BIOS pre-trains the
+   bridge, the wake-probe overlay may be redundant; would simplify the boot chain.
+2. Rebuild i915 without the FIX-D retry block (50 s boot penalty in failure cases).
+3. Public-release polish: plugin settings `.page` (wallpaper, brightness, page
+   config) and a packaged `.txz` + SHA256 release flow.
+4. Optional: gesture support (chip reports a gesture byte), multi-touch (frame len 21+),
+   Unraid notification actions on tap.
 
 ## 10. Repo map (everything needed lives in `plugin/`)
 
@@ -225,8 +199,6 @@ initramfs-tools-core acpica-tools grub-efi-amd64-bin binutils curl`, with
   hardware-reference appendix (touch protocol, EC, panel specs).
 - **`boot/i915-edp-wakeprobe-6.18.38.patch`** — the exact deployed kernel-module
   source diff (generated from the build tree, not hand-written).
-- **`boot/grub-menuentry.cfg`** — exact NVMe-ESP grub config.
-- **`boot/go-block.sh`** — exact `/boot/config/go` autostart block.
 - **`boot/build-overlay.sh`** — one-command module/overlay/touch-stack rebuild
   (run after every Unraid upgrade).
 - **`src/panel/`** — the dashboard daemon (modular C99): `panel_dash.c` aggregates

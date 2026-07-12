@@ -50,8 +50,7 @@ Three discoveries make this possible (full story: [docs/SOLUTION.md](docs/SOLUTI
    entry** — not the auto-generated removable-media fallback. So the plugin
    registers a named EFI entry (`Unraid (iDX6011 panel)`) for the USB flash with
    `efibootmgr` and keeps it first in the boot order. **No UGOS or NVMe required.**
-   If UGOS is present its grub is used as an extra fallback, but a wiped-UGOS box
-   works identically since our entry is then the only one.
+   A wiped-UGOS box works identically — our registered entry is then the only one.
 2. **Kernels ≥ 6.17 dropped the DPCD wake-probe** this panel's eDP bridge needs.
    Two one-line module patches (shipped as a small overlay initrd, `bzroot-wakefix` —
    the kernel image itself is untouched) restore it.
@@ -77,17 +76,19 @@ BIOS (panel rail ON for a *registered* EFI entry)
 
 Summary of the runbook:
 
-1. **BIOS**: NVMe (`debian`) entry first in boot order; watchdog off.
-2. **Grub entry** on the NVMe EFI partition — exact file: [boot/grub-menuentry.cfg](boot/grub-menuentry.cfg)
-   (the plugin re-asserts this automatically afterwards if a UGOS update wipes it).
-3. **Stage the payload** to `/boot/config/plugins/ugreen-idx6011-pro/`:
+1. **Register the EFI entry** for the USB flash and put it first in the boot order —
+   the BIOS powers the panel rail only for a *registered* entry (not the removable-media
+   fallback). The plugin's `assert-boot.sh` does this automatically on every boot; the
+   manual `efibootmgr` command is in the runbook.
+2. **Stage the payload** to `/boot/config/plugins/ugreen-idx6011-pro/`:
    scripts from [src/](src/), binaries from [prebuilt/](prebuilt/)
    (or build your own — see [Building](#building-from-source)).
-4. **Install the plugin**:
+3. **Install the plugin**:
    ```bash
    plugin install /boot/config/plugins/ugreen-idx6011-pro.plg
    ```
-5. Reboot through the grub UNRAID entry — panel lights, dashboard starts, LEDs go live.
+4. Reboot — the firmware boots the registered entry, the panel lights, the dashboard
+   starts, and the LEDs go live.
 
 ## The Dashboard
 
@@ -179,8 +180,8 @@ All of these are editable live from the **SETTINGS** page on the panel itself.
 
 | Symptom | Cause → fix |
 |---------|-------------|
-| Boots into UGOS instead of Unraid | USB flash missing/unreadable (grub file-search failed) → reinsert, reboot |
-| Panel dark, dmesg shows `PP_STATUS: 0x00000000` | Booted via the USB path, not the NVMe grub entry → check BIOS boot order / grub entry |
+| Boots the wrong OS / not Unraid | USB flash missing/unreadable, or the EFI entry isn't first → reinsert the flash and set the `Unraid (iDX6011 panel)` entry first (`efibootmgr -o`) |
+| Panel dark, dmesg shows `PP_STATUS: 0x00000000` | Booted via the removable-media fallback, not the registered EFI entry → make the `Unraid (iDX6011 panel)` entry first (`efibootmgr -o`) |
 | Panel dark after an Unraid upgrade | Kernel changed → rebuild the overlay (above) |
 | Dashboard frozen but process running | i915 framebuffer compression serving a stale frame → update to a build with per-frame `DirtyFB` (any current one) |
 | Touch dead | `ls /sys/bus/i2c/devices/` should list `i2c-CUST0000:00` — if not, the LPSS module chain didn't load; re-run the plugin install |
@@ -208,7 +209,7 @@ Everything builds in a Debian container on the box (the plugin's own docs assume
 ```
 ugreen-idx6011-pro.plg   Unraid plugin manifest (schema-verified, lifecycle-tested)
 src/                     shell scripts (LED + LCD + boot heal); src/panel/ = modular dashboard C
-boot/                    exact grub entry, go-block, kernel patch, overlay build script
+boot/                    kernel wake-probe patch + overlay build script
 prebuilt/                verified binaries: panel_dash, bzroot-wakefix (kernel-bound),
                          ugreen_leds_cli (klein0r/iDX6011), i2c-tools txz
 images/                  plugin icon (transparent PNG)

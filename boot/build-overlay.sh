@@ -8,7 +8,7 @@
 #         /boot/config/plugins/ugreen-idx6011-pro/modules/*.ko
 #
 # Re-run this after EVERY Unraid upgrade (kernel version changes -> modules must be
-# rebuilt; the grub entry and go block are version-independent).
+# rebuilt; the registered EFI boot entry is version-independent).
 set -e
 
 KV=$(uname -r)                                 # e.g. 6.18.38-Unraid
@@ -73,4 +73,4 @@ sync
 echo "== DONE =="
 echo "overlay:  $(ls -la /boot/bzroot-wakefix)"
 echo "touch:    $(ls $UGP/modules/)"
-echo "Reboot through the NVMe grub entry to activate."
+echo "Reboot to activate (boots via the registered 'Unraid (iDX6011 panel)' EFI entry)."

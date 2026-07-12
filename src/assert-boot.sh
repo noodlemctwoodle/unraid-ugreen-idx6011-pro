@@ -8,8 +8,8 @@
 # module overlay. This needs no UGOS, no NVMe, no grub — a wiped-UGOS box works.
 #
 # Idempotent; run at every boot by start-panel.sh. Best-effort throughout
-# (never fails the boot). A UGOS grub fallback, if present, is handled separately
-# by assert-grub.sh.
+# (never fails the boot). This is the sole boot-provisioning method — no UGOS,
+# no NVMe, no grub.
 set +e
 LABEL="Unraid (iDX6011 panel)"
 

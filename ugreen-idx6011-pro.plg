@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name    "ugreen-idx6011-pro">
 <!ENTITY author  "noodlemctwoodle">
-<!ENTITY version "2026.07.12d">
+<!ENTITY version "2026.07.12e">
 <!ENTITY plgdir  "/boot/config/plugins/&name;">
 ]>
 
@@ -15,6 +15,12 @@
         pluginURL="https://raw.githubusercontent.com/noodlemctwoodle/unraid-ugreen-idx6011-pro/main/&name;.plg">
 
 <CHANGES>
+###2026.07.12e
+- Remove the legacy UGOS-grub / go-file boot path entirely, superseded by the
+  self-registered EFI entry (assert-boot.sh). Deleted src/assert-grub.sh,
+  boot/grub-menuentry.cfg and boot/go-block.sh; start-panel.sh no longer calls the
+  grub fallback. The registered EFI entry is now the sole boot-provisioning method
+  (no UGOS/NVMe/grub dependency). Docs updated to the EFI-entry method throughout.
 ###2026.07.12d
 - Dashboard source modularized into src/panel/ (panel_dash.c aggregator that
   #includes the concern modules draw/stats/ui/prefs/pages/render/touch as one
@@ -88,7 +94,7 @@ echo ""
 rm -rf /usr/local/emhttp/plugins/&name;
 rm -f /tmp/plugins/&name;.plg
 echo "&name; removed (LEDs off, dashboard stopped)."
-echo "NOTE: boot chain (grub entry + /boot/bzroot-wakefix) and &plgdir; files are"
+echo "NOTE: boot chain (EFI entry + /boot/bzroot-wakefix) and &plgdir; files are"
 echo "left intact on purpose - see docs/front-panel-blueprint.md for full uninstall."
 true
 </INLINE>

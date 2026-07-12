@@ -18,10 +18,8 @@ BRIGHTNESS=75; INTERVAL=1; ROTATE=0
 [ -f $PANEL/settings.cfg ] && . $PANEL/settings.cfg
 WALLPAPER=$PANEL/wallpaper.png
 
-# ---- keep the panel boot path healthy (UGOS-independent, primary) ----
+# ---- keep the panel boot path healthy (self-registered EFI entry) ----
 bash $P/assert-boot.sh 2>>$LOG
-# ---- opportunistic UGOS grub fallback (no-op if UGOS/NVMe absent) ----
-[ -f $P/assert-grub.sh ] && bash $P/assert-grub.sh 2>>$LOG
 
 # ---- stage the overlay matching THIS Unraid release for the next boot ----
 if [ -f "$PANEL/overlay/$KV/bzroot-wakefix" ]; then
@@ -52,6 +50,6 @@ if [ "$(cat /sys/class/drm/card*-eDP-1/status 2>/dev/null | head -1)" = "connect
     echo "$(date) panel_dash starting ($ARGS)" >> $LOG
 else
     echo "$(date) eDP-1 not connected — booted via USB path or overlay missing; dashboard skipped" >> $LOG
-    notify warning "LCD not active this boot. Boot via the NVMe grub entry (see plugin docs) to light the panel."
+    notify warning "LCD not active this boot. Ensure the 'Unraid (iDX6011 panel)' EFI boot entry is first in the boot order (see plugin docs)."
 fi
 exit 0

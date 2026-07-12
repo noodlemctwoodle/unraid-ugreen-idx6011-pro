@@ -24,29 +24,29 @@ that source on Unraid 7.3.2 and exercised with a full real-manager lifecycle tes
 2. `start.sh` (LED daemon — skipped gracefully if its payload isn't staged).
 3. `start-panel.sh`:
    - **DMI gate**: `sys_vendor == UGREEN && product_name == "iDX6011 Pro"`, else exit 0.
-   - `assert-grub.sh`: re-adds the UNRAID menuentry to the NVMe ESP if a UGOS update
-     wiped it (backs up first), asserts `default`/`timeout`, puts the `debian`
-     EFI entry first in BootOrder. Never edits the vendor menuentry.
+   - `assert-boot.sh`: registers a named EFI entry (`Unraid (iDX6011 panel)`) for the
+     USB flash and keeps it first in BootOrder — the BIOS powers the panel rail only
+     for a *registered* entry. No UGOS/NVMe/grub dependency.
    - Stages `panel/overlay/$(uname -r)/bzroot-wakefix` → `/boot/bzroot-wakefix`
      (kernel upgrades: panel dark for one boot + an Unraid notification, never a
      broken boot).
    - Loads the touch stack: stock `mfd_core` + per-kernel `intel-lpss(-pci)` +
      `i2c-designware-core/platform` from flash + stock `i2c-dev`.
-   - If `eDP-1` is `connected` (i.e. we booted via the NVMe path): kills any old
+   - If `eDP-1` is `connected` (i.e. we booted via the registered EFI entry): kills any old
      daemon **first**, copies the new binary, starts `panel_dash` with
      `settings.cfg` values. Otherwise posts a warning notification and exits 0.
 
 `<FILE Run="/bin/bash" Method="remove">` → stops both daemons, removes the RAM-side
-webGUI dir. **Deliberately leaves** `/boot/bzroot-wakefix`, the grub entry, and the
-flash payload: the grub UNRAID entry references `bzroot-wakefix`, so deleting it
-would break the default boot. Full manual uninstall = `front-panel-blueprint.md`.
+webGUI dir. **Deliberately leaves** `/boot/bzroot-wakefix`, the registered EFI entry,
+and the flash payload: the flash's syslinux default loads `bzroot-wakefix` in its
+initrd line, so removing it would break the boot. Full manual uninstall = `front-panel-blueprint.md`.
 
 ## Flash payload layout
 
 ```
 /boot/config/plugins/ugreen-idx6011-pro/
 ├── start.sh / stop.sh / monitor.sh / ugreen_leds_cli…   # LED feature (existing)
-├── start-panel.sh / stop-panel.sh / assert-grub.sh      # LCD feature
+├── start-panel.sh / stop-panel.sh / assert-boot.sh      # LCD feature
 └── panel/
     ├── panel_dash                    # daemon binary
     ├── settings.cfg                   # BRIGHTNESS / INTERVAL / ROTATE
