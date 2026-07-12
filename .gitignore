@@ -1,9 +1,13 @@
-# built artifact — compile locally per the README (do not commit)
+# built artifacts — do not commit stray build outputs (compile locally per README)
 ugreen_leds_cli
-# bundled packages
 *.txz
+# exception: prebuilt/ holds the intentional, verified disaster-recovery copies
+!prebuilt/ugreen_leds_cli
+!prebuilt/*.txz
 # logs / runtime
 *.log
 *.pid
 # never commit secrets
 .env
+# macOS cruft
+.DS_Store

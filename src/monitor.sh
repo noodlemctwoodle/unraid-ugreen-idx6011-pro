@@ -12,7 +12,12 @@
 set -u
 
 BIN=/usr/local/bin/ugreen_leds_cli
-BUS=0
+# SMBus I801 bus number varies with other i2c drivers loaded (i915 DDC, LPSS
+# touch stack...) — detect it by adapter name; fall back to 0.
+BUS=$(for d in /sys/bus/i2c/devices/i2c-*; do
+        grep -q "^SMBus I801" "$d/name" 2>/dev/null && { basename "$d" | cut -d- -f2; break; }
+      done)
+BUS=${BUS:-0}
 A=0x3a
 export UGREEN_MODEL=idx6011
 

@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name    "ugreen-idx6011-pro">
 <!ENTITY author  "noodlemctwoodle">
-<!ENTITY version "2026.07.11">
+<!ENTITY version "2026.07.12c">
 <!ENTITY plgdir  "/boot/config/plugins/&name;">
 ]>
 
@@ -10,10 +10,30 @@
         author="&author;"
         version="&version;"
         min="6.12.0"
-        icon="lightbulb"
+        icon="ugreen-idx6011-pro.png"
+        support="https://github.com/noodlemctwoodle/unraid-ugreen-idx6011-pro/issues"
         pluginURL="https://raw.githubusercontent.com/noodlemctwoodle/unraid-ugreen-idx6011-pro/main/&name;.plg">
 
 <CHANGES>
+###2026.07.12c
+- Dashboard v3: 7 pages (Home ring-gauge, Hardware sparklines, Docker list,
+  interactive Settings) + EC backlight + continuous drag-scroll.
+- UGOS-INDEPENDENT boot: self-registers a named EFI entry for the USB flash
+  (assert-boot.sh) so the panel powers without the UGOS grub chain; the grub
+  fallback is now opportunistic (used only if UGOS is present).
+###2026.07.12b
+- Product-photo plugin icon (PNG staged to the webGUI plugin dir at install).
+###2026.07.12a
+- Schema conformance: removal now uses FILE Method="remove" (the former REMOVE
+  element is not part of the plugin-manager schema and was silently ignored).
+  Boot INLINE hardened to always exit 0 (a boot-time error moves a plugin to
+  plugins-error and disables it permanently).
+###2026.07.12
+- LCD touchscreen dashboard (panel_dash2): 5 pages of live stats with touch
+  navigation on the front 258x960 panel. Requires the NVMe-grub boot chain
+  (docs/front-panel-blueprint.md); self-heals the grub entry + BootOrder at boot,
+  stages the kernel-matched module overlay, loads the touch I2C stack.
+- Model-gated via DMI (UGREEN iDX6011 Pro only); degrades gracefully everywhere.
 ###2026.07.11
 - Initial release. Smart front-panel LEDs for the UGREEN NASync iDX6011 Pro
   (power + 2x LAN + 6x disk): drive presence, SMART health (green/amber/red),
@@ -27,20 +47,42 @@
   Staged files under &plgdir; on the flash: ugreen_leds_cli, monitor.sh, start.sh,
   stop.sh, i2c-tools-*.txz  (see README for how to build/stage them).
 -->
+<FILE Name="&plgdir;/panel/settings.cfg">
+<INLINE>
+# Front-panel dashboard settings (sourced by start-panel.sh; edits survive updates)
+BRIGHTNESS=75
+INTERVAL=1
+ROTATE=0
+</INLINE>
+</FILE>
+
 <FILE Run="/bin/bash">
 <INLINE>
-bash "&plgdir;/start.sh"
+# migrate: the panel autostart used to live in /boot/config/go — now plugin-managed
+sed -i '/# UGREEN iDX6011 Pro front-panel dashboard/,/^fi$/d' /boot/config/go 2>/dev/null
+# webGUI assets (plugin icon)
+mkdir -p /usr/local/emhttp/plugins/&name;/images
+[ -f "&plgdir;/images/&name;.png" ] &amp;&amp; cp "&plgdir;/images/&name;.png" /usr/local/emhttp/plugins/&name;/images/
+[ -f "&plgdir;/start.sh" ] &amp;&amp; bash "&plgdir;/start.sh"
+[ -f "&plgdir;/start-panel.sh" ] &amp;&amp; bash "&plgdir;/start-panel.sh"
+true
 echo ""
-echo "&name; &version; — front-panel LED monitor started"
+echo "&name; &version; — front-panel LEDs + LCD dashboard started"
 echo ""
 </INLINE>
 </FILE>
 
-<REMOVE>
+<FILE Run="/bin/bash" Method="remove">
 <INLINE>
-bash "&plgdir;/stop.sh"
-echo "&name; removed (LEDs off)"
+[ -f "&plgdir;/stop.sh" ] &amp;&amp; bash "&plgdir;/stop.sh"
+[ -f "&plgdir;/stop-panel.sh" ] &amp;&amp; bash "&plgdir;/stop-panel.sh"
+rm -rf /usr/local/emhttp/plugins/&name;
+rm -f /tmp/plugins/&name;.plg
+echo "&name; removed (LEDs off, dashboard stopped)."
+echo "NOTE: boot chain (grub entry + /boot/bzroot-wakefix) and &plgdir; files are"
+echo "left intact on purpose - see docs/front-panel-blueprint.md for full uninstall."
+true
 </INLINE>
-</REMOVE>
+</FILE>
 
 </PLUGIN>

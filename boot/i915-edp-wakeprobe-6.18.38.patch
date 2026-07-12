@@ -1,0 +1,65 @@
+--- a/drivers/gpu/drm/display/drm_dp_helper.c	2026-07-04 11:44:22.000000000 +0000
++++ b/drivers/gpu/drm/display/drm_dp_helper.c	2026-07-12 08:57:44.054424647 +0000
+@@ -742,7 +742,7 @@
+ 	int ret;
+ 
+ 	if (dpcd_access_needs_probe(aux)) {
+-		ret = drm_dp_dpcd_probe(aux, DP_TRAINING_PATTERN_SET);
++		ret = drm_dp_dpcd_probe(aux, DP_DPCD_REV);
+ 		if (ret < 0)
+ 			return ret;
+ 	}
+--- a/drivers/gpu/drm/i915/display/intel_dp.c	2026-07-04 11:44:22.000000000 +0000
++++ b/drivers/gpu/drm/i915/display/intel_dp.c	2026-07-12 09:16:26.073026594 +0000
+@@ -34,6 +34,7 @@
+ #include <linux/seq_buf.h>
+ #include <linux/slab.h>
+ #include <linux/sort.h>
++#include <linux/delay.h>
+ #include <linux/string_helpers.h>
+ #include <linux/timekeeping.h>
+ #include <linux/types.h>
+@@ -5891,7 +5892,7 @@
+ 	struct intel_connector *connector = intel_dp->attached_connector;
+ 
+ 	if (intel_dp_is_edp(intel_dp))
+-		return false;
++		return true;
+ 
+ 	if (force_on_external)
+ 		return true;
+@@ -6629,6 +6630,34 @@
+ 	has_dpcd = intel_edp_init_dpcd(intel_dp, connector);
+ 
+ 	if (!has_dpcd) {
++		/*
++		 * iDX6011 front-panel eDP->DSI bridge: its AUX block sleeps
++		 * when the BIOS leaves VDD on across a long handoff, and only
++		 * a VDD power-cycle edge wakes it. Cycle panel power, retry.
++		 */
++		drm_info(display->drm,
++			 "[ENCODER:%d:%s] eDP DPCD init failed, cycling panel power and retrying\n",
++			 encoder->base.base.id, encoder->base.name);
++		intel_pps_vdd_off_sync(intel_dp);
++		msleep(30000);
++		intel_pps_wait_power_cycle(intel_dp);
++		intel_pps_vdd_on(intel_dp);
++		msleep(500);
++		intel_pps_on(intel_dp);
++		msleep(1000);
++		for (int wake_try = 0; wake_try < 10; wake_try++) {
++			has_dpcd = intel_edp_init_dpcd(intel_dp, connector);
++			if (has_dpcd) {
++				drm_info(display->drm,
++					 "[ENCODER:%d:%s] eDP WOKE after full power cycle (attempt %d)\n",
++					 encoder->base.base.id, encoder->base.name, wake_try + 1);
++				break;
++			}
++			msleep(1000);
++		}
++	}
++
++	if (!has_dpcd) {
+ 		/* if this fails, presume the device is a ghost */
+ 		drm_info(display->drm,
+ 			 "[ENCODER:%d:%s] failed to retrieve link info, disabling eDP\n",
