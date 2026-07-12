@@ -39,7 +39,12 @@ static void read_mem(stats_t *st){
 
 /* --- network: default-route iface + per-iface rows --- */
 static void primary_iface(char out[32]){
-    strcpy(out, "br0");                        /* fallback */
+    /* explicit override from settings.cfg (PRIMARY_IFACE), if that iface exists */
+    if (cfg_primary_if[0]){
+        char q[64]; snprintf(q, sizeof q, "/sys/class/net/%s", cfg_primary_if);
+        if (access(q, F_OK) == 0){ snprintf(out, 32, "%s", cfg_primary_if); return; }
+    }
+    strcpy(out, "br0");                        /* fallback (default-route auto-pick) */
     FILE *f = fopen("/proc/net/route", "r"); if (!f) return;
     char line[256];
     if (!fgets(line, sizeof line, f)){ fclose(f); return; }   /* header */

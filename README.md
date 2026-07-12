@@ -177,8 +177,9 @@ bash /boot/config/plugins/ugreen-idx6011-pro/calibrate.sh
 | `SCREEN_OFF_MIN` | `0` | blank the panel after N idle minutes; `0` = never |
 | `NIGHT` | `0` | night mode: clamp brightness to 15% |
 | `LEDS` | `1` | front LEDs on/off |
+| `PRIMARY_IFACE` | *(auto)* | interface whose rates the Overview/Home pages show; empty = auto-pick the default-route interface. Set e.g. `bond0` to match the Unraid dashboard. Falls back to auto-pick if the named interface is absent. |
 
-All of these are editable live from the **SETTINGS** page on the panel itself.
+Most of these are editable live from the **SETTINGS** page on the panel itself.
 
 - **Wallpaper**: place a file named `wallpaper.png` in `…/ugreen-idx6011-pro/panel/`
   (any size — auto-scaled to 258×960). The decoder reads PNG or JPEG data, but the

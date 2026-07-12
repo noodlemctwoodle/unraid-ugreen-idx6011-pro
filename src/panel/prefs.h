@@ -21,6 +21,7 @@ static int cfg_rotate     = 0;      /* auto-rotate seconds: 0/10/20/60 */
 static int cfg_screen_off = 0;      /* minutes: 0(never)/1/5/15 */
 static int cfg_night      = 0;      /* 1 = clamp brightness to 15% */
 static int cfg_leds       = 1;      /* chassis LEDs on/off */
+static char cfg_primary_if[32] = "";/* Overview/Home "primary" iface; empty = default-route auto-pick */
 
 static void settings_load(void){
     FILE *f = fopen(CFG_PATH, "r"); if (!f) return;
@@ -34,6 +35,7 @@ static void settings_load(void){
         else if (!strcmp(k, "SCREEN_OFF_MIN")) cfg_screen_off = atoi(v);
         else if (!strcmp(k, "NIGHT"))          cfg_night      = atoi(v) != 0;
         else if (!strcmp(k, "LEDS"))           cfg_leds       = atoi(v) != 0;
+        else if (!strcmp(k, "PRIMARY_IFACE"))  snprintf(cfg_primary_if, sizeof cfg_primary_if, "%s", v);
     }
     fclose(f);
     if (cfg_brightness < 5)   cfg_brightness = 5;
@@ -48,9 +50,9 @@ static void settings_save(void){
     snprintf(tmp, sizeof tmp, "%s.tmp", CFG_PATH);
     FILE *f = fopen(tmp, "w"); if (!f) return;
     fprintf(f, "BRIGHTNESS=%d\nINTERVAL=%d\nROTATE=%d\n"
-               "SCREEN_OFF_MIN=%d\nNIGHT=%d\nLEDS=%d\n",
+               "SCREEN_OFF_MIN=%d\nNIGHT=%d\nLEDS=%d\nPRIMARY_IFACE=%s\n",
             cfg_brightness, cfg_interval, cfg_rotate,
-            cfg_screen_off, cfg_night, cfg_leds);
+            cfg_screen_off, cfg_night, cfg_leds, cfg_primary_if);
     fclose(f);
     rename(tmp, CFG_PATH);
 }
