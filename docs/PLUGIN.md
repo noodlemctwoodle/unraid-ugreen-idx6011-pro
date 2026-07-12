@@ -19,10 +19,14 @@ that source on Unraid 7.3.2 and exercised with a full real-manager lifecycle tes
 
 ## What the plugin does at boot (verified)
 
-`<FILE Run="/bin/bash"><INLINE>` →
-1. Migrates away any legacy `/boot/config/go` block (idempotent `sed`).
-2. `start.sh` (LED daemon — skipped gracefully if its payload isn't staged).
-3. `start-panel.sh`:
+A `<FILE Name … ><URL><SHA256></FILE>` downloads the payload archive to the flash and
+verifies it; then `<FILE Run="/bin/bash"><INLINE>` →
+1. Extracts the SHA256-verified payload to `&plgdir;` once per version (a
+   `.payload-<ver>` marker skips re-extraction on later boots), then seeds
+   `panel/settings.cfg` only if absent (so user edits survive updates).
+2. Migrates away any legacy `/boot/config/go` block (idempotent `sed`).
+3. `start.sh` (LED daemon — skipped gracefully if its payload isn't staged).
+4. `start-panel.sh`:
    - **DMI gate**: `sys_vendor == UGREEN && product_name == "iDX6011 Pro"`, else exit 0.
    - `assert-boot.sh`: registers a named EFI entry (`Unraid (iDX6011 panel)`) for the
      USB flash and keeps it first in BootOrder — the BIOS powers the panel rail only
@@ -45,7 +49,9 @@ initrd line, so removing it would break the boot. Full manual uninstall = `front
 
 ```
 /boot/config/plugins/ugreen-idx6011-pro/
-├── start.sh / stop.sh / monitor.sh / ugreen_leds_cli…   # LED feature (existing)
+├── ugreen-idx6011-pro-<ver>.txz    # downloaded payload archive (SHA256-verified)
+├── .payload-<ver>                  # extraction marker (skip re-extract on reboot)
+├── start.sh / stop.sh / monitor.sh / ugreen_leds_cli…   # LED feature
 ├── start-panel.sh / stop-panel.sh / assert-boot.sh      # LCD feature
 └── panel/
     ├── panel_dash                    # daemon binary
@@ -55,26 +61,25 @@ initrd line, so removing it would break the boot. Full manual uninstall = `front
     └── overlay/<kver>/bzroot-wakefix  # display-module overlay, per kernel version
 ```
 
-## Release process (for public distribution)
+## Release process (implemented)
 
-1. Build artifacts for the target Unraid release: `boot/build-overlay.sh` (overlay +
-   touch modules) and `src/panel/build.sh` (daemon).
-2. Pack the payload: `tar cJf ugreen-idx6011-pro-<ver>.txz` of the flash layout above
-   (root:root ownership).
-3. Attach the txz to a GitHub release; compute `md5sum`.
-4. In the plg, add before the install INLINE:
-   ```xml
-   <FILE Name="&plgdir;/&name;-&version;.txz">
-     <URL>https://github.com/noodlemctwoodle/unraid-ugreen-idx6011-pro/releases/download/&version;/&name;-&version;.txz</URL>
-     <MD5>…</MD5>
-   </FILE>
-   ```
-   and have the INLINE untar it over `&plgdir;` before starting.
-5. Bump `version`, push the plg to `main` (that raw URL is the `pluginURL` update
-   check target). Users get it via Plugins → Install Plugin → plg URL.
-6. Per-Unraid-release maintenance: rebuild step 1, add the new `<kver>` dirs to the
-   payload, release. (Users on unsupported kernels degrade to
-   "panel dark + notification", nothing breaks.)
+1. Refresh the kernel-bound artifacts for the target Unraid release: run
+   `boot/build-overlay.sh` on the box (overlay + touch modules) and copy the results
+   into `prebuilt/` (`bzroot-wakefix`, `modules/<kver>/*.ko`); rebuild the daemon with
+   `src/panel/build.sh` → `prebuilt/panel_dash` if the source changed.
+2. Build the payload + hash: `bash release/mkpayload.sh <version>` →
+   `release/<name>-<version>.txz` (+ `.sha256`), assembled from `src/` + `prebuilt/` +
+   `images/` in the flash layout above (no `settings.cfg` — the plg seeds that).
+3. Embed the hash: set the download `<FILE>`'s `<SHA256>` to the value in the
+   `.sha256` sidecar, and bump `version`.
+4. Push the plg to `main` (its raw URL is the `pluginURL` update-check target), then
+   publish a GitHub release tagged `<version>` with the txz as an asset:
+   `gh release create <version> release/<name>-<version>.txz --target main`.
+5. Users install via Plugins → Install Plugin → the plg URL; the plg downloads the
+   txz, verifies the SHA256, and extracts it. Nothing is staged by hand.
+6. Per-Unraid-kernel maintenance: redo step 1 for the new `<kver>`, rebuild the
+   payload, release. Users on an unbundled kernel degrade to "panel dark +
+   notification" until they rebuild — nothing breaks.
 
 ## Lifecycle test record (2026-07-12, Unraid 7.3.2)
 

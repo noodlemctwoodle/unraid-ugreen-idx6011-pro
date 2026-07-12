@@ -4,8 +4,9 @@
 #
 # RUN ON: the Unraid box, with the array started (Docker available).
 # INPUT:  plugin/boot/i915-edp-wakeprobe-6.18.38.patch (adjust filename per kernel)
-# OUTPUT: /boot/bzroot-wakefix
-#         /boot/config/plugins/ugreen-idx6011-pro/modules/*.ko
+# OUTPUT: /boot/config/plugins/ugreen-idx6011-pro/panel/overlay/<kver>/bzroot-wakefix
+#         /boot/config/plugins/ugreen-idx6011-pro/panel/modules/<kver>/*.ko
+#         (and /boot/bzroot-wakefix, staged for the current boot)
 #
 # Re-run this after EVERY Unraid upgrade (kernel version changes -> modules must be
 # rebuilt; the registered EFI boot entry is version-independent).
@@ -60,17 +61,20 @@ xz --check=crc32 --lzma2=dict=1MiB -c linux-$KVER/drivers/gpu/drm/i915/i915.ko \
     > overlay/lib/modules/$KV/kernel/drivers/gpu/drm/i915/i915.ko.xz
 xz --check=crc32 --lzma2=dict=1MiB -c linux-$KVER/drivers/gpu/drm/display/drm_display_helper.ko \
     > overlay/lib/modules/$KV/kernel/drivers/gpu/drm/display/drm_display_helper.ko.xz
-( cd overlay && find . | cpio -o -H newc ) > /boot/bzroot-wakefix
+mkdir -p $UGP/panel/overlay/$KV
+( cd overlay && find . | cpio -o -H newc ) > $UGP/panel/overlay/$KV/bzroot-wakefix
+cp $UGP/panel/overlay/$KV/bzroot-wakefix /boot/bzroot-wakefix   # also stage for the current boot
 
-# 5. touch-stack modules onto the flash (loaded by the go block)
-mkdir -p $UGP/modules
-cp linux-$KVER/drivers/mfd/intel-lpss.ko            $UGP/modules/
-cp linux-$KVER/drivers/mfd/intel-lpss-pci.ko        $UGP/modules/
-cp linux-$KVER/drivers/i2c/busses/i2c-designware-core.ko     $UGP/modules/
-cp linux-$KVER/drivers/i2c/busses/i2c-designware-platform.ko $UGP/modules/
+# 5. touch-stack modules onto the flash (loaded per-kernel by start-panel.sh)
+MODDIR=$UGP/panel/modules/$KV
+mkdir -p $MODDIR
+cp linux-$KVER/drivers/mfd/intel-lpss.ko            $MODDIR/
+cp linux-$KVER/drivers/mfd/intel-lpss-pci.ko        $MODDIR/
+cp linux-$KVER/drivers/i2c/busses/i2c-designware-core.ko     $MODDIR/
+cp linux-$KVER/drivers/i2c/busses/i2c-designware-platform.ko $MODDIR/
 sync
 
 echo "== DONE =="
-echo "overlay:  $(ls -la /boot/bzroot-wakefix)"
-echo "touch:    $(ls $UGP/modules/)"
+echo "overlay:  $(ls -la $UGP/panel/overlay/$KV/bzroot-wakefix)"
+echo "touch:    $(ls $UGP/panel/modules/$KV/)"
 echo "Reboot to activate (boots via the registered 'Unraid (iDX6011 panel)' EFI entry)."

@@ -14,9 +14,9 @@ running **Unraid** — the full front panel, working natively, no UGOS required 
 
 ## Features
 
-- **Swipeable touch dashboard** on the 258×960 front LCD — five pages:
-  Overview, Network, Disks, System, About (Home / Hardware-sparklines / Docker /
-  Settings pages in development)
+- **Swipeable touch dashboard** on the 258×960 front LCD — seven pages: Home
+  (CPU ring gauge), Overview, Hardware (sparklines), Network, Disks, Docker, and an
+  interactive Settings page
 - **Touch navigation**: swipe left/right for pages, up/down to scroll, tap the
   footer for next page, long-press to dim, tap to wake
 - **Live stats**: CPU %/temp, memory, per-interface network rates + totals,
@@ -24,19 +24,19 @@ running **Unraid** — the full front panel, working natively, no UGOS required 
   array/parity state, docker count, Unraid **notifications** badge + banner
 - **Smart front LEDs** (9× RGB): power white; LAN1/2 blue on link; each disk bay
   green/amber/red from SMART health, off when empty — updates live (~2 s)
-- **Wallpaper support** — drop a PNG/JPG on the flash, auto-scaled
+- **Wallpaper support** — drop `wallpaper.png` in the plugin's `panel/` dir, auto-scaled to the panel
 - Backlight control, optional auto page rotation
 - **Survives reboots and self-heals**: proper Unraid plugin (verified against the
   plugin-manager schema), re-asserts its boot chain at every start
-- Everything needed is in this repo — sources, exact boot configs, kernel patch,
-  and prebuilt binaries for disaster recovery
+- Everything needed is in this repo — sources, the kernel wake-probe patch + overlay
+  builder, and prebuilt binaries for disaster recovery
 
 ## Requirements
 
 - UGREEN NASync **iDX6011 Pro** (model-gated via DMI — the plugin no-ops elsewhere)
 - **Unraid 7.3.x** on a USB flash labelled `UNRAID` (developed on 7.3.2 / kernel 6.18.38)
-- Recommended: **UGOS left on the internal NVMe** as a fallback boot path — but
-  **not required** (see below); the plugin self-registers its own EFI boot entry
+- **UGOS not required** — the plugin self-registers its own EFI boot entry, so a box
+  with UGOS wiped from the NVMe works identically (see below)
 - **BIOS Watchdog Timer disabled** (mandatory for any non-UGOS OS, or the box
   hard-resets every ~2 minutes)
 - A BIOS that allows OS-registered EFI boot entries (standard UEFI) — the plugin
@@ -69,26 +69,24 @@ BIOS (panel rail ON for a *registered* EFI entry)
 ## Installation
 
 > [!NOTE]
-> Not yet a one-URL packaged release — install is a short staging procedure, with
-> every file provided in this repo (including prebuilt binaries). The numbered
-> runbook with copy-paste commands and verification steps is
-> **[docs/front-panel-blueprint.md](docs/front-panel-blueprint.md)**.
+> **Self-contained**: the plugin downloads a SHA256-verified payload from the GitHub
+> release and stages everything itself (scripts, binaries, touch modules, display
+> overlay, icon). The from-source / manual runbook — and how to rebuild for a
+> different kernel — is **[docs/front-panel-blueprint.md](docs/front-panel-blueprint.md)**.
 
-Summary of the runbook:
-
-1. **Register the EFI entry** for the USB flash and put it first in the boot order —
-   the BIOS powers the panel rail only for a *registered* entry (not the removable-media
-   fallback). The plugin's `assert-boot.sh` does this automatically on every boot; the
-   manual `efibootmgr` command is in the runbook.
-2. **Stage the payload** to `/boot/config/plugins/ugreen-idx6011-pro/`:
-   scripts from [src/](src/), binaries from [prebuilt/](prebuilt/)
-   (or build your own — see [Building](#building-from-source)).
-3. **Install the plugin**:
-   ```bash
-   plugin install /boot/config/plugins/ugreen-idx6011-pro.plg
+1. **Plugins → Install Plugin** in the Unraid UI, paste this URL, install:
    ```
-4. Reboot — the firmware boots the registered entry, the panel lights, the dashboard
-   starts, and the LEDs go live.
+   https://raw.githubusercontent.com/noodlemctwoodle/unraid-ugreen-idx6011-pro/main/ugreen-idx6011-pro.plg
+   ```
+   It downloads its payload, stages everything, and registers its EFI boot entry
+   (`assert-boot.sh`).
+2. **Reboot.** The firmware boots the registered `Unraid (iDX6011 panel)` entry (the
+   BIOS powers the panel rail only for a registered entry) — the panel lights, the
+   dashboard starts, and the LEDs go live.
+
+⚠️ Disable the **BIOS Watchdog Timer** first (see Requirements). The bundled
+modules/overlay are built for **kernel 6.18.38-Unraid (Unraid 7.3.2)**; on a different
+kernel the panel stays dark until you rebuild them with `boot/build-overlay.sh`.
 
 ## The Dashboard
 
@@ -158,7 +156,10 @@ bash /boot/config/plugins/ugreen-idx6011-pro/calibrate.sh
 
 All of these are editable live from the **SETTINGS** page on the panel itself.
 
-- **Wallpaper**: drop `wallpaper.png` (PNG/JPG, any size — auto-scaled to 258×960)
+- **Wallpaper**: place a file named `wallpaper.png` in `…/ugreen-idx6011-pro/panel/`
+  (any size — auto-scaled to 258×960). The decoder reads PNG or JPEG data, but the
+  file must carry the `wallpaper.png` name to be picked up; restart the daemon (or
+  reboot) after adding it.
   into `/boot/config/plugins/ugreen-idx6011-pro/panel/`.
 - **LED colours/brightness/timing**: variables at the top of `src/monitor.sh`.
 - Dashboard CLI flags (for manual runs): `--bg <img>` `--backlight <pct>`

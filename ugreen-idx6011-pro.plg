@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name    "ugreen-idx6011-pro">
 <!ENTITY author  "noodlemctwoodle">
-<!ENTITY version "2026.07.12e">
+<!ENTITY version "2026.07.12f">
 <!ENTITY plgdir  "/boot/config/plugins/&name;">
 ]>
 
@@ -15,6 +15,16 @@
         pluginURL="https://raw.githubusercontent.com/noodlemctwoodle/unraid-ugreen-idx6011-pro/main/&name;.plg">
 
 <CHANGES>
+###2026.07.12f
+- Self-contained install: the .plg now downloads a SHA256-verified payload archive
+  from the GitHub release and extracts it to the plugin dir, so a plain install from
+  the plugin URL stages everything (scripts, binaries, per-kernel touch modules +
+  display overlay, icon) - no manual staging. Payload built by release/mkpayload.sh.
+- Fix build-overlay.sh module/overlay output paths to match start-panel.sh
+  (panel/modules/&lt;kver&gt;/ and panel/overlay/&lt;kver&gt;/) so touch modules load on
+  a freshly-provisioned box.
+- settings.cfg is seeded only if absent, so brightness/interval/rotate edits survive
+  plugin updates.
 ###2026.07.12e
 - Remove the legacy UGOS-grub / go-file boot path entirely, superseded by the
   self-registered EFI entry (assert-boot.sh). Deleted src/assert-grub.sh,
@@ -59,20 +69,30 @@
 
 <!--
   Runs on install AND on every boot (Unraid re-runs plugin install at boot).
-  Staged files under &plgdir; on the flash: ugreen_leds_cli, monitor.sh, start.sh,
-  stop.sh, i2c-tools-*.txz  (see README for how to build/stage them).
+  Self-contained: the payload below (scripts, binaries, per-kernel touch modules +
+  display overlay, icon) is downloaded from the GitHub release, SHA256-verified, and
+  extracted to &plgdir;. Nothing to stage by hand.
+  NOTE: the bundled modules/overlay are built for kernel 6.18.38-Unraid (Unraid
+  7.3.2). On a different Unraid kernel the panel stays dark until they are rebuilt
+  with boot/build-overlay.sh (see docs/front-panel-blueprint.md).
 -->
-<FILE Name="&plgdir;/panel/settings.cfg">
-<INLINE>
-# Front-panel dashboard settings (sourced by start-panel.sh; edits survive updates)
-BRIGHTNESS=75
-INTERVAL=1
-ROTATE=0
-</INLINE>
+<FILE Name="&plgdir;/&name;-&version;.txz">
+<URL>https://github.com/noodlemctwoodle/unraid-ugreen-idx6011-pro/releases/download/&version;/&name;-&version;.txz</URL>
+<SHA256>643d48fca512bea33fc5847c83e74fbcf8b9618da091773120201c0ed92b9404</SHA256>
 </FILE>
 
 <FILE Run="/bin/bash">
 <INLINE>
+# --- stage the flash payload from the downloaded, SHA256-verified archive ---
+MARK="&plgdir;/.payload-&version;"
+if [ ! -f "$MARK" ] &amp;&amp; [ -f "&plgdir;/&name;-&version;.txz" ]; then
+  tar xJf "&plgdir;/&name;-&version;.txz" -C "&plgdir;" &amp;&amp; touch "$MARK"
+fi
+# --- seed settings once (user edits then survive updates) ---
+if [ ! -f "&plgdir;/panel/settings.cfg" ]; then
+  mkdir -p "&plgdir;/panel"
+  printf 'BRIGHTNESS=75\nINTERVAL=1\nROTATE=0\n' &gt; "&plgdir;/panel/settings.cfg"
+fi
 # migrate: the panel autostart used to live in /boot/config/go — now plugin-managed
 sed -i '/# UGREEN iDX6011 Pro front-panel dashboard/,/^fi$/d' /boot/config/go 2>/dev/null
 # webGUI assets (plugin icon)

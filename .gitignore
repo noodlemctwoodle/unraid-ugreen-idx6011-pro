@@ -4,6 +4,9 @@ ugreen_leds_cli
 # exception: prebuilt/ holds the intentional, verified disaster-recovery copies
 !prebuilt/ugreen_leds_cli
 !prebuilt/*.txz
+# release artifacts (published to the GitHub release, not committed; *.txz already
+# excluded above). Built by release/mkpayload.sh.
+release/*.sha256
 # logs / runtime
 *.log
 *.pid
