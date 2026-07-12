@@ -26,6 +26,8 @@
  *   --interval <sec>    stats refresh interval (default 1)
  *   --backlight <pct>   backlight brightness (default 75)
  *   --once              render one frame and exit
+ *   --shot <dir>        render every page to <dir>/<n>-<name>.png and exit
+ *                       (offscreen; no DRM/panel needed — for README screenshots)
  *   --touch <hint>      substring match for touch device name
  *   --no-touch          skip touch device discovery
  *   --cal <flags>       touch calibration: any of 's' (swap xy),
@@ -67,8 +69,11 @@
 #define STBI_ONLY_JPEG
 #include "stb_image.h"
 #include "stb_easy_font.h"
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "stb_image_write.h"
 
 /* ---------- panel modules (order matters: declare-before-use) ---------- */
+#include "unraid_logo.h"
 #include "draw.h"
 #include "iniutil.h"
 #include "stats.h"
@@ -95,6 +100,7 @@ int main(int argc, char **argv){
     g_argv = argv;
     const char *bgpath = NULL; int once = 0;
     const char *touch_hint = NULL; int no_touch = 0;
+    const char *shot_dir = NULL;
 
     settings_load();                            /* flash cfg first, CLI overrides */
     for (int i = 1; i < argc; i++){
@@ -104,6 +110,7 @@ int main(int argc, char **argv){
         else if (!strcmp(argv[i], "--once")) once = 1;
         else if (!strcmp(argv[i], "--touch") && i + 1 < argc) touch_hint = argv[++i];
         else if (!strcmp(argv[i], "--no-touch")) no_touch = 1;
+        else if (!strcmp(argv[i], "--shot") && i + 1 < argc) shot_dir = argv[++i];
         else if (!strcmp(argv[i], "--rotate") && i + 1 < argc) cfg_rotate = atoi(argv[++i]);
         else if (!strcmp(argv[i], "--cal") && i + 1 < argc){
             const char *c = argv[++i];
@@ -112,6 +119,7 @@ int main(int argc, char **argv){
             cal_inv_y   = strchr(c, 'y') != NULL;
         }
     }
+    if (shot_dir) return write_shots(shot_dir, bgpath);   /* offscreen PNG render, then exit */
     if (cfg_interval < 1) cfg_interval = 1;
     if (cfg_brightness < 5) cfg_brightness = 5;
     if (cfg_brightness > 100) cfg_brightness = 100;

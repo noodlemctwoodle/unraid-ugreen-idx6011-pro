@@ -125,6 +125,28 @@ static void draw_unraid_logo(int x, int y, float s){
     }
 }
 
+/* official Unraid mark: embedded PNG (unraid_logo.h) decoded once, blitted w/ alpha */
+static void draw_unraid_icon(int x, int y){
+    static int tried; static unsigned char *img; static int iw, ih;
+    if (!tried){
+        tried = 1;
+        img = stbi_load_from_memory(unraid_logo_png, (int)unraid_logo_png_len,
+                                    &iw, &ih, NULL, 4);
+    }
+    if (!img){ draw_unraid_logo(x, y, 0.5f); return; }   /* fallback to the drawn mark */
+    for (int j = 0; j < ih; j++){
+        int py = y + j; if ((unsigned)py >= (unsigned)H) continue;
+        for (int i = 0; i < iw; i++){
+            int pxx = x + i; if ((unsigned)pxx >= (unsigned)W) continue;
+            unsigned char *p = img + (j * iw + i) * 4;
+            uint8_t a = p[3]; if (!a) continue;
+            uint32_t c = (uint32_t)p[0] << 16 | (uint32_t)p[1] << 8 | p[2];
+            uint32_t *d = &fbmem[py * fbpitch + pxx];
+            *d = (a == 255) ? c : blend(*d, c, a);
+        }
+    }
+}
+
 /* ---------- background (v1 image path; brand-dark fallback) ---------- */
 static void make_bg(const char *path){
     bg = malloc((size_t)W * H * 4);

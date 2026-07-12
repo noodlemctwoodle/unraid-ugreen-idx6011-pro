@@ -29,13 +29,19 @@ static void bar(int x, int y, int w, int h, double pct, uint32_t col){
 static uint32_t level_col(double pct){
     return pct > 90 ? UN_BAD : pct > 75 ? UN_WARN : UN_ORANGE_M;
 }
+/* Network rates are shown in bits/s (Kbps/Mbps/Gbps) to match Unraid and the usual
+ * network convention. Input kbs is KiB/s (bytes/s / 1024); * 8.192 => decimal kb/s. */
 static void fmt_rate(char *out, size_t n, double kbs){
-    if (kbs >= 1024) snprintf(out, n, "%.1f MB/s", kbs / 1024);
-    else             snprintf(out, n, "%.0f KB/s", kbs);
+    double kbps = kbs * 8.192;
+    if      (kbps >= 1000000) snprintf(out, n, "%.2f Gbps", kbps / 1000000);
+    else if (kbps >= 1000)    snprintf(out, n, "%.1f Mbps", kbps / 1000);
+    else                      snprintf(out, n, "%.0f Kbps", kbps);
 }
-static void fmt_rate_s(char *out, size_t n, double kbs){   /* compact, for tiles */
-    if (kbs >= 1024) snprintf(out, n, "%.1fM", kbs / 1024);
-    else             snprintf(out, n, "%.0fK", kbs);
+static void fmt_rate_s(char *out, size_t n, double kbs){   /* compact number, full unit */
+    double kbps = kbs * 8.192;
+    if      (kbps >= 1000000) snprintf(out, n, "%.1f Gbps", kbps / 1000000);
+    else if (kbps >= 1000)    snprintf(out, n, "%.1f Mbps", kbps / 1000);
+    else                      snprintf(out, n, "%.0f Kbps", kbps);
 }
 static void fmt_bytes(char *out, size_t n, unsigned long long b){
     double v = (double)b;

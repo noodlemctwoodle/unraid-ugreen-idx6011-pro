@@ -46,7 +46,7 @@ static const struct { const char *title; page_fn body; } pages[NPAGES] = {
 
 static void draw_header(stats_t *st){
     rect(0, 0, W, BODY_Y0 - 6, UN_BLACK, 255);   /* opaque incl. title zone */
-    draw_unraid_logo(12, 15, 0.5f);                       /* 60x48 mark */
+    draw_unraid_icon(12, 25);                             /* official 60x34 mark */
     if (st->notif_count > 0){
         char nb[16];
         snprintf(nb, sizeof nb, "%d", st->notif_count > 99 ? 99 : st->notif_count);
