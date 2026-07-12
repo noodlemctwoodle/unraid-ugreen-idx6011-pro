@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+<CommunityApplications>
+  <Profile>Touch LCD dashboard and smart front-panel LEDs for the UGREEN NASync iDX6011 Pro, running natively on Unraid - no UGOS required. Seven swipeable pages of live stats on the 258x960 front touchscreen (CPU, memory, per-interface network, per-disk temps/usage/health, GPU/NPU, power draw, array and notifications, docker) plus an interactive touch Settings page, and smart power/LAN/disk LEDs driven from SMART health and link state. Self-contained install with a SHA256-verified payload; model-gated via DMI so it no-ops on other hardware. Requires the BIOS Watchdog Timer disabled and the panel EFI entry set first in the BIOS boot order - see the project README before installing.</Profile>
+  <Icon>https://raw.githubusercontent.com/noodlemctwoodle/unraid-ugreen-idx6011-pro/main/images/ugreen-idx6011-pro.png</Icon>
+  <WebPage>https://github.com/noodlemctwoodle/unraid-ugreen-idx6011-pro</WebPage>
+  <Forum>https://github.com/noodlemctwoodle/unraid-ugreen-idx6011-pro/issues</Forum>
+</CommunityApplications>
