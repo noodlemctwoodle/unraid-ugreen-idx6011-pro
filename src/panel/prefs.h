@@ -22,6 +22,15 @@ static int cfg_screen_off = 0;      /* minutes: 0(never)/1/5/15 */
 static int cfg_night      = 0;      /* 1 = clamp brightness to 15% */
 static int cfg_leds       = 1;      /* chassis LEDs on/off */
 static char cfg_primary_if[32] = "";/* Overview/Home "primary" iface; empty = default-route auto-pick */
+static int  cfg_net_bits  = 1;      /* 1 = net rates in bits (Kbps), 0 = bytes (KB/s) */
+
+/* parse a "#rrggbb" / "rrggbb" hex colour; returns def on empty/invalid */
+static uint32_t parse_hexcol(const char *v, uint32_t def){
+    if (*v == '#') v++;
+    if (!*v) return def;
+    char *end; unsigned long c = strtoul(v, &end, 16);
+    return end != v ? (uint32_t)(c & 0xffffffu) : def;
+}
 
 static void settings_load(void){
     FILE *f = fopen(CFG_PATH, "r"); if (!f) return;
@@ -36,6 +45,17 @@ static void settings_load(void){
         else if (!strcmp(k, "NIGHT"))          cfg_night      = atoi(v) != 0;
         else if (!strcmp(k, "LEDS"))           cfg_leds       = atoi(v) != 0;
         else if (!strcmp(k, "PRIMARY_IFACE"))  snprintf(cfg_primary_if, sizeof cfg_primary_if, "%s", v);
+        else if (!strcmp(k, "NET_UNITS"))      cfg_net_bits = strcmp(v, "bytes") != 0;
+        else if (!strcmp(k, "COL_ACCENT"))     UN_ORANGE_M = parse_hexcol(v, UN_ORANGE_M);
+        else if (!strcmp(k, "COL_GRAD_A"))     UN_RED      = parse_hexcol(v, UN_RED);
+        else if (!strcmp(k, "COL_GRAD_B"))     UN_ORANGE   = parse_hexcol(v, UN_ORANGE);
+        else if (!strcmp(k, "COL_BG"))         UN_BLACK    = parse_hexcol(v, UN_BLACK);
+        else if (!strcmp(k, "COL_CARD"))       UN_GREY_80  = parse_hexcol(v, UN_GREY_80);
+        else if (!strcmp(k, "COL_TEXT"))       UN_TEXT     = parse_hexcol(v, UN_TEXT);
+        else if (!strcmp(k, "COL_DIM"))        UN_DIM      = parse_hexcol(v, UN_DIM);
+        else if (!strcmp(k, "COL_OK"))         UN_OK       = parse_hexcol(v, UN_OK);
+        else if (!strcmp(k, "COL_WARN"))       UN_WARN     = parse_hexcol(v, UN_WARN);
+        else if (!strcmp(k, "COL_BAD"))        UN_BAD      = parse_hexcol(v, UN_BAD);
     }
     fclose(f);
     if (cfg_brightness < 5)   cfg_brightness = 5;
@@ -50,9 +70,16 @@ static void settings_save(void){
     snprintf(tmp, sizeof tmp, "%s.tmp", CFG_PATH);
     FILE *f = fopen(tmp, "w"); if (!f) return;
     fprintf(f, "BRIGHTNESS=%d\nINTERVAL=%d\nROTATE=%d\n"
-               "SCREEN_OFF_MIN=%d\nNIGHT=%d\nLEDS=%d\nPRIMARY_IFACE=%s\n",
+               "SCREEN_OFF_MIN=%d\nNIGHT=%d\nLEDS=%d\nPRIMARY_IFACE=%s\nNET_UNITS=%s\n"
+               "COL_ACCENT=%06x\nCOL_GRAD_A=%06x\nCOL_GRAD_B=%06x\nCOL_BG=%06x\n"
+               "COL_CARD=%06x\nCOL_TEXT=%06x\nCOL_DIM=%06x\n"
+               "COL_OK=%06x\nCOL_WARN=%06x\nCOL_BAD=%06x\n",
             cfg_brightness, cfg_interval, cfg_rotate,
-            cfg_screen_off, cfg_night, cfg_leds, cfg_primary_if);
+            cfg_screen_off, cfg_night, cfg_leds, cfg_primary_if,
+            cfg_net_bits ? "bits" : "bytes",
+            (unsigned)UN_ORANGE_M, (unsigned)UN_RED, (unsigned)UN_ORANGE, (unsigned)UN_BLACK,
+            (unsigned)UN_GREY_80, (unsigned)UN_TEXT, (unsigned)UN_DIM,
+            (unsigned)UN_OK, (unsigned)UN_WARN, (unsigned)UN_BAD);
     fclose(f);
     rename(tmp, CFG_PATH);
 }

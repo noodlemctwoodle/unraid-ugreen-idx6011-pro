@@ -35,16 +35,28 @@ static uint32_t level_col(double pct){
 /* Network rates are shown in bits/s (Kbps/Mbps/Gbps) to match Unraid and the usual
  * network convention. Input kbs is KiB/s (bytes/s / 1024); * 8.192 => decimal kb/s. */
 static void fmt_rate(char *out, size_t n, double kbs){
-    double kbps = kbs * 8.192;
-    if      (kbps >= 1000000) snprintf(out, n, "%.2f Gbps", kbps / 1000000);
-    else if (kbps >= 1000)    snprintf(out, n, "%.1f Mbps", kbps / 1000);
-    else                      snprintf(out, n, "%.0f Kbps", kbps);
+    if (cfg_net_bits){                          /* bits: Kbps/Mbps/Gbps (matches Unraid) */
+        double kbps = kbs * 8.192;
+        if      (kbps >= 1000000) snprintf(out, n, "%.2f Gbps", kbps / 1000000);
+        else if (kbps >= 1000)    snprintf(out, n, "%.1f Mbps", kbps / 1000);
+        else                      snprintf(out, n, "%.0f Kbps", kbps);
+    } else {                                    /* bytes: KB/s / MB/s / GB/s */
+        if      (kbs >= 1048576.0) snprintf(out, n, "%.2f GB/s", kbs / 1048576.0);
+        else if (kbs >= 1024.0)    snprintf(out, n, "%.1f MB/s", kbs / 1024.0);
+        else                       snprintf(out, n, "%.0f KB/s", kbs);
+    }
 }
 static void fmt_rate_s(char *out, size_t n, double kbs){   /* compact number, full unit */
-    double kbps = kbs * 8.192;
-    if      (kbps >= 1000000) snprintf(out, n, "%.1f Gbps", kbps / 1000000);
-    else if (kbps >= 1000)    snprintf(out, n, "%.1f Mbps", kbps / 1000);
-    else                      snprintf(out, n, "%.0f Kbps", kbps);
+    if (cfg_net_bits){
+        double kbps = kbs * 8.192;
+        if      (kbps >= 1000000) snprintf(out, n, "%.1f Gbps", kbps / 1000000);
+        else if (kbps >= 1000)    snprintf(out, n, "%.1f Mbps", kbps / 1000);
+        else                      snprintf(out, n, "%.0f Kbps", kbps);
+    } else {
+        if      (kbs >= 1048576.0) snprintf(out, n, "%.1f GB/s", kbs / 1048576.0);
+        else if (kbs >= 1024.0)    snprintf(out, n, "%.1f MB/s", kbs / 1024.0);
+        else                       snprintf(out, n, "%.0f KB/s", kbs);
+    }
 }
 static void fmt_bytes(char *out, size_t n, unsigned long long b){
     double v = (double)b;

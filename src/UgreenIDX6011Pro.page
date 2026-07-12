@@ -27,6 +27,12 @@ function opts($items, $cur) {
              ((string)$cur === (string)$v ? ' selected' : '') . '>' .
              htmlspecialchars($lbl) . '</option>';
 }
+function col($cfg, $k, $def) {   /* normalise a stored colour to #rrggbb for the picker */
+    $v = isset($cfg[$k]) ? trim($cfg[$k]) : '';
+    if ($v === '') return $def;
+    if ($v[0] !== '#') $v = '#' . $v;
+    return preg_match('/^#[0-9a-fA-F]{6}$/', $v) ? strtolower($v) : $def;
+}
 ?>
 <form markdown="1" method="POST" action="/update.php" target="progressFrame">
 <input type="hidden" name="#file" value="<?=$plugin?>/panel/settings.cfg">
@@ -50,11 +56,44 @@ _(Night mode &mdash; clamp brightness to 15%)_:
 _(Front-panel LEDs)_:
 : <select name="LEDS"><?php opts([1=>'On',0=>'Off'], $val('LEDS','1')); ?></select>
 
+_(Network rate units)_:
+: <select name="NET_UNITS"><?php opts(['bits'=>'Bits — Kbps / Mbps (matches Unraid)','bytes'=>'Bytes — KB/s / MB/s'], $val('NET_UNITS','bits')); ?></select>
+
 _(Primary network interface &mdash; shown on Overview &amp; Home)_:
 : <select name="PRIMARY_IFACE">
   <option value=""<?=$val('PRIMARY_IFACE','')===''?' selected':''?>>Auto (default route)</option>
   <?php foreach ($ifaces as $n) echo '<option value="' . htmlspecialchars($n) . '"' . ($val('PRIMARY_IFACE','') === $n ? ' selected' : '') . '>' . htmlspecialchars($n) . '</option>'; ?>
   </select>
+
+&nbsp;
+: **_(Theme colours &mdash; leave default for the Unraid look)_**
+
+_(Accent &mdash; spines, gauges, dots)_:
+: <input type="color" name="COL_ACCENT" value="<?=col($cfg,'COL_ACCENT','#f15a2c')?>">
+
+_(Gradient start)_:
+: <input type="color" name="COL_GRAD_A" value="<?=col($cfg,'COL_GRAD_A','#e22828')?>">
+
+_(Gradient end)_:
+: <input type="color" name="COL_GRAD_B" value="<?=col($cfg,'COL_GRAD_B','#ff8c2f')?>">
+
+_(Background)_:
+: <input type="color" name="COL_BG" value="<?=col($cfg,'COL_BG','#1b1b1b')?>">
+
+_(Card fill)_:
+: <input type="color" name="COL_CARD" value="<?=col($cfg,'COL_CARD','#262626')?>">
+
+_(Text)_:
+: <input type="color" name="COL_TEXT" value="<?=col($cfg,'COL_TEXT','#f2f2f2')?>">
+
+_(Healthy / OK)_:
+: <input type="color" name="COL_OK" value="<?=col($cfg,'COL_OK','#3fb950')?>">
+
+_(Warning)_:
+: <input type="color" name="COL_WARN" value="<?=col($cfg,'COL_WARN','#f0a020')?>">
+
+_(Critical)_:
+: <input type="color" name="COL_BAD" value="<?=col($cfg,'COL_BAD','#e22828')?>">
 
 &nbsp;
 : <span class="buttons-spaced"><input type="submit" value="_(Apply)_"><input type="button" value="_(Done)_" onclick="done()"></span>

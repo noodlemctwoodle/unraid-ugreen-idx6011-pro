@@ -72,19 +72,21 @@ static void trunc_fit(char *s, float scale, int maxw){
     while (n > 0 && text_w(scale, s) > maxw) s[--n] = 0;
 }
 
-/* ---------- Unraid brand palette ---------- */
-#define UN_RED       0xe22828   /* signature gradient start (red)      */
-#define UN_ORANGE    0xff8c2f   /* signature gradient end (orange)     */
-#define UN_ORANGE_M  0xf15a2c   /* midpoint — single-colour accent     */
-#define UN_BLACK     0x1b1b1b   /* webGUI black-theme background       */
-#define UN_GREY_90   0x141414
-#define UN_GREY_80   0x262626   /* card fill                           */
-#define UN_GREY_70   0x333333   /* dividers / card top edge            */
-#define UN_TEXT      0xf2f2f2
-#define UN_DIM       0x999999
-#define UN_OK        0x3fb950   /* array STARTED                       */
-#define UN_WARN      0xf0a020
-#define UN_BAD       0xe22828
+/* ---------- brand palette (runtime — overridable from settings.cfg) ----------
+ * These default to the Unraid palette; settings_load() (prefs.h) may recolour
+ * them from the config page. Not #defines so they can be themed at runtime. */
+static uint32_t UN_RED      = 0xe22828;  /* signature gradient start (red)  */
+static uint32_t UN_ORANGE   = 0xff8c2f;  /* signature gradient end (orange) */
+static uint32_t UN_ORANGE_M = 0xf15a2c;  /* single-colour accent (spine/gauge) */
+static uint32_t UN_BLACK    = 0x1b1b1b;  /* background                      */
+static uint32_t UN_GREY_90  = 0x141414;
+static uint32_t UN_GREY_80  = 0x262626;  /* card fill                       */
+static uint32_t UN_GREY_70  = 0x333333;  /* dividers / card top edge        */
+static uint32_t UN_TEXT     = 0xf2f2f2;  /* primary text                    */
+static uint32_t UN_DIM      = 0x999999;  /* dim/label text                  */
+static uint32_t UN_OK       = 0x3fb950;  /* healthy / array STARTED         */
+static uint32_t UN_WARN     = 0xf0a020;  /* warning                         */
+static uint32_t UN_BAD      = 0xe22828;  /* error / critical                */
 
 static uint32_t lerp_rgb(uint32_t a, uint32_t b, float t){
     if (t < 0) t = 0; if (t > 1) t = 1;
