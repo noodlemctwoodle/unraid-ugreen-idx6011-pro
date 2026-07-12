@@ -50,6 +50,6 @@ if [ "$(cat /sys/class/drm/card*-eDP-1/status 2>/dev/null | head -1)" = "connect
     echo "$(date) panel_dash starting ($ARGS)" >> $LOG
 else
     echo "$(date) eDP-1 not connected — booted via USB path or overlay missing; dashboard skipped" >> $LOG
-    notify warning "LCD not active this boot. Ensure the 'Unraid (iDX6011 panel)' EFI boot entry is first in the boot order (see plugin docs)."
+    notify warning "Reboot to activate the LCD - it lights after booting via the 'Unraid (iDX6011 panel)' EFI entry. If still dark after reboot, make that entry first in BootOrder."
 fi
 exit 0

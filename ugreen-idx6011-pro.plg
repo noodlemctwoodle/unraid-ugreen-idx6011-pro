@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name    "ugreen-idx6011-pro">
 <!ENTITY author  "noodlemctwoodle">
-<!ENTITY version "2026.07.12f">
+<!ENTITY version "2026.07.12g">
 <!ENTITY plgdir  "/boot/config/plugins/&name;">
 ]>
 
@@ -15,6 +15,11 @@
         pluginURL="https://raw.githubusercontent.com/noodlemctwoodle/unraid-ugreen-idx6011-pro/main/&name;.plg">
 
 <CHANGES>
+###2026.07.12g
+- Install prints a clear "REBOOT REQUIRED" banner, and the boot notification now
+  says to reboot, when the panel did not come up this boot. A fresh install stages
+  everything and registers the EFI entry, but the LCD only lights after rebooting
+  through that entry - this makes that obvious instead of looking like a failure.
 ###2026.07.12f
 - Self-contained install: the .plg now downloads a SHA256-verified payload archive
   from the GitHub release and extracts it to the plugin dir, so a plain install from
@@ -100,10 +105,20 @@ mkdir -p /usr/local/emhttp/plugins/&name;/images
 [ -f "&plgdir;/images/&name;.png" ] &amp;&amp; cp "&plgdir;/images/&name;.png" /usr/local/emhttp/plugins/&name;/images/
 [ -f "&plgdir;/start.sh" ] &amp;&amp; bash "&plgdir;/start.sh"
 [ -f "&plgdir;/start-panel.sh" ] &amp;&amp; bash "&plgdir;/start-panel.sh"
-true
 echo ""
 echo "&name; &version; — front-panel LEDs + LCD dashboard started"
-echo ""
+# fresh install: the panel powers only when booted via the EFI entry just
+# registered, so it stays dark until the next reboot. Make that obvious.
+if [ "$(cat /sys/class/drm/card*-eDP-1/status 2>/dev/null | head -1)" != "connected" ]; then
+  echo ""
+  echo "  ****************************************************************"
+  echo "  *  REBOOT REQUIRED to activate the front-panel LCD.            *"
+  echo "  *  It lights after rebooting via the 'Unraid (iDX6011 panel)'  *"
+  echo "  *  EFI boot entry this plugin just registered.                 *"
+  echo "  ****************************************************************"
+  echo ""
+fi
+true
 </INLINE>
 </FILE>
 
