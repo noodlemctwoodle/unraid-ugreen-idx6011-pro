@@ -58,10 +58,20 @@ load_map(){   # (re)load the bay map from mapping.conf; falls back to the built-
 }
 load_map
 
-COL_HEALTHY="0 255 0"
-COL_WARN="255 120 0"
-COL_ERROR="255 0 0"
-COL_LAN="0 100 255"
+# LED colours + power toggle, from the dashboard's settings.cfg (empty/invalid ->
+# the defaults below). Colours are stored as hex; converted to "R G B" for the CLI.
+CFG=/boot/config/plugins/ugreen-idx6011-pro/panel/settings.cfg
+cfg_get(){ [ -f "$CFG" ] && grep -E "^$1=" "$CFG" 2>/dev/null | tail -1 | cut -d= -f2- | tr -d '"\r'; }
+hex2rgb(){                                   # "rrggbb"/"#rrggbb" -> "R G B"; $2 = default
+  local h=${1#\#}
+  [[ "$h" =~ ^[0-9a-fA-F]{6}$ ]] || { echo "$2"; return; }
+  printf '%d %d %d' "0x${h:0:2}" "0x${h:2:2}" "0x${h:4:2}"
+}
+COL_HEALTHY=$(hex2rgb "$(cfg_get LED_DISK_OK)"   "0 255 0")
+COL_WARN=$(hex2rgb    "$(cfg_get LED_DISK_WARN)" "255 120 0")
+COL_ERROR=$(hex2rgb   "$(cfg_get LED_DISK_BAD)"  "255 0 0")
+COL_LAN=$(hex2rgb     "$(cfg_get LED_LAN)"       "0 100 255")
+POWER_LED=$(cfg_get LED_POWER); POWER_LED=${POWER_LED:-1}   # 1 = white power LED, 0 = off
 BR_DISK=110
 BR_LAN=150
 
@@ -117,7 +127,7 @@ lan_led(){
   fi
 }
 
-power_takeover   # once, from cold
+[ "$POWER_LED" = 0 ] || power_takeover   # once, from cold (skipped when power LED is off)
 
 while true; do
   now=$(date +%s 2>/dev/null || echo 0)
@@ -145,6 +155,6 @@ while true; do
   lan_led eth0 network_stat
   lan_led eth1 network_stat2
 
-  power_refresh
+  [ "$POWER_LED" = 0 ] || power_refresh   # off => stop re-asserting; CLI writes leave it dark
   sleep $REFRESH
 done

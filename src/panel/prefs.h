@@ -63,9 +63,36 @@ static void settings_load(void){
     if (cfg_interval < 1)     cfg_interval = 1;
 }
 
+/* keys the dashboard owns; anything else in settings.cfg (LED_* for monitor.sh,
+ * future keys) is preserved verbatim across a save. */
+static int is_managed_key(const char *k){
+    static const char *m[] = {
+        "BRIGHTNESS","INTERVAL","ROTATE","SCREEN_OFF_MIN","NIGHT","LEDS",
+        "PRIMARY_IFACE","NET_UNITS","COL_ACCENT","COL_GRAD_A","COL_GRAD_B",
+        "COL_BG","COL_CARD","COL_TEXT","COL_DIM","COL_OK","COL_WARN","COL_BAD", 0 };
+    for (int i = 0; m[i]; i++) if (!strcmp(k, m[i])) return 1;
+    return 0;
+}
+
 /* atomic write (tmp + rename); called only when a value actually changed */
 static void settings_save(void){
     mkdir(CFG_DIR1, 0755); mkdir(CFG_DIR2, 0755);
+    /* carry over unmanaged keys (LED colours, power toggle, ...) unchanged */
+    char keep[2048]; size_t kl = 0; keep[0] = 0;
+    FILE *r = fopen(CFG_PATH, "r");
+    if (r){
+        char line[256];
+        while (fgets(line, sizeof line, r)){
+            char key[64]; int i = 0;
+            while (line[i] && line[i] != '=' && i < 63){ key[i] = line[i]; i++; }
+            key[i] = 0;
+            if (line[i] == '=' && !is_managed_key(key)){
+                size_t n = strlen(line);
+                if (kl + n < sizeof keep - 1){ memcpy(keep + kl, line, n); kl += n; keep[kl] = 0; }
+            }
+        }
+        fclose(r);
+    }
     char tmp[sizeof CFG_PATH + 8];
     snprintf(tmp, sizeof tmp, "%s.tmp", CFG_PATH);
     FILE *f = fopen(tmp, "w"); if (!f) return;
@@ -80,6 +107,7 @@ static void settings_save(void){
             (unsigned)UN_ORANGE_M, (unsigned)UN_RED, (unsigned)UN_ORANGE, (unsigned)UN_BLACK,
             (unsigned)UN_GREY_80, (unsigned)UN_TEXT, (unsigned)UN_DIM,
             (unsigned)UN_OK, (unsigned)UN_WARN, (unsigned)UN_BAD);
+    fputs(keep, f);                            /* preserved unmanaged keys (LED_* etc.) */
     fclose(f);
     rename(tmp, CFG_PATH);
 }
