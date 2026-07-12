@@ -56,6 +56,8 @@ Three discoveries make this possible (full story: [docs/SOLUTION.md](docs/SOLUTI
    registers a named EFI entry (`Unraid (iDX6011 panel)`) for the USB flash with
    `efibootmgr` and keeps it first in the boot order. **No UGOS or NVMe required.**
    A wiped-UGOS box works identically — our registered entry is then the only one.
+   This registered-vs-fallback insight builds directly on
+   [Reevoy24/ugreen-idx6011-panel](https://github.com/Reevoy24/ugreen-idx6011-panel).
 2. **Kernels ≥ 6.17 dropped the DPCD wake-probe** this panel's eDP bridge needs.
    Two one-line module patches (shipped as a small overlay initrd, `bzroot-wakefix` —
    the kernel image itself is untouched) restore it.
@@ -210,7 +212,7 @@ All of these are editable live from the **SETTINGS** page on the panel itself.
 | LEDs dark or partially working | Wrong CLI variant — must be the klein0r iDX6011 build ([prebuilt/](prebuilt/)) |
 | Box hard-resets every ~2 min | BIOS watchdog enabled → disable it |
 
-More: [docs/SOLUTION.md §8](docs/SOLUTION.md) (recovery procedures table).
+More: [docs/SOLUTION.md section 8](docs/SOLUTION.md) (recovery procedures table).
 
 ## Building from source
 
@@ -253,19 +255,52 @@ docs/PLUGIN.md           Unraid plugin-schema conformance + release process
 
 ## Credits
 
+Built on the work of others — this would not exist without:
+
+- [Reevoy24/ugreen-idx6011-panel](https://github.com/Reevoy24/ugreen-idx6011-panel) —
+  the **registered-EFI-entry boot method** this whole plugin rests on (it's why the panel
+  lights with no UGOS/NVMe), plus EC fan/backlight register documentation. A kindred
+  multi-platform (Proxmox/TrueNAS) panel project.
 - [klein0r/ugreen_leds_controller](https://github.com/klein0r/ugreen_leds_controller) and
   [miskcoo/ugreen_leds_controller](https://github.com/miskcoo/ugreen_leds_controller) —
-  LED protocol + CLI (GPL-2.0)
+  LED protocol + CLI; the bundled `ugreen_leds_cli` is klein0r's iDX6011 fork (GPL-2.0)
 - [ich777/unraid-ugreenleds-driver](https://github.com/ich777/unraid-ugreenleds-driver) —
   original Unraid LED packaging approach
 - [Incipiens/ugreen-idx6011-pro-nas-display](https://github.com/Incipiens/ugreen-idx6011-pro-nas-display) —
   early panel reverse-engineering groundwork
-- [Reevoy24/ugreen-idx6011-panel](https://github.com/Reevoy24/ugreen-idx6011-panel) —
-  kindred multi-platform panel project (fan/EC documentation)
-- [nothings/stb](https://github.com/nothings/stb) — `stb_easy_font` + `stb_image`
-  (public domain / MIT)
+- The [Linux kernel](https://www.kernel.org) (Intel i915 / DRM DisplayPort + Intel LPSS /
+  DesignWare I²C drivers) — the shipped `bzroot-wakefix` display overlay and the touch-stack
+  modules are compiled, patched builds of these **GPL-2.0** sources; the exact source diff
+  is in [boot/i915-edp-wakeprobe-6.18.38.patch](boot/i915-edp-wakeprobe-6.18.38.patch)
+- [i2c-tools](https://git.kernel.org/pub/scm/utils/i2c-tools/i2c-tools.git) (kernel.org /
+  lm-sensors) — bundled static `i2cset/i2cget/i2ctransfer` for the raw power-LED I²C
+  sequence the CLI can't drive (GPL-2.0)
+- [nothings/stb](https://github.com/nothings/stb) — `stb_easy_font`, `stb_image` and
+  `stb_image_write` (public domain / MIT)
+- [homarr-labs/dashboard-icons](https://github.com/homarr-labs/dashboard-icons) — the
+  official Unraid header mark embedded in the dashboard (Apache-2.0 icon set)
+- [libdrm](https://gitlab.freedesktop.org/mesa/drm) — DRM dumb-buffer rendering the
+  dashboard links against at runtime (MIT)
+
+Related upstream work: the eDP DPCD wake fix *"drm/i915/dp: On DPCD init wake the DPRx for
+eDP"* (Arun R Murthy) addresses the same kernel regression — see
+[docs/SOLUTION.md](docs/SOLUTION.md).
 
 ## License
 
-Plugin scripts and dashboard source: **MIT**. Bundled `ugreen_leds_cli`: **GPL-2.0**
-(upstream). stb headers: public domain / MIT (upstream).
+Plugin scripts and dashboard source: **MIT**.
+
+Bundled and derived components keep their upstream licenses:
+
+- `ugreen_leds_cli` (klein0r / miskcoo): **GPL-2.0**
+- the `bzroot-wakefix` display overlay and the touch-stack `.ko` modules are **GPL-2.0**
+  derivatives of the Linux kernel (Intel i915 / DRM DP, Intel LPSS / DesignWare I²C), built
+  from the patch in [`boot/`](boot/)
+- the static `i2c-tools` build: **GPL-2.0**
+- stb headers (`stb_easy_font`, `stb_image`, `stb_image_write`): public domain / MIT
+- the embedded Unraid header icon ([homarr-labs/dashboard-icons](https://github.com/homarr-labs/dashboard-icons)): Apache-2.0
+
+**Trademarks:** *"Unraid"* and the Unraid mark are trademarks of Lime Technology, Inc.;
+*"UGREEN"* / *"NASync"* and the product-photo plugin icon (`images/ugreen-idx6011-pro.png`)
+are trademarks/property of UGREEN. This is an unaffiliated community project; marks are
+used for identification only.

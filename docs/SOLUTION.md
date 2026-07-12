@@ -33,11 +33,17 @@ UGOS is not required at all — a box with UGOS wiped boots the panel identicall
 | Fact (all empirically proven) | Consequence |
 |---|---|
 | The BIOS powers the front-panel rail **only when it boots a *registered* EFI NVRAM entry** — NOT the auto-generated removable-media "UEFI OS" fallback. Confirmed 2026-07-12: a named `efibootmgr -c` entry pointing at the USB flash lights the panel on a pure USB boot (`BootCurrent=0000`, eDP-1 connected, 0 AUX timeouts). Every earlier "USB = dark" test had gone through the *fallback* entry — the boot **device** was never the variable. | Plugin self-registers a named EFI entry (`assert-boot.sh`) — **no UGOS/NVMe/grub dependency**. |
-| Kernels ≥6.17 removed the DPCD wake-probe eDP relies on here: `d34d6feaf4a7` moved the probe address `DPCD_REV(0x000)` → `TRAINING_PATTERN_SET(0x102)`; `ed3648b9ec4c` disabled the probe for eDP entirely. This panel's eDP→DSI bridge **only wakes on a 0x000 read** (UGOS golden trace: first transaction `0x00000 AUX -> (ret=1) 12`). | Two-line patch, shipped as overlay initrd `bzroot-wakefix` (see §4). Upstream is aware (unmerged fix: "drm/i915/dp: On DPCD init wake the DPRx for eDP", Arun R Murthy, 2026-02). |
+| Kernels ≥6.17 removed the DPCD wake-probe eDP relies on here: `d34d6feaf4a7` moved the probe address `DPCD_REV(0x000)` → `TRAINING_PATTERN_SET(0x102)`; `ed3648b9ec4c` disabled the probe for eDP entirely. This panel's eDP→DSI bridge **only wakes on a 0x000 read** (UGOS golden trace: first transaction `0x00000 AUX -> (ret=1) 12`). | Two-line patch, shipped as overlay initrd `bzroot-wakefix` (see section 4). Upstream is aware (unmerged fix: "drm/i915/dp: On DPCD init wake the DPRx for eDP", Arun R Murthy, 2026-02). |
 | UGOS works because it boots via the NVMe entry **and** its kernel (pinned to 6.12.30, rebuilt as recently as 2026-06) predates the probe change. UGOS's i915/DRM binaries are bit-stock. There is no vendor display patch. | Nothing to port from UGOS for the display. |
 | Unraid's kernel omits `GPIOLIB_IRQCHIP`, `PINCTRL_METEORLAKE`, `MFD_INTEL_LPSS*`, `I2C_DESIGNWARE*` — so the vendor touch driver *and* i2c-hid can never bind (the HID probe defers forever on GpioInt). The touch chip's `PNP0C50` HID claim is also false (no HID descriptor at any register). | Touch = LPSS/designware modules built out-of-tree (loadable; ABI-safe) + **userspace AXS15231B polling** in panel_dash. No kernel touch driver. |
 | AXS15231B protocol: write 11-byte command `b5 ab a5 5a 00 00 <len_hi> <len_lo> 00 00 00`, then read `len` bytes in one I2C transaction. Frame: `[0]=gesture [1]=count(low nibble) [2..3]=X(12bit) [4..5]=Y(12bit) [6..7]=frame counter … [14]=checksum(sum of 0..13)`. All-`0x10` frame = idle/release keepalive. Coordinates are already in panel space (0..257 × 0..959), identity orientation. Plain (un-commanded) reads return zeros — that's why naive probing "found nothing". | `touch_init`/`touch_poll` in `touch.h`. Chip at address 0x3b on the DesignWare adapter of PCI `00:15.1` (usually `/dev/i2c-17`; auto-discovered by adapter name). |
 | i915 FBC (framebuffer compression) is active on the eDP plane. CPU writes to a dumb buffer do **not** invalidate the compressed copy — the panel freezes on the first frame while memory updates happily. | `drmModeDirtyFB()` after every render (panel_dash does this). If you ever see a frozen-but-running dashboard, think FBC. |
+
+> **Prior work / credits:** the registered-EFI-entry boot method (first row) builds directly
+> on [Reevoy24/ugreen-idx6011-panel](https://github.com/Reevoy24/ugreen-idx6011-panel), a
+> kindred multi-platform panel project. The AXS15231B touch protocol (fifth row) was
+> reverse-engineered on this unit; its `b5 ab a5 5a` command prefix and frame layout match
+> published AXS15231B drivers. Full attributions: [../README.md#credits](../README.md#credits).
 
 Ruled out along the way (each empirically, so nobody re-chases them): kernel version
 (6.12.30/6.12.87/6.18 all behave identically given the same boot path), i915 load
@@ -59,7 +65,7 @@ efibootmgr -c -d <usb-disk> -p 1 -L "Unraid (iDX6011 panel)" -l '\\EFI\\BOOT\\BO
 
 The firmware may reshuffle BootOrder, so the plugin re-asserts every boot; on a
 wiped-UGOS box the named entry is the only one, so it always wins. The i915
-wake-probe overlay (§4) is still required either way. Nothing on the UGOS NVMe/grub
+wake-probe overlay (section 4) is still required either way. Nothing on the UGOS NVMe/grub
 side is touched or needed — a box with UGOS wiped boots the panel identically.
 
 The USB's own syslinux is intact and standard, so a plain USB boot still works for
@@ -79,7 +85,7 @@ cpio overlay appended to the initrd chain (no bzroot/bzimage modification):
    `intel_edp_init_connector` — harmless, only fires when the first DPCD read fails,
    but it adds ~50s to boot in that failure case. Remove on next rebuild.)
 
-Build recipe (container `i915build`, see §7):
+Build recipe (container `i915build`, see section 7):
 ```sh
 cd /build/linux-6.18.38
 cp /usr/src/linux-6.18.38-Unraid/config .config    # NOTE: filename is 'config', no dot!
@@ -115,7 +121,7 @@ Container glibc (2.41) < Unraid glibc (2.43) so binaries port cleanly.
 
 Runtime essentials:
 - Finds the eDP connector on `/dev/dri/card*`, sets 258×960 via dumb buffer + SetCrtc.
-- **`drmModeDirtyFB` after every render** (FBC — see §2).
+- **`drmModeDirtyFB` after every render** (FBC — see section 2).
 - Re-asserts its framebuffer if fbcon stomps the CRTC.
 - Backlight: `/sys/class/backlight/intel_backlight` (0..192000) + `bl_power`.
   (There is also an EC-driven `mipi_backlight` under UGOS; not needed here.)
@@ -137,7 +143,7 @@ Runtime essentials:
   (array/parity), `/var/run/docker.sock` (container count),
   `/tmp/notifications/unread` (badge + banner), GPU busy = gt0 `rc6_residency_ms`
   delta, NPU = `/sys/class/accel/accel0` busy-time.
-- Touch: AXS15231B native polling (§2). `TOUCH_DEBUG=1` env prints frames/gestures.
+- Touch: AXS15231B native polling (section 2). `TOUCH_DEBUG=1` env prints frames/gestures.
 - Flags: `--bg <png/jpg>` `--backlight <pct>` `--interval <s>` `--once`
   `--touch </dev/i2c-N>` `--no-touch` `--cal <s|x|y>` `--rotate <sec>`.
 
@@ -151,7 +157,7 @@ Runtime essentials:
   insmods the four out-of-tree LPSS/designware modules, copies `panel_dash` to
   `/usr/local/bin`, and starts it (5 s delayed) with optional wallpaper at
   `/boot/config/plugins/ugreen-idx6011-pro/panel/wallpaper.png`.
-- Touch modules were built with the same harness as §4 (config symbols:
+- Touch modules were built with the same harness as section 4 (config symbols:
   `MFD_INTEL_LPSS(_PCI)`, `I2C_DESIGNWARE_CORE/PLATFORM` as `m`). `pinctrl-meteorlake`
   and `i2c-hid` are NOT loadable on this kernel (missing `GPIOLIB_IRQCHIP` — ABI
   mismatch danger; do not try to insmod pinctrl modules built with IRQCHIP enabled).
@@ -162,7 +168,7 @@ Docker container `i915build` on the box (auto-restarts): `debian:trixie-slim` +
 `gcc make flex bison bc libelf-dev libssl-dev kmod xz-utils python3 cpio zstd
 initramfs-tools-core acpica-tools grub-efi-amd64-bin binutils curl`, with
 `/mnt/cache/build` mounted at `/build`. Contents:
-- `linux-6.18.38/` prepared kernel tree (patched as §4), plus pristine
+- `linux-6.18.38/` prepared kernel tree (patched as section 4), plus pristine
   `linux-6.12.30/` and `linux-6.12.87/` trees and their i915 diffs
 - `dash/` — panel_dash sources, stb headers, binaries, probes
   (`axs_probe`, `touch_probe*`, `hid_probe` — protocol archaeology tools)
@@ -176,7 +182,7 @@ initramfs-tools-core acpica-tools grub-efi-amd64-bin binutils curl`, with
 |---|---|
 | Box boots the wrong OS / panel dark | In the BIOS, put the panel entry first: **Boot → UEFI USB Hard Disk Drive BBS Priorities → `Unraid (iDX6011 panel)`**. The OS-set EFI BootOrder (`efibootmgr -o`) does not override this per-class USB priority on this firmware. Reinsert the USB flash if missing. |
 | Recovery boot with panel dark | A plain USB boot (BIOS pin/F11) via the removable-media fallback works — panel stays dark, everything else normal. |
-| Panel dark after Unraid kernel update | Rebuild overlay modules (§4) for the new kernel version. Panel dark ≠ broken box. |
+| Panel dark after Unraid kernel update | Rebuild overlay modules (section 4) for the new kernel version. Panel dark ≠ broken box. |
 | Dashboard frozen but process alive | FBC staleness — make sure the running build issues `drmModeDirtyFB` per frame. |
 | Touch dead | Check the LPSS chain: `ls /sys/bus/i2c/devices/` should list `i2c-CUST0000:00` and DesignWare adapters; re-run `start-panel.sh` (reloads the modules); `TOUCH_DEBUG=1 panel_dash` to trace. |
 | Wipe/reinstall everything | Flash config backup procedure as documented in the repo `BACKUP-KEEP-2026-07-12/README.txt`. |

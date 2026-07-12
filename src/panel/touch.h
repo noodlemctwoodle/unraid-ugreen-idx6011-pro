@@ -16,6 +16,8 @@
  * can't bind; instead we poll the chip directly at 0x3b with the
  * AXS command-prefixed read (magic b5 ab a5 5a). Auto-discovers
  * the DesignWare adapter; daemon runs fine without touch.
+ * Protocol reverse-engineered on this unit; the b5 ab a5 5a prefix
+ * and frame layout match published AXS15231B drivers/datasheets.
  * ============================================================ */
 typedef enum {
     TOUCH_NONE = 0, TOUCH_TAP, TOUCH_LONG_PRESS,

@@ -141,7 +141,7 @@ The kernel version changes → the overlay's modules no longer load → panel da
 
 ## Troubleshooting
 
-Full table in [`SOLUTION.md` §8](SOLUTION.md). The three most likely:
+Full table in [`SOLUTION.md` section 8](SOLUTION.md). The three most likely:
 
 | Symptom | Cause → fix |
 |---|---|
@@ -171,3 +171,12 @@ Full table in [`SOLUTION.md` §8](SOLUTION.md). The three most likely:
 - **Do-not**: never downgrade Unraid on this box (burns the trial license);
   never insmod pinctrl/gpio modules built with `GPIOLIB_IRQCHIP` (running kernel
   lacks it — `struct gpio_chip` ABI mismatch).
+
+## Credits
+
+This runbook stands on prior work — see the [full credits](../README.md#credits). In
+particular: the **registered-EFI-entry boot method** (Step 1) builds on
+[Reevoy24/ugreen-idx6011-panel](https://github.com/Reevoy24/ugreen-idx6011-panel); the
+AXS15231B touch protocol (Appendix) was reverse-engineered on this unit and matches
+published AXS15231B drivers; the shipped display overlay + touch modules are **GPL-2.0**
+builds of the Linux kernel (Intel i915 / DRM DP), patched per [`boot/`](../boot/).
