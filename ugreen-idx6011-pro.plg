@@ -113,7 +113,7 @@
 -->
 <FILE Name="&plgdir;/&name;-&version;.txz">
 <URL>https://github.com/noodlemctwoodle/unraid-ugreen-idx6011-pro/releases/download/&version;/&name;-&version;.txz</URL>
-<SHA256>87253380d4ab28e76b78540021ef33f084f77a6872b497800b4c2145f8da7d50</SHA256>
+<SHA256>a7d22eac2110e12a6041f87196d2e09a5799e929a08f2f40001de15e2f3b8d2d</SHA256>
 </FILE>
 
 <FILE Run="/bin/bash">
