@@ -42,10 +42,10 @@ running **Unraid** — the full front panel, working natively, no UGOS required 
 - **Unraid 7.3.x** on a USB flash labelled `UNRAID` (developed on 7.3.2 / kernel 6.18.38)
 - **UGOS not required** — the plugin self-registers its own EFI boot entry, so a box
   with UGOS wiped from the NVMe works identically (see below)
-- **BIOS Watchdog Timer disabled** (mandatory for any non-UGOS OS, or the box
-  hard-resets every ~2 minutes)
-- A BIOS that allows OS-registered EFI boot entries (standard UEFI) — the plugin
-  registers and orders its own entry via `efibootmgr`
+- **BIOS Watchdog Timer disabled** — **mandatory** for any non-UGOS OS, or the box
+  hard-resets every ~2 minutes. The setting is hidden by default: on the BIOS setup
+  screen press **Ctrl+F1** to reveal the advanced menus, then find and disable the
+  **Watchdog Timer**.
 
 ## How it works
 
@@ -89,23 +89,27 @@ BIOS (panel rail ON for a *registered* EFI entry)
    BIOS powers the panel rail only for a registered entry) — the panel lights, the
    dashboard starts, and the LEDs go live.
 
-⚠️ Disable the **BIOS Watchdog Timer** first (see Requirements). The bundled
-modules/overlay are built for **kernel 6.18.38-Unraid (Unraid 7.3.2)**; on a different
-kernel the panel stays dark until you rebuild them with `boot/build-overlay.sh`.
+⚠️ **Disable the BIOS Watchdog Timer first** (see [Requirements](#requirements)) —
+otherwise the box hard-resets every ~2 minutes on any non-UGOS OS.
 
 ## The Dashboard
 
-<p align="center">
-  <img src="images/screenshots/home.png"     width="120" alt="Home — CPU ring gauge and stat tiles">
-  <img src="images/screenshots/overview.png" width="120" alt="Overview — host, array, CPU, RAM, network, storage">
-  <img src="images/screenshots/hardware.png" width="120" alt="Hardware — CPU/GPU sparklines, memory, NPU, power">
-  <img src="images/screenshots/network.png"  width="120" alt="Network — one card per interface">
-  <img src="images/screenshots/disks.png"    width="120" alt="Disks — health, temp, usage per disk">
-  <img src="images/screenshots/docker.png"   width="120" alt="Docker — container list and VM state">
-  <img src="images/screenshots/settings.png" width="120" alt="Settings — touch controls">
-</p>
+<table align="center">
+  <tr>
+    <td align="center" valign="top"><img src="images/screenshots/home.png"     width="130" alt="Home page"><br><sub><b>Home</b></sub></td>
+    <td align="center" valign="top"><img src="images/screenshots/overview.png" width="130" alt="Overview page"><br><sub><b>Overview</b></sub></td>
+    <td align="center" valign="top"><img src="images/screenshots/hardware.png" width="130" alt="Hardware page"><br><sub><b>Hardware</b></sub></td>
+    <td align="center" valign="top"><img src="images/screenshots/network.png"  width="130" alt="Network page"><br><sub><b>Network</b></sub></td>
+  </tr>
+  <tr>
+    <td align="center" valign="top"><img src="images/screenshots/disks.png"    width="130" alt="Disks page"><br><sub><b>Disks</b></sub></td>
+    <td align="center" valign="top"><img src="images/screenshots/docker.png"   width="130" alt="Docker page"><br><sub><b>Docker</b></sub></td>
+    <td align="center" valign="top"><img src="images/screenshots/settings.png" width="130" alt="Settings page"><br><sub><b>Settings</b></sub></td>
+    <td align="center" valign="top"></td>
+  </tr>
+</table>
 
-<p align="center"><sub>Live 258×960 panel, rendered on-device — Home · Overview · Hardware · Network · Disks · Docker · Settings</sub></p>
+<p align="center"><sub>Live 258×960 front panel, rendered on-device.</sub></p>
 
 | Page | Contents |
 |------|----------|
