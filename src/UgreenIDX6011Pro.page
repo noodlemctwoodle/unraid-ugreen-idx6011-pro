@@ -101,6 +101,9 @@ _(Critical)_:
 _(Power light)_:
 : <select name="LED_POWER"><?php opts([1=>'On',0=>'Off'], $val('LED_POWER','1')); ?></select>
 
+_(Activity mode &mdash; light disk/LAN LEDs only while busy)_:
+: <select name="LED_ACTIVITY"><?php opts([0=>'Off &mdash; always solid',1=>'On &mdash; pulse on I/O'], $val('LED_ACTIVITY','0')); ?></select>
+
 _(Network / LAN light)_:
 : <input type="color" name="LED_LAN" value="<?=col($cfg,'LED_LAN','#0064ff')?>">
 
@@ -112,6 +115,9 @@ _(Disk light &mdash; warning)_:
 
 _(Disk light &mdash; critical)_:
 : <input type="color" name="LED_DISK_BAD" value="<?=col($cfg,'LED_DISK_BAD','#ff0000')?>">
+
+_(Disk light &mdash; spun down / asleep)_:
+: <input type="color" name="LED_DISK_STANDBY" value="<?=col($cfg,'LED_DISK_STANDBY','#ffffff')?>">
 
 &nbsp;
 : <span class="buttons-spaced"><input type="submit" value="_(Apply)_"><input type="button" value="_(Done)_" onclick="done()"></span>

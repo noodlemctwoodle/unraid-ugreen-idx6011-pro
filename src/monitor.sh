@@ -4,10 +4,13 @@
 #
 # Smart front-panel LED daemon for the UGREEN NASync iDX6011 Pro under Unraid.
 # Live: empty bay -> off, healthy -> green, pending/realloc -> amber,
-#       SMART fail/not-responding -> red, LAN link -> blue, power -> white.
+#       SMART fail/not-responding -> red, spun-down -> white, LAN link -> blue,
+#       power -> white. Colours + power/activity toggles come from settings.cfg.
 #
 # diskN LED == physical bay N (top=1 .. bottom=6), confirmed on this unit.
-# Disk-activity BLINK is deferred (needs a CLI patch so writes don't zero the power LED).
+# Activity mode (LED_ACTIVITY=1): a disk/LAN LED is lit only while it moved data
+# in the last tick, otherwise off — a coarse (per-REFRESH) activity indicator.
+# Spun-down disks are detected with hdparm -C (no wake) and shown in COL_STANDBY.
 #
 set -u
 
@@ -72,6 +75,8 @@ COL_WARN=$(hex2rgb    "$(cfg_get LED_DISK_WARN)" "255 120 0")
 COL_ERROR=$(hex2rgb   "$(cfg_get LED_DISK_BAD)"  "255 0 0")
 COL_LAN=$(hex2rgb     "$(cfg_get LED_LAN)"       "0 100 255")
 POWER_LED=$(cfg_get LED_POWER); POWER_LED=${POWER_LED:-1}   # 1 = white power LED, 0 = off
+COL_STANDBY=$(hex2rgb "$(cfg_get LED_DISK_STANDBY)" "255 255 255")  # spun-down/standby disks
+ACTIVITY=$(cfg_get LED_ACTIVITY); ACTIVITY=${ACTIVITY:-0}           # 1 = blink disk/LAN on I/O
 BR_DISK=110
 BR_LAN=150
 
@@ -115,13 +120,33 @@ disk_colour(){
   echo "$COL_HEALTHY"
 }
 
-declare -A HEALTH_COL LAST_LED
+declare -A HEALTH_COL LAST_LED DISK_IO NET_IO
 last_smart=0
+# spun-down check that does NOT wake the disk (smartctl would) — needs hdparm.
+disk_standby(){ hdparm -C "$1" 2>/dev/null | grep -qiE "standby|sleeping"; }
+# rc 0 if the disk did I/O since the previous call; reads /sys counters, never wakes it.
+disk_active(){
+  local n=${1#/dev/} cur
+  cur=$(awk '{print $3+$7}' /sys/block/"$n"/stat 2>/dev/null); cur=${cur:-0}
+  local prev=${DISK_IO[$n]:-$cur}; DISK_IO[$n]=$cur; [ "$cur" != "$prev" ]
+}
+# rc 0 if the interface moved bytes since the previous call.
+net_active(){
+  local rx tx
+  rx=$(cat /sys/class/net/"$1"/statistics/rx_bytes 2>/dev/null)
+  tx=$(cat /sys/class/net/"$1"/statistics/tx_bytes 2>/dev/null)
+  local cur=$(( ${rx:-0} + ${tx:-0} ))
+  local prev=${NET_IO[$1]:-$cur}; NET_IO[$1]=$cur; [ "$cur" != "$prev" ]
+}
 set_changed(){ [ "${LAST_LED[$1]:-}" = "$2" ] && return 1; LAST_LED[$1]="$2"; return 0; }
 
-lan_led(){
+lan_led(){   # down -> off; up -> LAN colour (activity mode: lit only while traffic flows)
   if [ "$(cat /sys/class/net/$1/carrier 2>/dev/null)" = "1" ]; then
-    set_changed "$2" up   && LED "$2" -on -color $COL_LAN -brightness $BR_LAN
+    if [ "$ACTIVITY" = 1 ] && ! net_active "$1"; then
+      set_changed "$2" idle && LED "$2" -off
+    else
+      set_changed "$2" up   && LED "$2" -on -color $COL_LAN -brightness $BR_LAN
+    fi
   else
     set_changed "$2" down && LED "$2" -off
   fi
@@ -135,20 +160,29 @@ while true; do
   declare -A present=()
   while read -r bay dev; do present[$bay]="$dev"; done < <(present_bays)
 
+  # refresh SMART health periodically — but only for AWAKE disks (reading SMART
+  # wakes a spun-down drive; hdparm -C does not, so sleeping disks are skipped).
   refresh=0
   [ $((now - last_smart)) -ge $SMART_INTERVAL ] && refresh=1
   for b in "${!present[@]}"; do [ -n "${HEALTH_COL[$b]:-}" ] || refresh=1; done
   if [ "$refresh" = 1 ]; then
-    for b in "${!present[@]}"; do HEALTH_COL[$b]="$(disk_colour "${present[$b]}")"; done
+    for b in "${!present[@]}"; do
+      disk_standby "${present[$b]}" || HEALTH_COL[$b]="$(disk_colour "${present[$b]}")"
+    done
     last_smart=$now
   fi
 
   for b in 1 2 3 4 5 6; do
-    if [ -n "${present[$b]:-}" ]; then
+    d="${present[$b]:-}"
+    if [ -z "$d" ]; then
+      set_changed "disk$b" off && LED "disk$b" -off
+    elif disk_standby "$d"; then                          # spun down -> standby colour (white)
+      set_changed "disk$b" "sb:$COL_STANDBY" && LED "disk$b" -on -color $COL_STANDBY -brightness $BR_DISK
+    elif [ "$ACTIVITY" = 1 ] && ! disk_active "$d"; then  # awake, activity mode, idle -> off
+      set_changed "disk$b" idle && LED "disk$b" -off
+    else                                                  # awake -> health colour
       col="${HEALTH_COL[$b]:-$COL_HEALTHY}"
       set_changed "disk$b" "on:$col" && LED "disk$b" -on -color $col -brightness $BR_DISK
-    else
-      set_changed "disk$b" off && LED "disk$b" -off
     fi
   done
 
