@@ -44,7 +44,7 @@
 -->
 <FILE Name="&plgdir;/&name;-&version;.txz">
 <URL>https://github.com/noodlemctwoodle/unraid-ugreen-idx6011-pro/releases/download/&version;/&name;-&version;.txz</URL>
-<SHA256>7db31ce2598112e8d47e946a368ba949b487a43b35fb584ec3b66fd51d83332d</SHA256>
+<SHA256>e931d89da823259bcb1ea6fc7bc5d283eb8b45f4d42e385a80b01108f7d662e8</SHA256>
 </FILE>
 
 <FILE Run="/bin/bash">
