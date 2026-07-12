@@ -38,6 +38,11 @@ jobs:
           languages: c-cpp
           build-mode: manual
           queries: security-extended
+          config: |
+            paths-ignore:
+              - src/panel/stb_image.h
+              - src/panel/stb_image_write.h
+              - src/panel/stb_easy_font.h
 
       - name: Build panel_dash
         run: bash src/panel/build.sh
