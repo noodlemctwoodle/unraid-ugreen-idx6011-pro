@@ -95,6 +95,18 @@ kernel the panel stays dark until you rebuild them with `boot/build-overlay.sh`.
 
 ## The Dashboard
 
+<p align="center">
+  <img src="images/screenshots/home.png"     width="120" alt="Home — CPU ring gauge and stat tiles">
+  <img src="images/screenshots/overview.png" width="120" alt="Overview — host, array, CPU, RAM, network, storage">
+  <img src="images/screenshots/hardware.png" width="120" alt="Hardware — CPU/GPU sparklines, memory, NPU, power">
+  <img src="images/screenshots/network.png"  width="120" alt="Network — one card per interface">
+  <img src="images/screenshots/disks.png"    width="120" alt="Disks — health, temp, usage per disk">
+  <img src="images/screenshots/docker.png"   width="120" alt="Docker — container list and VM state">
+  <img src="images/screenshots/settings.png" width="120" alt="Settings — touch controls">
+</p>
+
+<p align="center"><sub>Live 258×960 panel, rendered on-device — Home · Overview · Hardware · Network · Disks · Docker · Settings</sub></p>
+
 | Page | Contents |
 |------|----------|
 | **HOME** | CPU ring gauge + stacked RAM / CPU-temp / network / storage tiles + uptime |
