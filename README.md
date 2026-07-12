@@ -3,7 +3,12 @@
 Touch **LCD dashboard** + smart **front-panel LEDs** for the **UGREEN NASync iDX6011 Pro**
 running **Unraid** — the full front panel, working natively, no UGOS required at runtime.
 
-`Unraid 7.3.x` · `iDX6011 Pro` · scripts MIT / bundled CLI GPL-2.0
+[![Latest release](https://img.shields.io/github/v/release/noodlemctwoodle/unraid-ugreen-idx6011-pro?display_name=tag&sort=date&label=release&color=f15a2c)](https://github.com/noodlemctwoodle/unraid-ugreen-idx6011-pro/releases/latest)
+[![Release build](https://img.shields.io/github/actions/workflow/status/noodlemctwoodle/unraid-ugreen-idx6011-pro/release.yml?label=release%20build)](https://github.com/noodlemctwoodle/unraid-ugreen-idx6011-pro/actions/workflows/release.yml)
+[![Downloads](https://img.shields.io/github/downloads/noodlemctwoodle/unraid-ugreen-idx6011-pro/total?label=downloads&color=44cc11)](https://github.com/noodlemctwoodle/unraid-ugreen-idx6011-pro/releases)
+[![Unraid 7.3.x](https://img.shields.io/badge/Unraid-7.3.x-e22828)](https://unraid.net)
+[![UGREEN iDX6011 Pro](https://img.shields.io/badge/UGREEN-iDX6011%20Pro-1793d1)](https://nas.ugreen.com)
+[![License](https://img.shields.io/badge/license-MIT%20%2F%20GPL--2.0-blue)](#license)
 
 > Community project. Not affiliated with or endorsed by UGREEN.
 

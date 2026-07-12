@@ -1,0 +1,101 @@
+name: release
+
+# Cut a release straight from the repo. Maintainer flow:
+#   1. Bump <!ENTITY version> and add a ###<version> block to CHANGES in the .plg.
+#   2. Commit + push to main.
+#   3. Actions -> "release" -> Run workflow.
+# The job builds the payload, writes its SHA256 back into the .plg (so the plugin
+# URL always serves a hash matching the published asset), commits that, and
+# publishes the GitHub release with the .txz. It no-ops if that version's release
+# already exists, so published versions are never clobbered.
+
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Read plugin version
+        id: meta
+        run: |
+          VER=$(grep -oP '<!ENTITY\s+version\s+"\K[^"]+' ugreen-idx6011-pro.plg)
+          [ -n "$VER" ] || { echo "::error::could not read <!ENTITY version> from .plg"; exit 1; }
+          case "$VER" in *[!0-9A-Za-z.]*) echo "::error::unexpected version '$VER'"; exit 1;; esac
+          echo "version=$VER" >> "$GITHUB_OUTPUT"
+          echo "Plugin version: $VER"
+
+      - name: Skip if release already exists
+        id: exists
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VER: ${{ steps.meta.outputs.version }}
+        run: |
+          if gh release view "$VER" >/dev/null 2>&1; then
+            echo "already=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::release $VER already exists - nothing to do"
+          else
+            echo "already=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build payload
+        if: steps.exists.outputs.already == 'false'
+        env:
+          VER: ${{ steps.meta.outputs.version }}
+        run: bash release/mkpayload.sh "$VER"
+
+      - name: Sync SHA256 into the .plg
+        if: steps.exists.outputs.already == 'false'
+        env:
+          VER: ${{ steps.meta.outputs.version }}
+        run: |
+          SHA=$(sha256sum "release/ugreen-idx6011-pro-$VER.txz" | awk '{print $1}')
+          echo "payload SHA256: $SHA"
+          sed -i -E "s#<SHA256>[0-9a-fA-F]*</SHA256>#<SHA256>${SHA}</SHA256>#" ugreen-idx6011-pro.plg
+
+      - name: Commit .plg hash if changed
+        if: steps.exists.outputs.already == 'false'
+        env:
+          VER: ${{ steps.meta.outputs.version }}
+        run: |
+          if git diff --quiet -- ugreen-idx6011-pro.plg; then
+            echo ".plg SHA256 already current - no commit needed"
+          else
+            git config user.name  "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add ugreen-idx6011-pro.plg
+            git commit -m "ci: sync .plg SHA256 for ${VER}"
+            git push
+          fi
+
+      - name: Extract release notes from CHANGES
+        if: steps.exists.outputs.already == 'false'
+        env:
+          VER: ${{ steps.meta.outputs.version }}
+        run: |
+          awk -v v="###${VER}" '
+            $0==v {grab=1; next}
+            /^###/ {if (grab) exit}
+            grab {print}
+          ' ugreen-idx6011-pro.plg > notes.md
+          [ -s notes.md ] || echo "Release ${VER}" > notes.md
+          echo "---- notes ----"; cat notes.md
+
+      - name: Publish release
+        if: steps.exists.outputs.already == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VER: ${{ steps.meta.outputs.version }}
+        run: |
+          gh release create "$VER" "release/ugreen-idx6011-pro-$VER.txz" \
+            --target main --title "$VER" --notes-file notes.md
