@@ -14,7 +14,6 @@ on:
 
 permissions:
   contents: write
-  pull-requests: write
 
 concurrency:
   group: release
@@ -26,6 +25,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          # Repo-admin PAT: lets the SHA-sync push to protected main bypass the
+          # require-pull-request / code-scanning rules (the default GITHUB_TOKEN
+          # is the Actions bot, which cannot be exempted on a personal repo).
+          token: ${{ secrets.RELEASE_TOKEN }}
 
       - name: Read plugin version
         id: meta
@@ -75,37 +79,22 @@ jobs:
           echo "sha256=$SHA" >> "$GITHUB_OUTPUT"
           sed -i -E "s#<SHA256>[0-9a-fA-F]*</SHA256>#<SHA256>${SHA}</SHA256>#" ugreen-idx6011-pro.plg
 
-      - name: Sync .plg hash to main via pull request
+      - name: Sync .plg hash to main
         if: steps.exists.outputs.already == 'false'
         env:
-          GH_TOKEN: ${{ github.token }}
           VER: ${{ steps.meta.outputs.version }}
         run: |
-          # main is protected (require-pull-request), so the bot cannot push
-          # directly - it opens a PR for the payload SHA and merges it. 0 required
-          # approvals, no required checks on this bot PR, so it is immediately
-          # mergeable.
+          # Push authenticated as the RELEASE_TOKEN admin (see checkout), so it is
+          # exempt from the require-pull-request / code-scanning rules on main.
           if git diff --quiet -- ugreen-idx6011-pro.plg; then
-            echo ".plg SHA256 already current - no PR needed"
+            echo ".plg SHA256 already current - no commit needed"
             exit 0
           fi
-          BRANCH="ci/plg-sha-${VER}"
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git switch -c "$BRANCH"
           git add ugreen-idx6011-pro.plg
           git commit -m "ci: sync .plg SHA256 for ${VER}"
-          git push -u origin "$BRANCH"
-          gh pr create --base main --head "$BRANCH" \
-            --title "ci: sync .plg SHA256 for ${VER}" \
-            --body "Automated: payload SHA256 for the \`${VER}\` release. Merged by the release workflow so \`main\` is only updated through pull requests."
-          merged=0
-          for i in 1 2 3 4 5; do
-            if gh pr merge "$BRANCH" --merge --delete-branch; then merged=1; break; fi
-            echo "merge attempt $i not ready; retrying in 8s"; sleep 8
-          done
-          [ "$merged" = 1 ] || { echo "::error::could not merge $BRANCH"; exit 1; }
-          git switch main && git pull --ff-only
+          git push
 
       - name: Build release notes
         if: steps.exists.outputs.already == 'false'
