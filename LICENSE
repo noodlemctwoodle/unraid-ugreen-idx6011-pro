@@ -19,25 +19,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
--------------------------------------------------------------------------------
-
-The MIT license above covers this project's own work: the plugin scripts and the
-dashboard source (panel_dash and the src/ tree).
-
-Bundled or derived third-party components keep their own upstream licenses:
-
-  - ugreen_leds_cli (klein0r / miskcoo ugreen_leds_controller): GPL-2.0
-  - the bzroot-wakefix display overlay and the touch-stack kernel modules
-    (intel-lpss*, i2c-designware-*) are GPL-2.0 derivatives of the Linux kernel
-    (Intel i915 / DRM DisplayPort); the source diff is in
-    boot/i915-edp-wakeprobe-6.18.38.patch
-  - the static i2c-tools build: GPL-2.0
-  - stb single-header libraries (stb_easy_font, stb_image, stb_image_write):
-    public domain / MIT
-  - the embedded Unraid header icon (homarr-labs/dashboard-icons): Apache-2.0
-
-Trademarks: "Unraid" and the Unraid mark are trademarks of Lime Technology, Inc.;
-"UGREEN" / "NASync" and the product-photo plugin icon (images/ugreen-idx6011-pro.png)
-are trademarks/property of UGREEN. This is an unaffiliated community project; marks
-are used for identification only.

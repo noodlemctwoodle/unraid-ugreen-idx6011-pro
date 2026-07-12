@@ -289,19 +289,10 @@ eDP"* (Arun R Murthy) addresses the same kernel regression — see
 
 ## License
 
-Plugin scripts and dashboard source: **MIT** — full text in [LICENSE](LICENSE).
+This project's own scripts and dashboard source are **MIT** — see [LICENSE](LICENSE).
 
-Bundled and derived components keep their upstream licenses:
-
-- `ugreen_leds_cli` (klein0r / miskcoo): **GPL-2.0**
-- the `bzroot-wakefix` display overlay and the touch-stack `.ko` modules are **GPL-2.0**
-  derivatives of the Linux kernel (Intel i915 / DRM DP, Intel LPSS / DesignWare I²C), built
-  from the patch in [`boot/`](boot/)
-- the static `i2c-tools` build: **GPL-2.0**
-- stb headers (`stb_easy_font`, `stb_image`, `stb_image_write`): public domain / MIT
-- the embedded Unraid header icon ([homarr-labs/dashboard-icons](https://github.com/homarr-labs/dashboard-icons)): Apache-2.0
-
-**Trademarks:** *"Unraid"* and the Unraid mark are trademarks of Lime Technology, Inc.;
-*"UGREEN"* / *"NASync"* and the product-photo plugin icon (`images/ugreen-idx6011-pro.png`)
-are trademarks/property of UGREEN. This is an unaffiliated community project; marks are
-used for identification only.
+Bundled/derived components keep their upstream licenses (**GPL-2.0** for
+`ugreen_leds_cli`, the kernel-derived `bzroot-wakefix` overlay + touch modules, and
+`i2c-tools`; public domain / MIT for the stb headers; Apache-2.0 for the embedded
+Unraid icon), and the Unraid / UGREEN names and marks belong to their owners. Full
+details in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
