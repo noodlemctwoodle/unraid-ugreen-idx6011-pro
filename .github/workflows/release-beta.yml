@@ -12,8 +12,16 @@ name: release-beta
 # The beta self-updates from develop; installing the stable .plg moves back to the
 # stable channel (stable > any <base>.beta.<n>).
 
+# Two ways to cut a beta:
+#   - push a tag matching *.beta.*  (works from develop today; the tag IS the version)
+#       git tag 2026.07.13.beta.1 && git push origin 2026.07.13.beta.1
+#   - Run workflow (workflow_dispatch) — available once this file is also on the
+#     default branch; version is then <base>.beta.<run_number>.
 on:
   workflow_dispatch: {}
+  push:
+    tags:
+      - '*.beta.*'
 
 permissions:
   contents: write
@@ -35,11 +43,17 @@ jobs:
       - name: Compute beta version
         id: meta
         run: |
-          BASE=$(grep -oP '<!ENTITY\s+version\s+"\K[^"]+' ugreen-idx6011-pro.plg)
-          [ -n "$BASE" ] || { echo "::error::could not read base <!ENTITY version> from the stable .plg"; exit 1; }
-          VER="${BASE}.beta.${{ github.run_number }}"
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            VER="${{ github.ref_name }}"                       # the pushed tag is the version
+            echo "Beta version from tag: $VER"
+          else
+            BASE=$(grep -oP '<!ENTITY\s+version\s+"\K[^"]+' ugreen-idx6011-pro.plg)
+            [ -n "$BASE" ] || { echo "::error::could not read base <!ENTITY version> from the stable .plg"; exit 1; }
+            VER="${BASE}.beta.${{ github.run_number }}"
+            echo "Beta version (dispatch): $VER"
+          fi
+          case "$VER" in *[!0-9A-Za-z.]*) echo "::error::unexpected beta version '$VER'"; exit 1;; esac
           echo "version=$VER" >> "$GITHUB_OUTPUT"
-          echo "Beta version: $VER (base $BASE, run ${{ github.run_number }})"
 
       - name: Build panel_dash from source
         run: |
