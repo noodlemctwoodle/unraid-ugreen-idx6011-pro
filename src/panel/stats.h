@@ -35,6 +35,9 @@ typedef struct {
     char name[40];
     char state[16];                  /* running / exited / paused / ...      */
     char status[48];                 /* "Up 3 hours" free text               */
+    char image[72];                  /* image ref, e.g. "linuxserver/plex"   */
+    char ip[44];                     /* first non-empty container IP; "" host */
+    int  update;                     /* 1 = image update available (Unraid)  */
 } ctr_t;
 
 typedef struct {

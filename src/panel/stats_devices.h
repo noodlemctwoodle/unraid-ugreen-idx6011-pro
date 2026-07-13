@@ -153,9 +153,41 @@ static void docker_parse(stats_t *st){
         if (s && (!next || s < next)) json_copy_str(s + 9, c->state, sizeof c->state);
         char *t = strstr(p, "\"Status\":\"");
         if (t && (!next || t < next)) json_copy_str(t + 10, c->status, sizeof c->status);
+        char *im = strstr(p, "\"Image\":\"");
+        if (im && (!next || im < next)) json_copy_str(im + 9, c->image, sizeof c->image);
+        char *ipp = strstr(p, "\"IPAddress\":\"");   /* first NON-empty IP (host-net = empty) */
+        while (ipp && (!next || ipp < next)){
+            char tmp[44]; json_copy_str(ipp + 13, tmp, sizeof tmp);
+            if (tmp[0]){ snprintf(c->ip, sizeof c->ip, "%s", tmp); break; }
+            ipp = strstr(ipp + 13, "\"IPAddress\":\"");
+        }
         st->n_ctrs++;
         if (!next) break;
         p = next;
+    }
+}
+
+/* container "update available" flags (best-effort). Unraid's docker manager writes
+ * /var/lib/docker/unraid-update-status.json keyed by image ref, with a "status"
+ * whose value is false when an image update is ready. Absent (no CA-managed
+ * containers) -> no flags; a schema mismatch simply yields no flags, never a crash. */
+static char updbuf[65536];
+static void read_ctr_updates(stats_t *st){
+    FILE *f = fopen("/var/lib/docker/unraid-update-status.json", "r");
+    if (!f) return;
+    size_t n = fread(updbuf, 1, sizeof updbuf - 1, f); updbuf[n] = 0; fclose(f);
+    for (int i = 0; i < st->n_ctrs; i++){
+        ctr_t *c = &st->ctrs[i];
+        if (!c->image[0]) continue;
+        char key[80]; snprintf(key, sizeof key, "\"%s", c->image);
+        char *tag = strchr(key + 1, ':'); if (tag) *tag = 0;    /* match image sans :tag */
+        char *k = strstr(updbuf, key);
+        if (!k) continue;
+        char *stp = strstr(k, "\"status\"");
+        if (stp && stp - k < 240){
+            char *fv = strstr(stp, "false");
+            if (fv && fv - stp < 12) c->update = 1;
+        }
     }
 }
 
@@ -220,6 +252,7 @@ static void read_docker(stats_t *st){
         last = nowms;
         if (docker_http_get("/containers/json?all=1") >= 0){
             docker_parse(st);
+            read_ctr_updates(st);                        /* best-effort update flags */
             c_n = st->n_ctrs; c_tot = st->n_ctrs; c_run = 0;
             for (int i = 0; i < st->n_ctrs; i++)
                 if (!strcmp(st->ctrs[i].state, "running")) c_run++;

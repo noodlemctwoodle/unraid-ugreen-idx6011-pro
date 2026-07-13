@@ -19,10 +19,13 @@ static uint32_t col_ctr(const char *state){
 static int ctr_card(int y, ctr_t *c){
     char b[128];
     card(y, gy(64), NULL);
-    item_head(y, col_ctr(c->state), c->name, 2.1f, NULL, 0, 0);
+    /* header row: state dot + name (left), IP (right) */
+    item_head(y, col_ctr(c->state), c->name, 2.1f, c->ip[0] ? c->ip : NULL, 1.6f, UN_DIM);
+    /* second row: status text (left), UPDATE flag (right) when an image update is ready */
     snprintf(b, sizeof b, "%s", c->status[0] ? c->status : c->state);
-    trunc_fit(b, 1.6f, W - 66);
+    trunc_fit(b, 1.6f, W - 66 - (c->update ? 64 : 0));
     text(C_X0 + gy(18), y + gy(38), 1.6f, UN_DIM, b);
+    if (c->update) text(C_R - text_w(1.6f, "UPDATE"), y + gy(38), 1.6f, UN_WARN, "UPDATE");
     return gy(64) + gy(C_GAP);
 }
 
@@ -31,8 +34,11 @@ static int mod_containers(int y, stats_t *st, int variant){  /* summary + all co
     char b[128];
     int y0 = y;
     if (st->docker >= 0){
-        snprintf(b, sizeof b, "%d / %d running", st->docker, st->docker_total);
-        y += value_card(y, 76, "DOCKER", b, UN_TEXT);
+        int upds = 0;
+        for (int i = 0; i < st->n_ctrs; i++) if (st->ctrs[i].update) upds++;
+        if (upds) snprintf(b, sizeof b, "%d/%d up  %d update%s", st->docker, st->docker_total, upds, upds > 1 ? "s" : "");
+        else      snprintf(b, sizeof b, "%d / %d running", st->docker, st->docker_total);
+        y += value_card(y, 76, "DOCKER", b, upds ? UN_WARN : UN_TEXT);
     } else {
         y += value_card(y, 76, "DOCKER", "docker n/a", UN_DIM);
     }
