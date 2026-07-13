@@ -1,0 +1,144 @@
+<?xml version='1.0' standalone='yes'?>
+<!DOCTYPE PLUGIN [
+<!ENTITY name    "ugreen-idx6011-pro">
+<!ENTITY author  "noodlemctwoodle">
+<!ENTITY version "2026.07.13.beta.1">
+<!ENTITY plgdir  "/boot/config/plugins/&name;">
+]>
+
+<PLUGIN name="&name;"
+        author="&author;"
+        version="&version;"
+        min="6.12.0"
+        icon="ugreen-idx6011-pro.png"
+        support="https://github.com/noodlemctwoodle/unraid-ugreen-idx6011-pro/issues"
+        pluginURL="https://raw.githubusercontent.com/noodlemctwoodle/unraid-ugreen-idx6011-pro/develop/&name;.beta.plg">
+
+<CHANGES>
+###2026.07.13
+- Fully customisable dashboard. Build any page from a library of modules and pick
+  each one's look: bar, ring, gauge, history graph, area, segmented blocks,
+  used/free split, trend, or big number. New modules - Array status, Updates
+  (Unraid OS + plugins), Power draw, NPU, Fans, Host, VMs, and per-item Disk /
+  Interface / Container / VM cards. The Docker cards show each container's IP and
+  flag when an image update is available.
+- Web Layout editor with a live preview. Add, rename, reorder, delete and
+  show/hide pages; for each module choose its visualisation (and, for per-item
+  cards, which disk/interface/container/VM), with a live render of the real
+  258x960 panel beside you.
+- Fan control from the panel. Drive all four chassis fans on Auto / Silent /
+  Quiet / Turbo temperature curves (CPU fans follow the CPU, case fans the hottest
+  disk) or Max. A floor keeps every fan spinning and a critical temperature forces
+  100%. Live fan RPM on a Fans card, including an animated spinning-fan view.
+- Theme your dashboard. Choose the font, heading and text sizes, and every palette
+  colour with live colour pickers; upload a wallpaper and a custom header logo;
+  pick network-rate units (bits or bytes) and the primary network interface.
+  Cards grow with the text size instead of overlapping.
+- Smarter front LEDs. Configurable LAN and per-state disk-light colours, power
+  light on/off, and an activity mode that blinks the disk/LAN LEDs on I/O and goes
+  solid when idle.
+- Redesigned settings. Screen, Lighting and Display (theme + layout) tabs now
+  share one consistent look; everything is also editable live from the panel's own
+  touch Settings page.
+###2026.07.12.1
+- New plugin icon: original line-art of the UGREEN iDX6011 Pro by Deivizzz.
+###2026.07.12
+- Initial release. The full front panel for the UGREEN NASync iDX6011 Pro on
+  Unraid, working natively - no UGOS required.
+- 258x960 touch LCD dashboard: seven swipeable pages (Home, Overview, Hardware,
+  Network, Disks, Docker, and an interactive touch Settings page) with live
+  CPU/memory/network/disk/GPU/power stats, array + notification state, and the
+  official Unraid header mark.
+- Smart front LEDs (power / 2x LAN / 6x disk): drive presence, SMART health
+  (green/amber/red) and LAN link, updated live.
+- Self-contained install: downloads a SHA256-verified payload and registers its
+  own EFI boot entry (no UGOS/NVMe/grub dependency); the panel lights once the box
+  boots that entry. If it stays dark, set that entry first in the BIOS under
+  Boot > UEFI USB Hard Disk Drive BBS Priorities, then reboot.
+- Bundled touch modules + display wake-probe overlay are built for Unraid 7.3.2
+  (kernel 6.18.38-Unraid); rebuild with boot/build-overlay.sh for other kernels.
+- Requires the BIOS Watchdog Timer disabled (Ctrl+F1 in BIOS setup reveals it).
+</CHANGES>
+
+<!--
+  Runs on install AND on every boot (Unraid re-runs plugin install at boot).
+  Self-contained: the payload below (scripts, binaries, per-kernel touch modules +
+  display overlay, icon) is downloaded from the GitHub release, SHA256-verified, and
+  extracted to &plgdir;. Nothing to stage by hand.
+  NOTE: the bundled modules/overlay are built for kernel 6.18.38-Unraid (Unraid
+  7.3.2). On a different Unraid kernel the panel stays dark until they are rebuilt
+  with boot/build-overlay.sh (see docs/front-panel-blueprint.md).
+-->
+<FILE Name="&plgdir;/&name;-&version;.txz">
+<URL>https://github.com/noodlemctwoodle/unraid-ugreen-idx6011-pro/releases/download/&version;/&name;-&version;.txz</URL>
+<SHA256>68d0c0ce0b449bbecfc4a238c2ff2287e37d3cee08f859e025842e217abd30c1</SHA256>
+</FILE>
+
+<FILE Run="/bin/bash">
+<INLINE>
+# --- stage the flash payload from the downloaded, SHA256-verified archive ---
+# Re-extract when the archive is newer than the marker, so a re-published payload
+# at the same version (Unraid re-downloads it on SHA change) still stages.
+MARK="&plgdir;/.payload-&version;"
+TXZ="&plgdir;/&name;-&version;.txz"
+if [ -f "$TXZ" ] &amp;&amp; { [ ! -f "$MARK" ] || [ "$TXZ" -nt "$MARK" ]; }; then
+  tar xJf "$TXZ" -C "&plgdir;" &amp;&amp; touch "$MARK"
+fi
+# --- seed settings once (user edits then survive updates) ---
+if [ ! -f "&plgdir;/panel/settings.cfg" ]; then
+  mkdir -p "&plgdir;/panel"
+  printf 'BRIGHTNESS=75\nINTERVAL=1\nROTATE=0\n' &gt; "&plgdir;/panel/settings.cfg"
+fi
+# migrate: the panel autostart used to live in /boot/config/go — now plugin-managed
+sed -i '/# UGREEN iDX6011 Pro front-panel dashboard/,/^fi$/d' /boot/config/go 2>/dev/null
+# webGUI assets: plugin icon + settings page + colour-picker CSS/JS + Apply command.
+# restart.sh MUST live under the webGUI docroot: update.php only runs a #command that
+# realpath()s inside /usr/local/emhttp, so the config page points at plugins/&name;/restart.sh.
+mkdir -p /usr/local/emhttp/plugins/&name;/images
+[ -f "&plgdir;/images/&name;.png" ] &amp;&amp; cp "&plgdir;/images/&name;.png" /usr/local/emhttp/plugins/&name;/images/
+for f in UgreenIDX6011Pro.page UgreenIDX6011ProLighting.page \
+         UgreenIDX6011ProLayout.page idxcp.js idxcp-inc.php idxlayout.js preview.php upload.php restart.sh; do
+  [ -f "&plgdir;/$f" ] &amp;&amp; cp "&plgdir;/$f" /usr/local/emhttp/plugins/&name;/
+done
+chmod +x /usr/local/emhttp/plugins/&name;/restart.sh 2>/dev/null
+[ -f "&plgdir;/start.sh" ] &amp;&amp; bash "&plgdir;/start.sh"
+[ -f "&plgdir;/start-panel.sh" ] &amp;&amp; bash "&plgdir;/start-panel.sh"
+echo ""
+echo "  =============================================================="
+echo "   ugreen-idx6011-pro &version; installed"
+echo ""
+echo "   - Front-panel LEDs (power / LAN / disks) are live now."
+echo "   - The 258x960 touch LCD lights only when the box boots the"
+echo "     'Unraid (iDX6011 panel)' EFI entry this plugin registered."
+echo ""
+if [ "$(cat /sys/class/drm/card*-eDP-1/status 2>/dev/null | head -1)" = "connected" ]; then
+  echo "   Panel: ACTIVE - the dashboard is running. Nothing else to do."
+else
+  echo "   Panel: NOT ACTIVE this boot. To light it:"
+  echo "     1) In the BIOS make the panel entry boot first:"
+  echo "          Boot > UEFI USB Hard Disk Drive BBS Priorities"
+  echo "               > 'Unraid (iDX6011 panel)'"
+  echo "     2) Reboot."
+fi
+echo ""
+echo "   Docs: github.com/noodlemctwoodle/unraid-ugreen-idx6011-pro"
+echo "  =============================================================="
+echo ""
+true
+</INLINE>
+</FILE>
+
+<FILE Run="/bin/bash" Method="remove">
+<INLINE>
+[ -f "&plgdir;/stop.sh" ] &amp;&amp; bash "&plgdir;/stop.sh"
+[ -f "&plgdir;/stop-panel.sh" ] &amp;&amp; bash "&plgdir;/stop-panel.sh"
+rm -rf /usr/local/emhttp/plugins/&name;
+rm -f /tmp/plugins/&name;.plg
+echo "&name; removed (LEDs off, dashboard stopped)."
+echo "NOTE: boot chain (EFI entry + /boot/bzroot-wakefix) and &plgdir; files are"
+echo "left intact on purpose - see docs/front-panel-blueprint.md for full uninstall."
+true
+</INLINE>
+</FILE>
+
+</PLUGIN>
