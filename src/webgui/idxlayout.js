@@ -199,7 +199,7 @@
       '.idxl-tab.on{border-bottom-color:transparent;font-weight:600}'+
       '.idxl-tab.off{opacity:.5;font-style:italic}'+
       '.idxl-addtab{border-style:dashed;opacity:.8}'+
-      '#idxlayout-body{display:flex;gap:22px;align-items:flex-start;flex-wrap:wrap}'+
+      '#idxlayout-body{display:flex;gap:52px;align-items:flex-start;flex-wrap:wrap}'+
       '#idxlayout-pane{flex:1 1 320px;min-width:290px}'+
       /* hug a fixed control column so the live preview sits right beside it and the
        * wallpaper/header lines trim to the same width (not full-bleed) */
