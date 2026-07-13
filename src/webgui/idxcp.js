@@ -90,8 +90,9 @@
       /* wallpaper / header-logo rows: same faint grey line + bold label, no dark
        * file-input border */
       '.idxth-uploads input[type=file]{border:0 !important;background:transparent}'+
-      '.idxup-row{padding:10px 0;border-bottom:1px solid rgba(128,128,128,.22)}'+
-      '.idxup-row > label{display:block;font-weight:600;opacity:.9;margin-bottom:8px}'+
+      '.idxup-row{display:grid;grid-template-columns:auto 1fr;column-gap:16px;align-items:center;padding:9px 0;border-bottom:1px solid rgba(128,128,128,.22)}'+
+      '.idxup-row > label{font-weight:600;opacity:.9}'+
+      '.idxup-desc{display:block;font-weight:400;opacity:.6;font-size:.8em;margin-top:2px}'+
       '.idxup{display:flex;flex-wrap:wrap;align-items:center;gap:8px}'+
       /* upload status text sits on its own dim line so it never floats loose after
        * the buttons; the reserved height stops the row jumping when it appears */
