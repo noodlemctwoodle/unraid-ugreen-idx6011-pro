@@ -12,10 +12,20 @@
 #define PANEL_MOD_MEM_H
 
 static int mod_mem(int y, stats_t *st, int variant){
-    char v[32];
+    (void)variant;
+    const char *s = g_item_key;                          /* style name */
     double mp = st->mem_tot_mb ? 100.0 * st->mem_used_mb / st->mem_tot_mb : 0;
-    snprintf(v, sizeof v, "%.0f%%", mp);
-    int style = variant==1 ? 1 : variant==2 ? 2 : variant==3 ? 3 : 0;  /* ring/big/gauge/bar */
+    char v[32]; snprintf(v, sizeof v, "%.0f%%", mp);
+    if (!strcmp(s, "graph") || !strcmp(s, "area")) return graph_card(y, "MEMORY", v, h_mem, UN_ORANGE_M, s[0] == 'a', 100);
+    if (!strcmp(s, "blocks")) return blocks_card(y, "MEMORY", mp, v);
+    if (!strcmp(s, "trend"))  return trend_card(y, "MEMORY", v, h_mem, UN_ORANGE_M);
+    if (!strcmp(s, "split")){
+        char u[24], f[24];
+        snprintf(u, sizeof u, "%.1f GB", st->mem_used_mb / 1024.0);
+        snprintf(f, sizeof f, "%.1f free", (st->mem_tot_mb - st->mem_used_mb) / 1024.0);
+        return split_card(y, "MEMORY", mp, u, f);
+    }
+    int style = !strcmp(s, "ring") ? 1 : !strcmp(s, "big") ? 2 : !strcmp(s, "gauge") ? 3 : 0;
     int h = metric_card(y, "MEMORY", mp, v, style);
     if (style == 0 || style == 1){
         snprintf(v, sizeof v, "%.1f / %.1f GB", st->mem_used_mb / 1024.0, st->mem_tot_mb / 1024.0);

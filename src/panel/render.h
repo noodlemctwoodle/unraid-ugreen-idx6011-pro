@@ -50,8 +50,7 @@ static int write_shots(const char *dir, const char *bgpath){
     read_temp(&st); read_misc(&st); read_disks(&st); read_gpu(&st);
     read_npu(&st);  read_fans(&st); read_zones(&st); read_docker(&st);
     read_power(&st); read_about(&st); read_notif(&st);
-    for (int i = 0; i < SPARK_N; i++)               /* seed sparklines */
-        hist_push(st.cpu, st.gpu_avail ? st.gpu_busy : 0);
+    hist_seed_demo(&st);                            /* representative graph history for shots */
 
     unsigned char *rgba = malloc((size_t)W * H * 4);
     if (!rgba){ free(fbmem); return 1; }
@@ -94,8 +93,7 @@ static int write_preview(int page, const char *layout, const char *outfile){
     read_temp(&st); read_misc(&st); read_disks(&st); read_gpu(&st);
     read_npu(&st);  read_fans(&st); read_zones(&st); read_docker(&st);
     read_power(&st); read_about(&st); read_notif(&st);
-    for (int i = 0; i < SPARK_N; i++)
-        hist_push(st.cpu, st.gpu_avail ? st.gpu_busy : 0);
+    hist_seed_demo(&st);
 
     if (page < 0) page = 0;
     if (page >= n_total()) page = n_total() - 1;

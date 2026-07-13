@@ -138,6 +138,67 @@ static int spark_card(int y, const char *title, const char *value,
     return gy(CH_SPARK) + gy(C_GAP);
 }
 
+/* GRAPH CARD: title + value + history sparkline (line or filled area). maxv<=0
+ * auto-scales the y-axis (for unbounded series such as network rate). */
+static int graph_card(int y, const char *title, const char *value,
+                      const float *hist, uint32_t col, int fill, float maxv){
+    card(y, gy(CH_SPARK), title);
+    text(C_X0, y + gy(44), 3.6f, UN_TEXT, value);
+    spark_ex(C_X0, y + gy(84), C_W, gy(62), hist, h_cnt, h_pos, col, fill, maxv);
+    return gy(CH_SPARK) + gy(C_GAP);
+}
+
+/* segmented / blocks bar — the percentage as 10 discrete lit blocks */
+static void seg_bar(int x, int y, int w, int h, double pct, uint32_t col){
+    if (pct < 0) pct = 0; if (pct > 100) pct = 100;
+    int nseg = 10, gap = 3, sw = (w - (nseg - 1) * gap) / nseg;
+    int lit = (int)(pct / 100.0 * nseg + 0.5);
+    if (lit == 0 && pct > 0) lit = 1;                            /* any load lights >= 1 block */
+    for (int i = 0; i < nseg; i++)
+        rect(x + i * (sw + gap), y, sw, h, i < lit ? col : 0x2a2a2a, 255);
+}
+/* BLOCKS METRIC CARD: title + big value + a segmented bar. */
+static int blocks_card(int y, const char *title, double pct, const char *value){
+    card(y, gy(CH_METRIC), title);
+    text(C_X0, y + gy(44), C_VAL, UN_TEXT, value);
+    seg_bar(C_X0, y + gy(108), C_W, gy(18), pct, col_load(pct));
+    return gy(CH_METRIC) + gy(C_GAP);
+}
+
+/* SPLIT USED/FREE BAR CARD: a two-tone bar with both values labelled (below the
+ * title so they never collide with it). */
+static int split_card(int y, const char *title, double usedpct,
+                      const char *used, const char *freev){
+    int h = 122;
+    if (usedpct < 0) usedpct = 0; if (usedpct > 100) usedpct = 100;
+    card(y, gy(h), title);
+    text(C_X0, y + gy(44), 2.0f, UN_TEXT, used);                 /* used (left)  */
+    text(C_R - text_w(2.0f, freev), y + gy(44), 2.0f, UN_DIM, freev);  /* free (right) */
+    int uw = (int)(C_W * usedpct / 100.0), by = y + gy(74);
+    rect(C_X0, by, uw, gy(22), col_load(usedpct), 255);          /* used bar */
+    rect(C_X0 + uw, by, C_W - uw, gy(22), 0x3a3a3a, 255);        /* free bar */
+    char p[16]; snprintf(p, sizeof p, "%.0f%%", usedpct);
+    text(C_R - text_w(1.6f, p), y + gy(100), 1.6f, UN_DIM, p);
+    return gy(h) + gy(C_GAP);
+}
+
+/* TREND CARD: big current value (left) + a mini area spark + delta (right). */
+static int trend_card(int y, const char *title, const char *value,
+                      const float *hist, uint32_t col){
+    int h = 120;
+    card(y, gy(h), title);
+    text(C_X0, y + gy(44), C_VAL, UN_TEXT, value);
+    int sw = 100;
+    spark_ex(C_R - sw, y + gy(42), sw, gy(42), hist, h_cnt, h_pos, col, 1, 100);
+    if (h_cnt >= 2){
+        float a = hist[(h_pos - h_cnt + 2 * SPARK_N) % SPARK_N];
+        float b = hist[(h_pos - 1 + SPARK_N) % SPARK_N];
+        char d[16]; snprintf(d, sizeof d, "%+.0f", b - a);
+        text(C_R - text_w(1.6f, d), y + gy(92), 1.6f, b >= a ? UN_OK : UN_DIM, d);
+    }
+    return gy(h) + gy(C_GAP);
+}
+
 /* SMALL VALUE CARD: title + one value line (truncated to fit), base height `h`. */
 static int value_card(int y, int h, const char *title, const char *value, uint32_t col){
     card(y, gy(h), title);

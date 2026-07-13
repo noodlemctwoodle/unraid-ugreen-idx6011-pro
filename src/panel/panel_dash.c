@@ -247,7 +247,7 @@ int main(int argc, char **argv){
             read_fans(&st); read_zones(&st); read_docker(&st); read_power(&st);
             read_about(&st);
             read_notif(&st);
-            hist_push(st.cpu, st.gpu_avail ? st.gpu_busy : 0);
+            hist_push_all(&st);
             next_stats = nowms + (long)interval * 1000L;
             dirty = 1;
         }

@@ -30,7 +30,7 @@ typedef struct {
     const char *label;       /* human label for the web layout editor        */
     modfn       fn;          /* draw function (returns height consumed)       */
     int         nvariants;   /* number of display styles (>= 1)              */
-    const char *variants[6]; /* style ids, e.g. {"bar","ring","graph"}       */
+    const char *variants[12];/* style ids, e.g. {"bar","ring","graph","area"} */
     int         indexed;     /* 1 = per-item: the variant selects one instance */
                              /*   by NAME (e.g. iface:eth0, disk:cache), with  */
                              /*   a numeric index as a legacy fallback         */

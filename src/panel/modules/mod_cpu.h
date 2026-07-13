@@ -11,23 +11,21 @@
 #define PANEL_MOD_CPU_H
 
 static int mod_cpu(int y, stats_t *st, int variant){
-    char v[32];
-    snprintf(v, sizeof v, "%.0f%%", st->cpu);
-    if (variant == 2){                                   /* graph */
-        int h = spark_card(y, "CPU", v, h_cpu, h_cnt, h_pos, UN_ORANGE_M);
-        if (st->cpu_threads > 0){
-            char t[16]; snprintf(t, sizeof t, "%dT", st->cpu_threads);
-            card_tag(y, t, UN_DIM);
-        }
+    (void)variant;
+    const char *s = g_item_key;                          /* style name */
+    char v[32]; snprintf(v, sizeof v, "%.0f%%", st->cpu);
+    int h;
+    if (!strcmp(s, "graph") || !strcmp(s, "area")){
+        h = graph_card(y, "CPU", v, h_cpu, UN_ORANGE_M, s[0] == 'a', 100);
+        if (st->cpu_threads > 0){ char t[16]; snprintf(t, sizeof t, "%dT", st->cpu_threads); card_tag(y, t, UN_DIM); }
         return h;
     }
-    int style = variant==1 ? 1 : variant==3 ? 2 : variant==4 ? 3 : 0;  /* ring/big/gauge/bar */
-    int h = metric_card(y, "CPU", st->cpu, v, style);
+    if (!strcmp(s, "blocks")) return blocks_card(y, "CPU", st->cpu, v);
+    if (!strcmp(s, "trend"))  return trend_card(y, "CPU", v, h_cpu, UN_ORANGE_M);
+    int style = !strcmp(s, "ring") ? 1 : !strcmp(s, "big") ? 2 : !strcmp(s, "gauge") ? 3 : 0;
+    h = metric_card(y, "CPU", st->cpu, v, style);
     if (style == 0 || style == 1){                       /* temp/power fit bar + ring only */
-        if (st->temp_c > 0){
-            snprintf(v, sizeof v, "%dC", st->temp_c);
-            card_sub(y, 0, v, col_temp(st->temp_c));
-        }
+        if (st->temp_c > 0){ snprintf(v, sizeof v, "%dC", st->temp_c); card_sub(y, 0, v, col_temp(st->temp_c)); }
         double pw = st->pwr_pkg_w;
         if (st->pwr_sys_w > st->pwr_pkg_w) pw = st->pwr_sys_w;
         if (pw >= 0){ snprintf(v, sizeof v, "%.1f W", pw); card_sub(y, 1, v, UN_DIM); }

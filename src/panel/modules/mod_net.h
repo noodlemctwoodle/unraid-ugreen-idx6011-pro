@@ -10,8 +10,14 @@
 #define PANEL_MOD_NET_H
 
 static int mod_net(int y, stats_t *st, int variant){     /* primary-interface rates */
+    (void)variant;
+    const char *s = g_item_key;                          /* style name */
     char b[128], r[32];
-    if (variant == 1){                                   /* compact — DN left, UP right, one line */
+    if (!strcmp(s, "graph") || !strcmp(s, "area")){      /* throughput history (auto-scaled) */
+        char v[48]; fmt_rate(v, sizeof v, st->rx_kbs + st->tx_kbs);
+        return graph_card(y, "NETWORK", v, h_net, UN_ORANGE_M, s[0] == 'a', 0);
+    }
+    if (!strcmp(s, "compact")){                          /* compact — DN left, UP right, one line */
         card(y, gy(72), "NETWORK");
         text(W - 22 - text_w(1.5f, st->prim_if), y + gy(8), 1.5f, UN_DIM, st->prim_if);
         fmt_rate(r, sizeof r, st->rx_kbs); snprintf(b, sizeof b, "DN %s", r);
@@ -20,7 +26,7 @@ static int mod_net(int y, stats_t *st, int variant){     /* primary-interface ra
         text(W - 22 - text_w(1.9f, b), y + gy(40), 1.9f, UN_TEXT, b);
         return gy(72) + gy(C_GAP);
     }
-    int big = (variant == 2);                            /* big vs default rows */
+    int big = !strcmp(s, "big");                         /* big vs default rows */
     int h = big ? 172 : 128; float sc = big ? 3.2f : 2.5f;
     int y1 = big ? 54 : 44, y2 = big ? 110 : 86;
     card(y, gy(h), "NETWORK");
