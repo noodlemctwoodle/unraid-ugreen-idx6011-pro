@@ -66,8 +66,8 @@ static void page_settings(stats_t *st){
 
     y = settings_row(y, WID_LEDS,  "LEDs",       cfg_leds  ? "on" : "off");
     y = settings_row(y, WID_NIGHT, "Night mode", cfg_night ? "on" : "off");
-    static const char *fanm[] = { "auto", "silent", "quiet", "turbo" };
-    y = settings_row(y, WID_FAN, "Fans", fanm[cfg_fan_mode & 3]);
+    static const char *fanm[] = { "auto", "silent", "quiet", "turbo", "max" };
+    y = settings_row(y, WID_FAN, "Fans", fanm[(unsigned)cfg_fan_mode % 5]);
     y += gy(8);
 
     y = settings_button(y, WID_RESTART, "RESTART DASH", NULL, UN_GREY_80, UN_TEXT);
@@ -125,7 +125,7 @@ static int widget_tap(int x, int y){
         settings_save();
         return 1;
     case WID_FAN:
-        cfg_fan_mode = (cfg_fan_mode + 1) & 3;   /* auto -> silent -> quiet -> turbo */
+        cfg_fan_mode = (cfg_fan_mode + 1) % 5;   /* auto -> silent -> quiet -> turbo -> max */
         settings_save();                          /* fan_apply() picks it up next tick */
         return 1;
     case WID_RESTART:

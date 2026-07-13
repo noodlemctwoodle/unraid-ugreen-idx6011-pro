@@ -94,6 +94,56 @@ static void arc_gauge(int cx, int cy, int ro, int ri, double pct, uint32_t col){
         }
 }
 
+/* is a card at screen-y `y` of gy-scaled height `h` within the visible body clip
+ * band? Animated cards gate their redraw request on this so they don't burn frames
+ * computing fully-clipped, invisible pixels while scrolled out of view. */
+static int card_visible(int y, int h){
+    return y < g_clip_bot && y + h > g_clip_top;
+}
+
+/* SPINNING FAN GLYPH. N swept blades + a hub, rotated to `ang` degrees, anti-
+ * aliased, with an orange->red radial gradient (Unraid signature). spinning=0
+ * draws it static and dimmed (a stopped/failed fan). Pure pixel-annulus like
+ * arc_gauge/ring_gauge; honours the body clip via px_blend. */
+static void draw_fan(int cx, int cy, int r, double ang, int spinning){
+    if (r < 7) r = 7;
+    const int    N   = 7;                         /* blades */
+    const double PI2 = 6.2831853071795864;
+    double arad = ang * (PI2 / 360.0);
+    double hub  = r * 0.27;                        /* hub radius */
+    double curl = 1.15;                            /* radians a blade sweeps across the disc */
+    double fill = 0.60;                            /* fraction of each slot that is blade */
+    uint32_t root = spinning ? UN_ORANGE : 0x606060;   /* blade colour at the hub */
+    uint32_t tip  = spinning ? UN_RED    : 0x484848;   /* blade colour at the rim */
+    for (int dy = -r - 1; dy <= r + 1; dy++){
+        int y = cy + dy;
+        for (int dx = -r - 1; dx <= r + 1; dx++){
+            double rr = sqrt((double)dx * dx + (double)dy * dy);
+            if (rr > r + 0.7) continue;
+            int x = cx + dx;
+            if (rr <= hub + 1.0){                          /* hub disc (AA rim) + bright centre */
+                double c = hub + 0.5 - rr; if (c > 1) c = 1; if (c < 0) continue;
+                px_blend(x, y, 0x2b2b2b, (uint8_t)(c * 255));
+                if (rr <= hub * 0.45) px_blend(x, y, root, 210);
+                continue;
+            }
+            double a    = atan2((double)dy, (double)dx);
+            double as   = a - arad - curl * (rr / r);      /* rotate + curl */
+            double slot = as * N / PI2;
+            double frac = slot - floor(slot);              /* 0..1 within a blade slot */
+            if (frac >= fill) continue;
+            double cov = 1.0, e = 0.09;                     /* soft blade edges */
+            if      (frac < e)        cov = frac / e;
+            else if (frac > fill - e) cov = (fill - frac) / e;
+            double ro = r - rr;   if (ro < 1.2) cov *= ro < 0 ? 0 : ro / 1.2;   /* soft rim */
+            double ri = rr - hub; if (ri < 2.0) cov *= ri < 0 ? 0 : ri / 2.0;   /* soft root */
+            if (cov <= 0) continue; if (cov > 1) cov = 1;
+            float t = (float)((rr - hub) / (r - hub));      /* 0 root .. 1 tip */
+            px_blend(x, y, lerp_rgb(root, tip, t), (uint8_t)(cov * 255));
+        }
+    }
+}
+
 /* STANDARD METRIC CARD. style: 0=bar, 1=ring, 2=big (large centred value), 3=gauge.
  * Returns the advance (card height + gap). Add temp/power via card_sub() (bar/ring
  * only) and a used/total line via metric_detail(). */

@@ -231,6 +231,9 @@ int main(int argc, char **argv){
 
     signal(SIGINT, on_sig); signal(SIGTERM, on_sig);
     signal(SIGCHLD, SIG_IGN);                  /* auto-reap spawned actions */
+    atexit(fan_restore);                       /* hand fans back to EC auto on ANY exit path
+                                                * (incl. an early setcrtc return), so a manual
+                                                * mode can never strand them at a frozen duty */
 
     stats_t st; memset(&st, 0, sizeof(st));
     read_cpu(&st); read_net(&st); read_gpu(&st); read_npu(&st); read_power(&st);   /* prime deltas */
@@ -240,7 +243,7 @@ int main(int argc, char **argv){
     scr_w = W; scr_h = H;
 
     int first = 1, dim = 0, screen_off = 0;
-    long next_stats = 0;
+    long next_stats = 0, anim_next = 0;
     long last_touch = now_ms(), last_rotate = now_ms();
     while (!stop_flag){
         long nowms = now_ms();
@@ -310,6 +313,12 @@ int main(int argc, char **argv){
             cur_page = next_page(cur_page, +1);
             scrolly[cur_page] = 0;
             last_rotate = nowms; dirty = 1;
+        }
+        /* animation: the previous render() re-armed g_anim if a live card (e.g. the
+         * spinning-fan dials) is on screen — keep redrawing it at ~15 fps. Self-
+         * gating: no visible live card, or screen off, and this costs nothing. */
+        if (g_anim && !screen_off && !dim && nowms >= anim_next){
+            dirty = 1; anim_next = nowms + 66;
         }
         if (dirty){
             render(&st);

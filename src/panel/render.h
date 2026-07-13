@@ -12,6 +12,7 @@
 
 /* ---------- render ---------- */
 static void render(stats_t *st){
+    g_anim = 0;                                       /* a live card re-arms this while drawing */
     for (int y = 0; y < H; y++)
         memcpy(fbmem + y * fbpitch, bg + y * W, (size_t)W * 4);
     hdr_bottom = header_h();                          /* title card grows with heading size */

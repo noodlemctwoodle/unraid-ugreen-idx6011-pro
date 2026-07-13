@@ -32,7 +32,7 @@ static int cfg_rotate     = 0;      /* auto-rotate seconds: 0/10/20/60 */
 static int cfg_screen_off = 0;      /* minutes: 0(never)/1/5/15 */
 static int cfg_night      = 0;      /* 1 = clamp brightness to 15% */
 static int cfg_leds       = 1;      /* chassis LEDs on/off */
-static int cfg_fan_mode   = 0;      /* fan curve: 0 auto, 1 silent, 2 quiet, 3 turbo */
+static int cfg_fan_mode   = 0;      /* fan curve: 0 auto, 1 silent, 2 quiet, 3 turbo, 4 max */
 static char cfg_primary_if[32] = "";/* Overview/Home "primary" iface; empty = default-route auto-pick */
 static int  cfg_net_bits  = 1;      /* 1 = net rates in bits (Kbps), 0 = bytes (KB/s) */
 static char cfg_font[32]  = "RobotoCondensed"; /* fonts/<name>.ttf; empty = built-in easy_font */
@@ -71,7 +71,7 @@ static void settings_load(void){
         else if (!strcmp(k, "SCREEN_OFF_MIN")) cfg_screen_off = atoi(v);
         else if (!strcmp(k, "NIGHT"))          cfg_night      = atoi(v) != 0;
         else if (!strcmp(k, "LEDS"))           cfg_leds       = atoi(v) != 0;
-        else if (!strcmp(k, "FAN_MODE"))       cfg_fan_mode = !strcmp(v, "silent") ? 1 : !strcmp(v, "quiet") ? 2 : !strcmp(v, "turbo") ? 3 : 0;
+        else if (!strcmp(k, "FAN_MODE"))       cfg_fan_mode = !strcmp(v, "silent") ? 1 : !strcmp(v, "quiet") ? 2 : !strcmp(v, "turbo") ? 3 : !strcmp(v, "max") ? 4 : 0;
         else if (!strcmp(k, "PRIMARY_IFACE"))  snprintf(cfg_primary_if, sizeof cfg_primary_if, "%s", v);
         else if (!strcmp(k, "NET_UNITS"))      cfg_net_bits = strcmp(v, "bytes") != 0;
         else if (!strcmp(k, "FONT"))           snprintf(cfg_font, sizeof cfg_font, "%s", v);
@@ -217,7 +217,7 @@ static void settings_save(void){
                "COL_OK=%06x\nCOL_WARN=%06x\nCOL_BAD=%06x\n",
             cfg_brightness, cfg_interval, cfg_rotate,
             cfg_screen_off, cfg_night, cfg_leds,
-            cfg_fan_mode == 1 ? "silent" : cfg_fan_mode == 2 ? "quiet" : cfg_fan_mode == 3 ? "turbo" : "auto",
+            cfg_fan_mode == 1 ? "silent" : cfg_fan_mode == 2 ? "quiet" : cfg_fan_mode == 3 ? "turbo" : cfg_fan_mode == 4 ? "max" : "auto",
             cfg_primary_if,
             cfg_net_bits ? "bits" : "bytes", cfg_font,
             cfg_head_pct, cfg_text_pct,

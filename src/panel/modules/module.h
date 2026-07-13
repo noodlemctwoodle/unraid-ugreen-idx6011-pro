@@ -25,6 +25,10 @@ typedef int (*modfn)(int y, stats_t *st, int variant);
  * instance by NAME (a numeric value is treated as a legacy index; empty = first). */
 static const char *g_item_key = "";
 
+/* an animated module (e.g. the spinning-fan card) sets this while it renders; the
+ * main loop reads it to schedule the next frame (~15 fps). Reset each render(). */
+static int g_anim = 0;
+
 typedef struct {
     const char *id;          /* stable config id, e.g. "cpu"                 */
     const char *label;       /* human label for the web layout editor        */

@@ -35,6 +35,13 @@ static inline uint32_t blend(uint32_t dst, uint32_t src, uint8_t a){
     uint32_t g  = ((src & 0x00ff00) * a + (dst & 0x00ff00) * (255 - a)) >> 8;
     return (rb & 0xff00ff) | (g & 0x00ff00);
 }
+/* alpha-plot a single pixel over what's already there (for anti-aliased shapes) */
+static inline void px_blend(int x, int y, uint32_t src, uint8_t a){
+    if ((unsigned)x < (unsigned)W && (unsigned)y < (unsigned)H && y >= g_clip_top && y < g_clip_bot){
+        uint32_t *p = &fbmem[y * fbpitch + x];
+        *p = blend(*p, src, a);
+    }
+}
 static void rect(int x, int y, int w, int h, uint32_t c, uint8_t a){
     if (x < 0){ w += x; x = 0; } if (y < 0){ h += y; y = 0; }
     if (y < g_clip_top){ h -= (g_clip_top - y); y = g_clip_top; }   /* vertical clip */

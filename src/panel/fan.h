@@ -43,7 +43,7 @@ static void read_fan_rpm(stats_t *st){
         st->fan_rpm[i] = ec_read(base + i * 2) * 256 + ec_read(base + i * 2 + 1);
 }
 
-/* ---- curve control (cfg_fan_mode: 0 auto, 1 silent, 2 quiet, 3 turbo) ---- */
+/* ---- curve control (cfg_fan_mode: 0 auto, 1 silent, 2 quiet, 3 turbo, 4 max) ---- */
 static int g_fan_manual = 0;
 
 static int fan_curve(const int *c, int n, int t){   /* interpolate {temp,pct} points */
@@ -71,6 +71,12 @@ static int fan_max_disk_temp(stats_t *st){
 static void fan_apply(stats_t *st){
     if (cfg_fan_mode <= 0){                          /* auto — hand both pairs back to the EC */
         if (g_fan_manual){ fan_free(FAN_CPU_BASE); fan_free(FAN_SYS_BASE); g_fan_manual = 0; }
+        return;
+    }
+    if (cfg_fan_mode >= 4){                          /* max — every fan 100%, regardless of temp */
+        set_fan_pair(FAN_CPU_BASE, 100);
+        set_fan_pair(FAN_SYS_BASE, 100);
+        g_fan_manual = 1;
         return;
     }
     /* {temp,pct} curves. CPU pair follows CPU temp; system pair follows disk temp. */
