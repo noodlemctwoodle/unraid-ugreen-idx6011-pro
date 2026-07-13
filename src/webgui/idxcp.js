@@ -96,7 +96,9 @@
       '.idxup-head > label{font-weight:600;opacity:.9}'+
       '.idxup-head > input{justify-self:start}'+
       '.idxup-desc{display:block;font-weight:400;opacity:.6;font-size:.8em;margin-top:2px}'+
-      '.idxup-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:10px 0 6px}'+
+      '.idxup{display:block}'+
+      '.idxup+.idxup{margin-top:22px}'+                     /* uniform gap between the two upload blocks */
+      '.idxup-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:10px 0 0}'+
       '.idxup-note{flex-basis:100%;opacity:.7;font-size:.85em;min-height:1.15em;margin-top:2px}'+
       '.idxth-grid label{opacity:.9;font-weight:600}'+
       /* swatch + hex on ONE line, left-aligned within the (full-width) cell */
