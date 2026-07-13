@@ -1,10 +1,10 @@
 Menu="UgreenIDX6011Pro:2"
-Title="Layout"
+Title="Display"
 Icon="th-large"
 Markdown="true"
 ---
 <?php
-/* UGREEN iDX6011 Pro - Layout tab: a Theme sub-tab (colours + font + text sizes)
+/* UGREEN iDX6011 Pro - Display tab: a Theme sub-tab (colours + font + text sizes)
  * followed by per-page module editors, each with a LIVE preview rendered by the
  * real dashboard (preview.php -> panel_dash --preview). The catalog + current
  * layouts arrive via data-attributes on #idxlayout (an inline <script> would be

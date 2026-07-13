@@ -10,8 +10,8 @@ Markdown="true"
  * the first tab (Screen / display behaviour + wallpaper/logo). The other tabs are
  * separate child .page files grouped under it via Menu="UgreenIDX6011Pro:N":
  *   - UgreenIDX6011ProLighting.page  (Menu="UgreenIDX6011Pro:1", Title="Lighting")
- *   - UgreenIDX6011ProLayout.page    (Menu="UgreenIDX6011Pro:2", Title="Layout")
- * Colours, font and text sizes live on the Layout tab's Theme sub-tab. Writes the
+ *   - UgreenIDX6011ProLayout.page    (Menu="UgreenIDX6011Pro:2", Title="Display")
+ * Colours, font and text sizes live on the Display tab's Theme sub-tab. Writes the
  * plugin's panel/settings.cfg (update.php preserves the other tabs' keys) and runs
  * restart.sh to re-apply the dashboard live. */
 require_once '/usr/local/emhttp/plugins/ugreen-idx6011-pro/idxcp-inc.php';
@@ -57,6 +57,6 @@ _(Primary network interface &mdash; shown on Overview &amp; Home)_:
 </form>
 
 > Behaviour settings for the LCD. **Colours, font, text sizes, wallpaper and header
-> logo live on the **Layout** tab's **Theme** sub-tab (with a live preview).** Changes
+> logo live on the **Display** tab's **Theme** sub-tab (with a live preview).** Changes
 > here write to the plugin's `settings.cfg` and restart the dashboard; the same
 > settings are editable live from the panel's own **SETTINGS** page.

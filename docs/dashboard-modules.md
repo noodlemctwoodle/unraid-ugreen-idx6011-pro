@@ -207,7 +207,7 @@ defaults. The built-in **SETTINGS** page is appended after the content pages and
 is always on. For each content page, `render_modules()` parses its layout, looks
 each id up in the registry, resolves the variant, and calls the module (unknown
 ids are skipped). Add / rename / reorder / delete pages, and edit each page's
-modules, from the **web layout editor** (Layout tab), which writes the
+modules, from the **web layout editor** (Display tab), which writes the
 `N_PAGES` / `PAGE<n>_*` fields. There is no fixed page set — put any modules on
 any page you like.
 

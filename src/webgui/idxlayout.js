@@ -202,8 +202,7 @@
       '#idxlayout-body{display:flex;gap:22px;align-items:flex-start;flex-wrap:wrap}'+
       '#idxlayout-pane{flex:1 1 320px;min-width:290px}'+
       '#idxtheme{flex:1 1 320px;min-width:290px}'+
-      '.idxth-grid{display:grid;grid-template-columns:auto 1fr;gap:9px 12px;align-items:center}'+
-      '.idxth-grid label{opacity:.85}'+
+      /* .idxth-grid styling is shared from idxcp.js (used by the Lighting tab too) */
       '.idxl-pagehdr{display:flex;align-items:center;gap:6px;margin-bottom:12px}'+
       '.idxl-pagename{flex:1;min-width:120px;padding:5px 8px;font:inherit}'+
       '.idxl-toggle{display:flex;align-items:center;gap:8px;margin:2px 0 14px;cursor:pointer}'+

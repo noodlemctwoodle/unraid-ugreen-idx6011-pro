@@ -71,6 +71,18 @@
       });
     })(ups[i]); }
   }
-  function initAll(){ var cps=document.querySelectorAll('.idxcp'); for(var i=0;i<cps.length;i++) setup(cps[i]); setupUploads(); }
+  /* shared control CSS so the Lighting tab and the Display > Theme tab render with
+   * the identical label|control grid design (idxlayout.js reuses this class too). */
+  function injectCss(){
+    if(document.getElementById('idxcp-css')) return;
+    var s=document.createElement('style'); s.id='idxcp-css';
+    s.textContent =
+      '.idxth-grid{display:grid;grid-template-columns:auto 1fr;gap:9px 12px;align-items:center;max-width:680px}'+
+      '.idxth-grid label{opacity:.85}'+
+      '.idxth-grid > .idxcp,.idxth-grid > select{justify-self:start}'+
+      '.idxth-sec{grid-column:1/-1;margin:10px 0 2px;font-weight:600;opacity:.8;letter-spacing:.4px;text-transform:uppercase;font-size:.85em}';
+    document.head.appendChild(s);
+  }
+  function initAll(){ injectCss(); var cps=document.querySelectorAll('.idxcp'); for(var i=0;i<cps.length;i++) setup(cps[i]); setupUploads(); }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',initAll); else initAll();
 })();
