@@ -204,14 +204,18 @@
       /* hug a fixed control column so the live preview sits right beside it and the
        * wallpaper/header lines trim to the same width (not full-bleed) */
       '#idxtheme{flex:0 1 680px;min-width:290px}'+
-      '.idxth-uploads{max-width:680px;margin-top:30px}'+
+      '.idxth-uploads{max-width:680px;margin-top:54px}'+
       /* .idxth-grid styling is shared from idxcp.js (used by the Lighting tab too) */
       '.idxl-pagehdr{display:flex;align-items:center;gap:6px;margin-bottom:12px}'+
       '.idxl-pagename{flex:1;min-width:120px;padding:5px 8px;font:inherit}'+
       '.idxl-toggle{display:flex;align-items:center;gap:8px;margin:2px 0 14px;cursor:pointer}'+
-      '.idxl-list{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}'+
-      '.idxl-row{display:flex;align-items:center;gap:8px;padding:6px 8px;border:1px solid rgba(128,128,128,.35);border-radius:6px}'+
-      '.idxl-name{flex:1;min-width:80px}.idxl-var{min-width:76px}.idxl-var-none{width:76px}'+
+      '.idxl-list{display:flex;flex-direction:column;gap:0;margin-bottom:12px}'+
+      /* compact line rows to match the theme tab (no boxes, one faint grey line);
+       * the label grows so the (width-capped) style/name selects + buttons sit right */
+      '.idxl-row{display:flex;align-items:center;gap:8px;padding:9px 2px;border-bottom:1px solid rgba(128,128,128,.22)}'+
+      '.idxl-name{flex:1;min-width:80px;font-weight:600;opacity:.9}'+
+      '.idxl-var{flex:0 1 auto;min-width:90px;max-width:200px;width:auto !important;border:0 !important;background-color:transparent}'+
+      '.idxl-var-none{width:76px}'+
       '.idxl-btn{min-width:28px;height:28px;border:1px solid #888;border-radius:5px;background:transparent;color:inherit;cursor:pointer;font:inherit;line-height:1}'+
       '.idxl-btn:disabled{opacity:.3;cursor:default}.idxl-rm{color:#c33}'+
       '.idxl-empty{opacity:.6;font-style:italic;padding:6px 2px}'+
