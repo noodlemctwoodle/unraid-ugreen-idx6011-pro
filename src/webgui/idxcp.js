@@ -87,6 +87,12 @@
       '.idxth-grid > label,.idxth-grid > select,.idxth-grid > input,.idxth-grid > .idxcp{border:0 !important;border-bottom:1px solid rgba(128,128,128,.22) !important;padding:9px 0;box-sizing:border-box;justify-self:stretch}'+
       '.idxth-grid > label,.idxth-grid > .idxcp{display:flex;align-items:center}'+
       '.idxth-note{grid-column:1/-1;margin:1px 0 7px;padding:0;opacity:.7;font-size:.85em;line-height:1.4}'+
+      /* wallpaper / header-logo rows: same faint grey line + bold label, no dark
+       * file-input border */
+      '.idxth-uploads input[type=file]{border:0 !important;background:transparent}'+
+      '.idxup-row{padding:10px 0;border-bottom:1px solid rgba(128,128,128,.22)}'+
+      '.idxup-row > label{display:block;font-weight:600;opacity:.9;margin-bottom:8px}'+
+      '.idxup{display:flex;flex-wrap:wrap;align-items:center;gap:8px}'+
       '.idxth-grid label{opacity:.9;font-weight:600}'+
       /* swatch + hex on ONE line, left-aligned within the (full-width) cell */
       '.idxcp{gap:9px}'+

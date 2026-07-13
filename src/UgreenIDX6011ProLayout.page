@@ -51,11 +51,15 @@ if ($items   === '') $items   = '{}';
   </div>
   <p><input type="button" value="_(Restore theme defaults)_" onclick="idxReset('idx-theme')"></p>
   <div class="idxth-uploads">
-    <p><strong>_(Wallpaper &amp; header logo)_</strong></p>
-    <p>_(Wallpaper &mdash; scaled to the 258&times;960 screen)_<br>
-      <span class="idxup" data-kind="wallpaper"><input type="file" accept="image/png,image/jpeg,image/gif,image/webp"> <input type="button" value="_(Upload)_"> <input type="button" value="_(Clear)_"> <span class="idxup-note"></span></span></p>
-    <p>_(Header logo &mdash; replaces the Unraid mark)_<br>
-      <span class="idxup" data-kind="logo"><input type="file" accept="image/png,image/jpeg,image/gif,image/webp"> <input type="button" value="_(Upload)_"> <input type="button" value="_(Clear)_"> <span class="idxup-note"></span></span></p>
+    <div class="idxth-sec">_(Wallpaper &amp; header logo)_</div>
+    <div class="idxup-row">
+      <label>_(Wallpaper &mdash; scaled to the 258&times;960 screen)_</label>
+      <span class="idxup" data-kind="wallpaper"><input type="file" accept="image/png,image/jpeg,image/gif,image/webp"> <input type="button" value="_(Upload)_"> <input type="button" value="_(Clear)_"> <span class="idxup-note"></span></span>
+    </div>
+    <div class="idxup-row">
+      <label>_(Header logo &mdash; replaces the Unraid mark)_</label>
+      <span class="idxup" data-kind="logo"><input type="file" accept="image/png,image/jpeg,image/gif,image/webp"> <input type="button" value="_(Upload)_"> <input type="button" value="_(Clear)_"> <span class="idxup-note"></span></span>
+    </div>
   </div>
 </div>
 
