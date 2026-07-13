@@ -3,27 +3,31 @@
  *
  * Created by noodlemctwoodle on 13/07/2026.
  *
- * Fan monitoring + control via the ITE EC (ec.h). READS all fan tachometers;
- * WRITES duty only for the CPU fans.
+ * Fan monitoring + control via the ITE EC (ec.h). Drives ALL four fans on the
+ * iDX6011 Pro. Register map (verified on hardware, matches the ug-fand reference):
+ *   tach  (hi,lo) : cpufan1 0x34/35  cpufan2 0x36/37  sysfan1 0x38/39  sysfan2 0x3A/3B
+ *   duty  (per fan: ENABLE byte = 1, then DUTY byte = 0..198 where 198 = 100%):
+ *                   cpufan1 0xB0/B1  cpufan2 0xB2/B3   sysfan1 0xB4/B5  sysfan2 0xB6/B7
+ *   To release a fan back to EC auto, write its ENABLE byte = 0.
+ * (non-Pro: 2 system fans, tach 0x96, duty 0x9C.)
  *
- * Verified on the iDX6011 Pro (EC probe):
- *   tach  = 0x34 + fan*2  (16-bit big-endian RPM), duty = 0xB0 + fan*2 (0-255,
- *   0 = EC auto). Fan 0/1 = CPU fans; Fan 2/3 = system fans.
- *   * CPU fans (0xB0/0xB2): duty writes give reliable RPM (ec30->674 .. ec255->3600),
- *     min-spin ~ec30 (11%).
- *   * System fans (0xB4/0xB6): ANY manual duty drops their tach to 0 (can't confirm
- *     they keep spinning) — and they cool the disks. So we DO NOT drive them; they
- *     stay on EC auto (a safe ~750 rpm). "never stall" wins over "control all".
+ * CPU fans follow the CPU temp; the case/system fans follow the hottest disk.
+ * A 25% floor keeps every fan spinning (below ~20% a case fan stalls on this
+ * unit), and a hard clamp forces 100% at critical temps.
  *
- * WARNING: manual CPU-fan control means an uncatchable kill leaves the CPU fans at
- * their last duty until a restart re-asserts the curve. Default mode is auto (we
- * touch nothing), a hard clamp forces 100% above 87 C, and the floor never stalls.
+ * WARNING: manual control means an uncatchable kill leaves the fans at their last
+ * (>=25%, still spinning) duty until a restart re-asserts the curve. Default mode
+ * is auto (we touch nothing).
  */
 #ifndef PANEL_FAN_H
 #define PANEL_FAN_H
 
-#define FAN_DUTY0 0xB0                          /* CPU fan 0 duty */
-#define FAN_DUTY1 0xB2                          /* CPU fan 1 duty */
+#define FAN_CPU_BASE  0xB0     /* CPU fan pair enable/duty base */
+#define FAN_SYS_BASE  0xB4     /* case/system fan pair enable/duty base */
+#define FAN_DUTY_MAX  198      /* raw EC duty for 100% (0xC6) */
+#define FAN_FLOOR_PCT 25       /* keep-spinning floor (verified on this unit) */
+#define FAN_CPU_CRIT  88       /* CPU temp C -> force 100% */
+#define FAN_DISK_CRIT 60       /* disk temp C -> force 100% */
 
 /* read all fan tachometers (read-only). Pro: 4 fans @ 0x34; non-Pro: 2 @ 0x96. */
 static void read_fan_rpm(stats_t *st){
@@ -39,7 +43,7 @@ static void read_fan_rpm(stats_t *st){
         st->fan_rpm[i] = ec_read(base + i * 2) * 256 + ec_read(base + i * 2 + 1);
 }
 
-/* ---- CPU-fan curve control (cfg_fan_mode: 0 auto, 1 silent, 2 quiet, 3 turbo) ---- */
+/* ---- curve control (cfg_fan_mode: 0 auto, 1 silent, 2 quiet, 3 turbo) ---- */
 static int g_fan_manual = 0;
 
 static int fan_curve(const int *c, int n, int t){   /* interpolate {temp,pct} points */
@@ -49,25 +53,56 @@ static int fan_curve(const int *c, int n, int t){   /* interpolate {temp,pct} po
                             return d0 + (d1 - d0) * (t - t0) / (t1 - t0); }
     return c[(n - 1) * 2 + 1];
 }
-static void fan_apply(int cpu_temp){
-    if (cfg_fan_mode <= 0){                          /* auto — release to the EC */
-        if (g_fan_manual){ ec_write(FAN_DUTY0, 0); ec_write(FAN_DUTY1, 0); g_fan_manual = 0; }
+static void set_fan_pair(unsigned char base, int pct){   /* enable + duty for both fans */
+    if (pct < 0) pct = 0; if (pct > 100) pct = 100;
+    int raw = pct * FAN_DUTY_MAX / 100;
+    /* write DUTY before ENABLE so enable=1 never coincides with a stale 0 duty
+     * (that combo is exactly what stops a fan). */
+    ec_write(base + 1, (unsigned char)raw); ec_write(base,     1);
+    ec_write(base + 3, (unsigned char)raw); ec_write(base + 2, 1);
+}
+static void fan_free(unsigned char base){ ec_write(base, 0); ec_write(base + 2, 0); }  /* -> EC auto */
+
+static int fan_max_disk_temp(stats_t *st){
+    int m = -1;
+    for (int i = 0; i < st->n_disks; i++) if (st->disks[i].temp > m) m = st->disks[i].temp;
+    return m;
+}
+static void fan_apply(stats_t *st){
+    if (cfg_fan_mode <= 0){                          /* auto — hand both pairs back to the EC */
+        if (g_fan_manual){ fan_free(FAN_CPU_BASE); fan_free(FAN_SYS_BASE); g_fan_manual = 0; }
         return;
     }
-    static const int silent[] = {0,15, 60,15, 72,35, 80,65, 87,100};
-    static const int quiet[]  = {0,18, 58,18, 68,40, 77,70, 85,100};
-    static const int turbo[]  = {0,30, 55,30, 65,60, 74,90, 82,100};
-    const int *c = cfg_fan_mode == 1 ? silent : cfg_fan_mode == 3 ? turbo : quiet;
-    int pct = fan_curve(c, 5, cpu_temp);
-    if (cpu_temp >= 87) pct = 100;                   /* hard safety clamp */
-    if (pct < 15) pct = 15;                          /* floor — CPU fan min-spin ~11% */
-    int ec = pct * 255 / 100; if (ec < 1) ec = 1; if (ec > 255) ec = 255;
-    ec_write(FAN_DUTY0, (unsigned char)ec);
-    ec_write(FAN_DUTY1, (unsigned char)ec);
+    /* {temp,pct} curves. CPU pair follows CPU temp; system pair follows disk temp. */
+    static const int cpu_silent[] = {0,25, 60,25, 72,50, 80,75, 88,100};
+    static const int cpu_quiet[]  = {0,30, 55,30, 68,55, 78,80, 86,100};
+    static const int cpu_turbo[]  = {0,45, 50,45, 65,75, 75,95, 82,100};
+    static const int sys_silent[] = {0,25, 45,25, 52,50, 58,80, 62,100};
+    static const int sys_quiet[]  = {0,30, 42,30, 50,55, 56,82, 62,100};
+    static const int sys_turbo[]  = {0,45, 40,45, 48,78, 54,96, 60,100};
+    const int *cc = cfg_fan_mode == 1 ? cpu_silent : cfg_fan_mode == 3 ? cpu_turbo : cpu_quiet;
+    const int *sc = cfg_fan_mode == 1 ? sys_silent : cfg_fan_mode == 3 ? sys_turbo : sys_quiet;
+    int ct = st->temp_c, dt = fan_max_disk_temp(st);
+    int cp = fan_curve(cc, 5, ct);
+    int sp = dt < 0 ? FAN_FLOOR_PCT : fan_curve(sc, 5, dt);
+    if (ct >= FAN_CPU_CRIT)  cp = 100;               /* hard clamps */
+    if (dt >= FAN_DISK_CRIT) sp = 100;
+    if (cp < FAN_FLOOR_PCT) cp = FAN_FLOOR_PCT;      /* never stall */
+    if (sp < FAN_FLOOR_PCT) sp = FAN_FLOOR_PCT;
+    /* RPM watchdog: if a fan we're already driving reads a dead stop, force its
+     * pair to 100% until it spins again. Last line of defence over the duty floor
+     * for a stuck/failing fan; readings settle nonzero at any steady duty, so this
+     * only ever fires on a genuine stall (or a brief ramp transient — harmless). */
+    if (g_fan_manual){
+        if (st->n_fan_rpm >= 2 && (st->fan_rpm[0] == 0 || st->fan_rpm[1] == 0)) cp = 100;
+        if (st->n_fan_rpm >= 4 && (st->fan_rpm[2] == 0 || st->fan_rpm[3] == 0)) sp = 100;
+    }
+    set_fan_pair(FAN_CPU_BASE, cp);
+    set_fan_pair(FAN_SYS_BASE, sp);
     g_fan_manual = 1;
 }
-static void fan_restore(void){   /* hand the CPU fans back to EC auto */
-    if (g_fan_manual){ ec_write(FAN_DUTY0, 0); ec_write(FAN_DUTY1, 0); g_fan_manual = 0; }
+static void fan_restore(void){   /* hand all fans back to EC auto on clean exit */
+    if (g_fan_manual){ fan_free(FAN_CPU_BASE); fan_free(FAN_SYS_BASE); g_fan_manual = 0; }
 }
 
 #endif /* PANEL_FAN_H */

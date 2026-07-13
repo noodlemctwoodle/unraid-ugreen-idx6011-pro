@@ -254,7 +254,7 @@ int main(int argc, char **argv){
             read_notif(&st);
             read_updates(&st);
             hist_push_all(&st);
-            fan_apply(st.temp_c);                  /* CPU-fan curve (no-op in auto mode) */
+            fan_apply(&st);                        /* fan curves (no-op in auto mode) */
             next_stats = nowms + (long)interval * 1000L;
             dirty = 1;
         }
@@ -334,7 +334,7 @@ int main(int argc, char **argv){
         }
         usleep(20 * 1000);
     }
-    fan_restore();                              /* hand CPU fans back to EC auto on clean exit */
+    fan_restore();                              /* hand all fans back to EC auto on clean exit */
     touch_close();
     fprintf(stderr, "exiting\n");
     return 0;

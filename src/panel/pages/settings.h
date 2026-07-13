@@ -67,7 +67,7 @@ static void page_settings(stats_t *st){
     y = settings_row(y, WID_LEDS,  "LEDs",       cfg_leds  ? "on" : "off");
     y = settings_row(y, WID_NIGHT, "Night mode", cfg_night ? "on" : "off");
     static const char *fanm[] = { "auto", "silent", "quiet", "turbo" };
-    y = settings_row(y, WID_FAN, "CPU fans", fanm[cfg_fan_mode & 3]);
+    y = settings_row(y, WID_FAN, "Fans", fanm[cfg_fan_mode & 3]);
     y += gy(8);
 
     y = settings_button(y, WID_RESTART, "RESTART DASH", NULL, UN_GREY_80, UN_TEXT);

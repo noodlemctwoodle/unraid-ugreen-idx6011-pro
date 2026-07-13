@@ -32,7 +32,7 @@ static int cfg_rotate     = 0;      /* auto-rotate seconds: 0/10/20/60 */
 static int cfg_screen_off = 0;      /* minutes: 0(never)/1/5/15 */
 static int cfg_night      = 0;      /* 1 = clamp brightness to 15% */
 static int cfg_leds       = 1;      /* chassis LEDs on/off */
-static int cfg_fan_mode   = 0;      /* CPU-fan curve: 0 auto, 1 silent, 2 quiet, 3 turbo */
+static int cfg_fan_mode   = 0;      /* fan curve: 0 auto, 1 silent, 2 quiet, 3 turbo */
 static char cfg_primary_if[32] = "";/* Overview/Home "primary" iface; empty = default-route auto-pick */
 static int  cfg_net_bits  = 1;      /* 1 = net rates in bits (Kbps), 0 = bytes (KB/s) */
 static char cfg_font[32]  = "RobotoCondensed"; /* fonts/<name>.ttf; empty = built-in easy_font */

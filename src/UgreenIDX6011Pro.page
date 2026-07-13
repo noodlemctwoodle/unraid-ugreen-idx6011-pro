@@ -39,9 +39,9 @@ _(Screen off after idle)_:
 _(Night mode &mdash; clamp brightness to 15%)_:
 : <select name="NIGHT"><?php idx_opts([0=>'Off',1=>'On'], idx_val($cfg,'NIGHT','0')); ?></select>
 
-_(CPU fan mode)_:
+_(Fan mode)_:
 : <select name="FAN_MODE"><?php idx_opts(['auto'=>'Auto (firmware controls the fans)','silent'=>'Silent','quiet'=>'Quiet','turbo'=>'Turbo'], idx_val($cfg,'FAN_MODE','auto')); ?></select>
-  <br><small>_(Silent/Quiet/Turbo drive the two **CPU fans** on a temperature curve; the disk/system fans always stay on firmware auto. If the panel process stops, the CPU fans hold their last speed until it restarts.)_</small>
+  <br><small>_(Silent/Quiet/Turbo drive **all four fans** on temperature curves &mdash; CPU fans by CPU temp, case fans by the hottest disk &mdash; never below 25% so they never stall, with a forced 100% at critical temps. If the panel process stops, the fans hold their last speed until it restarts.)_</small>
 
 _(Network rate units)_:
 : <select name="NET_UNITS"><?php idx_opts(['bits'=>'Bits — Kbps / Mbps (matches Unraid)','bytes'=>'Bytes — KB/s / MB/s'], idx_val($cfg,'NET_UNITS','bits')); ?></select>
