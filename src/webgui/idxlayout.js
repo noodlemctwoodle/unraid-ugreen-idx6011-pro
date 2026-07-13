@@ -135,8 +135,10 @@
     dn.onclick=function(){ mods.splice(i+1,0,mods.splice(i,1)[0]); changed(); };
     var rm=el('button','idxl-btn idxl-rm','×'); rm.type='button'; rm.title='Remove';
     rm.onclick=function(){ mods.splice(i,1); changed(); };
-    ctl.appendChild(up); ctl.appendChild(dn); ctl.appendChild(rm);
     row.appendChild(ctl);
+    var btns = el('div','idxl-buttons');
+    btns.appendChild(up); btns.appendChild(dn); btns.appendChild(rm);
+    row.appendChild(btns);
     return row;
   }
   function renderEditor(){
@@ -202,7 +204,7 @@
       '.idxl-tab.off{opacity:.5;font-style:italic}'+
       '.idxl-addtab{border-style:dashed;opacity:.8}'+
       '#idxlayout-body{display:flex;gap:52px;align-items:flex-start;flex-wrap:wrap}'+
-      '#idxlayout-pane{flex:1 1 320px;min-width:290px}'+
+      '#idxlayout-pane{flex:0 1 780px;min-width:290px}'+
       /* hug a fixed control column so the live preview sits right beside it and the
        * wallpaper/header lines trim to the same width (not full-bleed) */
       '#idxtheme{flex:0 1 680px;min-width:290px}'+
@@ -210,14 +212,16 @@
       /* .idxth-grid styling is shared from idxcp.js (used by the Lighting tab too) */
       '.idxl-pagehdr{display:flex;align-items:center;gap:6px;margin-bottom:12px}'+
       '.idxl-pagename{flex:1;min-width:120px;padding:6px 2px;font:inherit;font-weight:600;border:0 !important;border-bottom:1px solid rgba(128,128,128,.22) !important;background-color:transparent}'+
-      '.idxl-toggle{display:flex;align-items:center;gap:8px;margin:2px 0 14px;cursor:pointer}'+
+      '.idxl-toggle{display:flex;align-items:center;gap:8px;margin:2px 0 26px;cursor:pointer}'+
       '.idxl-list{display:flex;flex-direction:column;gap:0;margin-bottom:12px}'+
       /* compact line rows to match the theme tab (no boxes, one faint grey line);
        * the label grows so the (width-capped) style/name selects + buttons sit right */
-      '.idxl-row{display:grid;grid-template-columns:auto 1fr;align-items:center;column-gap:16px;padding:9px 2px;border-bottom:1px solid rgba(128,128,128,.22)}'+
-      '.idxl-name{min-width:80px;font-weight:600;opacity:.9}'+
-      '.idxl-controls{display:flex;align-items:center;gap:8px}'+
-      '.idxl-var{flex:0 1 auto;min-width:90px;max-width:200px;width:auto !important;border:0 !important;background-color:transparent}'+
+      /* three aligned columns: name | dropdowns (fill the middle) | reorder buttons */
+      '.idxl-row{display:grid;grid-template-columns:minmax(120px,auto) 1fr auto;align-items:center;column-gap:20px;padding:10px 2px;border-bottom:1px solid rgba(128,128,128,.22)}'+
+      '.idxl-name{font-weight:600;opacity:.9}'+
+      '.idxl-controls{display:flex;align-items:center;gap:14px;min-width:0}'+
+      '.idxl-var{flex:1 1 0;min-width:0;width:auto !important;border:0 !important;background-color:transparent}'+
+      '.idxl-buttons{display:flex;align-items:center;gap:8px}'+
       '.idxl-var-none{width:76px}'+
       '.idxl-btn{min-width:28px;height:28px;border:1px solid #888;border-radius:5px;background:transparent;color:inherit;cursor:pointer;font:inherit;line-height:1}'+
       '.idxl-btn:disabled{opacity:.3;cursor:default}.idxl-rm{color:#c33}'+
