@@ -83,10 +83,14 @@
       '.idxth-grid{display:grid;grid-template-columns:auto 1fr;column-gap:16px;row-gap:0;width:100%;max-width:1000px}'+
       '.idxth-grid > label,.idxth-grid > select,.idxth-grid > .idxcp{border-bottom:1px solid rgba(128,128,128,.22);padding:9px 0;box-sizing:border-box;justify-self:stretch}'+
       '.idxth-grid > label,.idxth-grid > .idxcp{display:flex;align-items:center}'+
-      '.idxth-grid label{opacity:.85}'+
+      '.idxth-grid label{opacity:.9;font-weight:600}'+
       /* swatch + hex on ONE line, left-aligned within the (full-width) cell */
       '.idxcp{gap:9px}'+
-      '.idxcp-chip{flex:0 0 auto;width:46px;height:26px;padding:0;border:1px solid rgba(128,128,128,.5);border-radius:13px;background:none;cursor:pointer}'+
+      '.idxcp-chip{flex:0 0 auto;width:48px;height:26px;padding:0;border:1px solid rgba(128,128,128,.5);border-radius:13px;background:none;cursor:pointer;overflow:hidden}'+
+      /* zero the native swatch inset so the colour fills the whole pill */
+      '.idxcp-chip::-webkit-color-swatch-wrapper{padding:0}'+
+      '.idxcp-chip::-webkit-color-swatch{border:none;border-radius:12px}'+
+      '.idxcp-chip::-moz-color-swatch{border:none;border-radius:12px}'+
       '.idxcp-hex{flex:0 0 auto;width:90px}'+
       '.idxth-sec{grid-column:1/-1;border:none;margin:13px 0 3px;padding:0;font-weight:600;opacity:.8;letter-spacing:.4px;text-transform:uppercase;font-size:.85em}';
     document.head.appendChild(s);
