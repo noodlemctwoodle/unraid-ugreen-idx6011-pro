@@ -91,6 +91,7 @@
 #include "modules/cardstyle.h"
 #include "modules/mod_host.h"
 #include "modules/mod_array.h"
+#include "modules/mod_update.h"
 #include "modules/mod_cpu.h"
 #include "modules/mod_mem.h"
 #include "modules/mod_net.h"
@@ -248,6 +249,7 @@ int main(int argc, char **argv){
             read_fans(&st); read_zones(&st); read_docker(&st); read_power(&st);
             read_about(&st);
             read_notif(&st);
+            read_updates(&st);
             hist_push_all(&st);
             next_stats = nowms + (long)interval * 1000L;
             dirty = 1;

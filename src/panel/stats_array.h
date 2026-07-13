@@ -50,6 +50,41 @@ static void read_disks(stats_t *st){
     fclose(f);
 }
 
+/* --- OS + plugin update status (cached 60s) ---
+ * Unraid OS: /tmp/unraidcheck/result.json ("isNewer" + target "version").
+ * Plugins:   /tmp/plugins/pluginPending (one pending plugin per line). */
+static void read_updates(stats_t *st){
+    static long last = -1000000;
+    static int c_os, c_pl; static char c_ver[32];
+    long nowms = now_ms();
+    if (nowms - last >= 60000){
+        last = nowms;
+        c_os = 0; c_pl = 0; c_ver[0] = 0;
+        FILE *f = fopen("/tmp/unraidcheck/result.json", "r");
+        if (f){
+            char buf[2048]; size_t n = fread(buf, 1, sizeof buf - 1, f); buf[n] = 0; fclose(f);
+            char *nw = strstr(buf, "\"isNewer\"");
+            if (nw){ char *t = strstr(nw, "true"); if (t && t - nw < 20) c_os = 1; }
+            char *vp = strstr(buf, "\"version\"");
+            if (vp && (vp = strchr(vp, ':')) && (vp = strchr(vp, '"'))){
+                vp++; char *e = strchr(vp, '"');
+                if (e){ int l = (int)(e - vp); if (l > 31) l = 31; snprintf(c_ver, sizeof c_ver, "%.*s", l, vp); }
+            }
+        }
+        FILE *pf = fopen("/tmp/plugins/pluginPending", "r");
+        if (pf){
+            char line[256];
+            while (fgets(line, sizeof line, pf)){
+                char *p = line; while (*p == ' ' || *p == '\t') p++;
+                if (*p && *p != '\n' && *p != '\r') c_pl++;
+            }
+            fclose(pf);
+        }
+    }
+    st->os_update = c_os; st->plugin_updates = c_pl;
+    snprintf(st->os_new_ver, sizeof st->os_new_ver, "%s", c_ver);
+}
+
 /* --- notifications: /tmp/notifications/unread --- */
 static void read_notif(stats_t *st){
     st->notif_count = 0; st->notif_imp = 0; st->notif_subj[0] = 0;

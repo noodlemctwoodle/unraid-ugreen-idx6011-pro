@@ -66,6 +66,9 @@ typedef struct {
     int n_vms; vm_t vms[MAX_VMS];
     int pkg_temp, nvme_temp, board_temp;
     char version[32], kernel[64];
+    int  os_update;                  /* 1 = a newer Unraid OS is available   */
+    char os_new_ver[32];             /* the available OS version             */
+    int  plugin_updates;             /* count of plugins with pending updates */
     unsigned long long resync, resync_pos; char resync_act[32];
     double resync_mbs;
     int md_bad;                      /* disabled + invalid + missing */
