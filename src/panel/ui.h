@@ -18,8 +18,13 @@
  * sto/tmp are percentages (or degrees); net is a combined rate (auto-scaled). */
 #define SPARK_N 60
 static float h_cpu[SPARK_N], h_gpu[SPARK_N], h_mem[SPARK_N],
-             h_sto[SPARK_N], h_net[SPARK_N], h_tmp[SPARK_N];
+             h_sto[SPARK_N], h_net[SPARK_N], h_tmp[SPARK_N],
+             h_pwr[SPARK_N], h_npu[SPARK_N];
 static int h_cnt, h_pos;
+static float pwr_now(stats_t *st){                        /* the larger of sys/pkg watts, >=0 */
+    double w = st->pwr_sys_w > st->pwr_pkg_w ? st->pwr_sys_w : st->pwr_pkg_w;
+    return w < 0 ? 0 : (float)w;
+}
 static void hist_push_all(stats_t *st){
     h_cpu[h_pos] = (float)st->cpu;
     h_gpu[h_pos] = (float)(st->gpu_avail ? st->gpu_busy : 0);
@@ -27,6 +32,8 @@ static void hist_push_all(stats_t *st){
     h_sto[h_pos] = (float)st->disk_used_pct;
     h_net[h_pos] = (float)(st->rx_kbs + st->tx_kbs);
     h_tmp[h_pos] = (float)(st->temp_c > 0 ? st->temp_c : 0);
+    h_pwr[h_pos] = pwr_now(st);
+    h_npu[h_pos] = (float)(st->npu_avail ? st->npu_busy : 0);
     h_pos = (h_pos + 1) % SPARK_N;
     if (h_cnt < SPARK_N) h_cnt++;
 }
@@ -38,6 +45,7 @@ static void hist_seed_demo(stats_t *st){
     float bm = st->mem_tot_mb > 0 ? (float)(100.0 * st->mem_used_mb / st->mem_tot_mb) : 0;
     float bs = (float)st->disk_used_pct, bn = (float)(st->rx_kbs + st->tx_kbs);
     float bt = (float)(st->temp_c > 0 ? st->temp_c : 0);
+    float bp = pwr_now(st), bnp = st->npu_avail ? (float)st->npu_busy : 0;
     for (int i = 0; i < SPARK_N; i++){
         float w = 0.55f + 0.45f * sinf(i * 0.42f) * cosf(i * 0.17f);   /* ~0.1 .. 1.0 */
         h_cpu[i] = bc > 1 ? bc * w : 8 + 34 * w;      /* idle -> show a demo wave */
@@ -46,6 +54,8 @@ static void hist_seed_demo(stats_t *st){
         h_sto[i] = bs * (0.92f + 0.08f * w);
         h_net[i] = bn > 1 ? bn * w : 40 + 420 * w;
         h_tmp[i] = bt > 1 ? bt * (0.88f + 0.14f * w) : 35 + 16 * w;
+        h_pwr[i] = bp > 1 ? bp * (0.82f + 0.26f * w) : 12 + 26 * w;
+        h_npu[i] = bnp > 1 ? bnp * w : 4 + 18 * w;
     }
     h_pos = 0; h_cnt = SPARK_N;
 }
