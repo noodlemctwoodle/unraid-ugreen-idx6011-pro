@@ -25,7 +25,7 @@ static const modinfo_t MODULES[] = {
     { "cputemp", "CPU Temp",   mod_cputemp,    1, { "bar" } },
     { "npu",     "NPU",        mod_npu,        1, { "card" } },
     { "power",   "Power",      mod_power,      1, { "card" } },
-    { "ifaces",  "Interfaces", mod_ifaces,     2, { "full", "compact" } },
+    { "ifaces",  "Interfaces", mod_ifaces,     4, { "full", "compact", "mini", "big" } },
     { "iface",   "Interface",  mod_iface,      1, { "card" }, 1 },
     { "disks",   "Disks",      mod_disks,      1, { "list" } },
     { "disk",    "Disk",       mod_disk,       1, { "card" }, 1 },

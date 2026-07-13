@@ -3,18 +3,41 @@
  *
  * Created by noodlemctwoodle on 13/07/2026.
  *
- * Network interface cards. "ifaces" draws one card per interface (variants:
- * full, compact); "iface" (indexed, e.g. iface:1) draws a single interface so
- * they can be split and reordered. Share iface_card() + the shim + col_dot/state.
- * Part of panel_dash: #included by panel_dash.c in a fixed order.
+ * Network interface cards. "ifaces" draws one card per interface (styles: full,
+ * compact, mini, big); "iface" (indexed, e.g. iface:1) draws a single interface
+ * so they can be split and reordered. Share iface_card() + the shim + col_dot/
+ * state. Part of panel_dash: #included by panel_dash.c in a fixed order.
  */
 #ifndef PANEL_MOD_IFACES_H
 #define PANEL_MOD_IFACES_H
 
-/* one interface card. compact = name + DN/UP only; full = + IPs + totals. */
-static int iface_card(int y, iface_t *ic, int prim, int compact){
+/* one interface card. style: 0=full (IPs + totals), 1=compact (DN/UP, 2 lines),
+ * 2=mini (one line: name + rates), 3=big (large DN/UP rates). */
+static int iface_card(int y, iface_t *ic, int prim, int style){
     char b[64], r1[32], r2[32];
-    if (compact){                                        /* name + link + DN/UP (no IPs/totals) */
+
+    if (style == 2){                                     /* mini — one line */
+        int ch = 52;
+        card(y, gy(ch), NULL);
+        rect(C_X0, y + gy(20), gy(11), gy(11), col_dot(ic->up), 255);
+        htext(C_X0 + gy(18), y + gy(14), 2.0f, UN_TEXT, ic->name);
+        fmt_rate(r1, sizeof r1, ic->rx_kbs); fmt_rate(r2, sizeof r2, ic->tx_kbs);
+        snprintf(b, sizeof b, "DN %s  UP %s", r1, r2);
+        trunc_fit(b, 1.7f, (W - 22) - (C_X0 + gy(18) + htext_w(2.0f, ic->name) + 10));
+        text((W - 22) - text_w(1.7f, b), y + gy(18), 1.7f, UN_DIM, b);
+        return gy(ch) + gy(C_GAP);
+    }
+    if (style == 3){                                     /* big — large DN/UP rates */
+        int ch = 150;
+        card(y, gy(ch), NULL);
+        item_head(y, col_dot(ic->up), ic->name, 2.4f, ic->up ? "LINK" : "DOWN", 1.6f, col_state(ic->up));
+        fmt_rate(r1, sizeof r1, ic->rx_kbs); snprintf(b, sizeof b, "DN  %s", r1);
+        text(C_X0 + gy(4), y + gy(50), 2.9f, UN_TEXT, b);
+        fmt_rate(r2, sizeof r2, ic->tx_kbs); snprintf(b, sizeof b, "UP  %s", r2);
+        text(C_X0 + gy(4), y + gy(98), 2.9f, UN_TEXT, b);
+        return gy(ch) + gy(C_GAP);
+    }
+    if (style == 1){                                     /* compact — name + link + DN/UP */
         int ch = 108;
         card(y, gy(ch), NULL);
         item_head(y, col_dot(ic->up), ic->name, 2.3f,
@@ -25,7 +48,7 @@ static int iface_card(int y, iface_t *ic, int prim, int compact){
         text(C_X0 + gy(18), y + gy(72), 1.9f, UN_TEXT, b);
         return gy(ch) + gy(C_GAP);
     }
-    int has6 = ic->ip6[0] != 0;
+    int has6 = ic->ip6[0] != 0;                          /* full — IPs + totals */
     int ch = 172 + (has6 ? 22 : 0);
     card(y, gy(ch), NULL);
     item_head(y, col_dot(ic->up), ic->name, 2.4f, ic->up ? "LINK" : "DOWN", 1.6f, col_state(ic->up));
@@ -47,13 +70,13 @@ static int iface_card(int y, iface_t *ic, int prim, int compact){
 
 static int mod_ifaces(int y, stats_t *st, int variant){      /* all interfaces */
     if (st->n_ifaces == 0) return value_card(y, 90, "NETWORK", "no interfaces", UN_DIM);
-    int y0 = y, compact = (variant == 1);
+    int y0 = y;                                              /* variant = style */
     for (int i = 0; i < st->n_ifaces; i++)
-        y += iface_card(y, &st->ifc[i], !strcmp(st->ifc[i].name, st->prim_if), compact);
+        y += iface_card(y, &st->ifc[i], !strcmp(st->ifc[i].name, st->prim_if), variant);
     return y - y0;
 }
 
-static int mod_iface(int y, stats_t *st, int variant){       /* one interface by index */
+static int mod_iface(int y, stats_t *st, int variant){       /* one interface by index (full) */
     if (variant < 0 || variant >= st->n_ifaces)
         return value_card(y, 76, "INTERFACE", "not present", UN_DIM);
     return iface_card(y, &st->ifc[variant], !strcmp(st->ifc[variant].name, st->prim_if), 0);
