@@ -10,7 +10,9 @@
  *   - enables Apply on change (Unraid's own listener ignores <input type=color>),
  *   - restores per-section defaults for idxReset() buttons.
  * Loaded as an external <script src> (an inline <script> after a markdown="1" form
- * is mangled by Unraid's MarkdownExtra pass). Vanilla JS, no jQuery dependency.
+ * is mangled by Unraid's MarkdownExtra pass). The colour glue is vanilla JS; the
+ * wallpaper/logo pickers use jQuery + Unraid's jquery.filetree (both global in the
+ * webGUI), degrading to a plain path field if unavailable.
  */
 (function(){
   "use strict";
@@ -48,28 +50,51 @@
     for(var j=0;j<sel.length;j++){ sel[j].value=sel[j].getAttribute('data-default');
       sel[j].dispatchEvent(new Event('change',{bubbles:true})); markChanged(sel[j]); }
   };
-  /* wallpaper / header-logo upload controls (.idxup) -> upload.php, then the panel
-   * restarts to apply. Separate from the form Apply (a file, not a cfg key). */
-  function setupUploads(){
-    var ups=document.querySelectorAll('.idxup');
-    for(var i=0;i<ups.length;i++){ (function(up){
-      var kind=up.getAttribute('data-kind'), file=up.querySelector('input[type=file]'),
-          note=up.querySelector('.idxup-note'), btns=up.querySelectorAll('input[type=button]'),
-          base='/plugins/ugreen-idx6011-pro/upload.php?kind='+kind;
-      if(btns[0]) btns[0].addEventListener('click',function(){
-        if(!file.files||!file.files[0]){ note.textContent='choose a file first'; return; }
-        var fd=new FormData(); fd.append('file', file.files[0]); note.textContent='uploading…';
-        fetch(base,{method:'POST',body:fd}).then(function(r){return r.json();})
-          .then(function(j){ note.textContent=j.ok?'uploaded — panel updating…':('failed: '+(j.err||'')); if(j.ok) file.value=''; })
-          .catch(function(){ note.textContent='upload failed'; });
+  /* wallpaper / header-logo pickers (.idxpick): point at any image already on the
+   * server via Unraid's own file browser (jquery.filetree), then save the path to
+   * settings.cfg through update.php WITHOUT a #command. The panel watches the path
+   * and hot-swaps the image in place, so the change applies live with no restart /
+   * no screen flash. Uses jQuery (global in the webGUI) + the filetree plugin the
+   * page includes; degrades to the plain (editable) text field if either is absent. */
+  function saveImagePath(pick){
+    var key=pick.getAttribute('data-key'),
+        path=pick.querySelector('.idxpick-path').value,
+        note=pick.querySelector('.idxpick-note');
+    note.textContent='saving…';
+    var body='csrf_token='+encodeURIComponent(typeof csrf_token!=='undefined'?csrf_token:'')
+            +'&'+encodeURIComponent('#file')+'='+encodeURIComponent('ugreen-idx6011-pro/panel/settings.cfg')
+            +'&'+encodeURIComponent(key)+'='+encodeURIComponent(path);
+    fetch('/update.php',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:body})
+      .then(function(r){ note.textContent = r.ok ? (path?'saved — panel updating…':'cleared — panel updating…') : 'save failed';
+        if(r.ok && typeof window.idxRefreshPreview==='function') window.idxRefreshPreview(); })   /* re-render the live preview */
+      .catch(function(){ note.textContent='save failed'; });
+  }
+  function openTree(input, pick){
+    if(typeof jQuery==='undefined' || !jQuery.fn.fileTree){ input.readOnly=false; input.focus(); return; }
+    var $=jQuery, row=$(input).closest('.idxpick-row');
+    if(row.next('.fileTree').length){ row.next('.fileTree').remove(); return; }   /* toggle closed */
+    row.after("<span class='textarea fileTree idxpick-tree'></span>");
+    var ft=row.next('.fileTree');
+    ft.fileTree({top:'/mnt',root:'/mnt',filter:['png','jpg','jpeg','gif','webp','bmp'],allowBrowsing:true},
+      function(file){ input.value=file; ft.slideUp('fast',function(){ft.remove();}); saveImagePath(pick); },
+      function(folder){}
+    );
+    ft.slideDown('fast');
+  }
+  function setupImagePickers(){
+    var picks=document.querySelectorAll('.idxpick');
+    for(var i=0;i<picks.length;i++){ (function(pick){
+      var input=pick.querySelector('.idxpick-path'),
+          browse=pick.querySelector('.idxpick-browse'),
+          clear=pick.querySelector('.idxpick-clear');
+      if(browse) browse.addEventListener('click',function(){ openTree(input, pick); });
+      if(clear)  clear.addEventListener('click',function(){
+        input.value=''; var t=pick.querySelector('.fileTree'); if(t) t.remove(); saveImagePath(pick);
       });
-      if(btns[1]) btns[1].addEventListener('click',function(){
-        note.textContent='clearing…';
-        fetch(base+'&clear=1',{method:'POST'}).then(function(r){return r.json();})
-          .then(function(j){ note.textContent=j.ok?'cleared — panel updating…':'failed'; })
-          .catch(function(){ note.textContent='failed'; });
-      });
-    })(ups[i]); }
+      /* covers the degrade path (a manually typed path); setting .value via the
+       * picker doesn't fire 'change', so this never double-saves the normal path. */
+      if(input) input.addEventListener('change',function(){ saveImagePath(pick); });
+    })(picks[i]); }
   }
   /* shared control CSS so the Lighting tab and the Display > Theme tab render with
    * the identical label|control grid design (idxlayout.js reuses this class too). */
@@ -87,19 +112,16 @@
       '.idxth-grid > label,.idxth-grid > select,.idxth-grid > input,.idxth-grid > .idxcp{border:0 !important;border-bottom:1px solid rgba(128,128,128,.22) !important;padding:9px 0;box-sizing:border-box;justify-self:stretch}'+
       '.idxth-grid > label,.idxth-grid > .idxcp{display:flex;align-items:center}'+
       '.idxth-note{grid-column:1/-1;margin:1px 0 7px;padding:0;opacity:.7;font-size:.85em;line-height:1.4}'+
-      /* wallpaper / header-logo rows: same faint grey line + bold label, no dark
-       * file-input border */
-      '.idxth-uploads input[type=file]{border:0 !important;background:transparent}'+
-      /* head = label | file chooser with the grey row line under it; the upload /
-       * clear buttons then sit BELOW that line in their own actions row */
-      '.idxup-head{display:grid;grid-template-columns:auto 1fr;column-gap:16px;align-items:center;padding:9px 0;border-bottom:1px solid rgba(128,128,128,.22)}'+
-      '.idxup-head > label{font-weight:600;opacity:.9}'+
-      '.idxup-head > input{justify-self:start}'+
-      '.idxup-desc{display:block;font-weight:400;opacity:.6;font-size:.8em;margin-top:2px}'+
-      '.idxup{display:block}'+
-      '.idxup+.idxup{margin-top:22px}'+                     /* uniform gap between the two upload blocks */
-      '.idxup-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:10px 0 0}'+
-      '.idxup-note{flex-basis:100%;opacity:.7;font-size:.85em;min-height:1.15em;margin-top:2px}'+
+      /* wallpaper / header-logo pickers: bold label, a read-only path field with a
+       * Browse (Unraid file tree) + Clear button, one faint grey row line per block */
+      '.idxpick{display:block;padding:11px 0 9px;border-bottom:1px solid rgba(128,128,128,.22)}'+
+      '.idxpick > label{display:block;font-weight:600;opacity:.9;margin-bottom:7px}'+
+      '.idxpick-desc{display:block;font-weight:400;opacity:.6;font-size:.8em;margin-top:2px}'+
+      '.idxpick-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}'+
+      '.idxpick-path{flex:1 1 220px;min-width:0;border:1px solid rgba(128,128,128,.35) !important;border-radius:4px;padding:5px 8px;background:transparent}'+
+      '.idxpick-note{display:block;opacity:.7;font-size:.85em;min-height:1.15em;margin-top:6px}'+
+      /* contain the Unraid file tree popup so it scrolls inside the block */
+      '.idxpick-tree{display:block;max-height:280px;overflow:auto;margin:8px 0 2px}'+
       '.idxth-grid label{opacity:.9;font-weight:600}'+
       /* swatch + hex on ONE line, left-aligned within the (full-width) cell */
       '.idxcp{gap:9px}'+
@@ -112,6 +134,6 @@
       '.idxth-sec{grid-column:1/-1;border:none;margin:13px 0 3px;padding:0;font-weight:600;opacity:.8;letter-spacing:.4px;text-transform:uppercase;font-size:.85em}';
     document.head.appendChild(s);
   }
-  function initAll(){ injectCss(); var cps=document.querySelectorAll('.idxcp'); for(var i=0;i<cps.length;i++) setup(cps[i]); setupUploads(); }
+  function initAll(){ injectCss(); var cps=document.querySelectorAll('.idxcp'); for(var i=0;i<cps.length;i++) setup(cps[i]); setupImagePickers(); }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',initAll); else initAll();
 })();

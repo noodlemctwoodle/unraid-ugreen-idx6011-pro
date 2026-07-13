@@ -19,7 +19,8 @@
   var BASE = '/plugins/ugreen-idx6011-pro/preview.php';
   var MAXP = 12;                        /* must match MAX_CPAGES in prefs.h */
   var COLQ = { COL_ACCENT:'accent', COL_GRAD_A:'grada', COL_GRAD_B:'gradb', COL_BG:'bg',
-               COL_CARD:'card', COL_TEXT:'ctext', COL_OK:'ok', COL_WARN:'warn', COL_BAD:'bad' };
+               COL_CARD:'card', COL_TEXT:'ctext', COL_TITLE:'ctitle', COL_DIM:'dim',
+               COL_OK:'ok', COL_WARN:'warn', COL_BAD:'bad' };
   var CAT = [], ITEMS = {}, pages = [], active = 'theme', root = null, form = null, timer = null, themeEl = null;
   var previewScroll = 0, SCROLL_STEP = 220;
 
@@ -40,7 +41,9 @@
     function add(name,val){ var e=document.createElement('input'); e.type='hidden'; e.className='idxl-hidden';
       e.name=name; e.value=val; form.appendChild(e); }
     add('N_PAGES', String(pages.length));
-    pages.forEach(function(p,i){ add('PAGE'+i+'_NAME', p.name); add('PAGE'+i+'_LAYOUT', build(p.mods)); add('PAGE'+i+'_ON', p.on?'1':'0'); });
+    pages.forEach(function(p,i){ add('PAGE'+i+'_NAME', p.name); add('PAGE'+i+'_LAYOUT', build(p.mods)); add('PAGE'+i+'_ON', p.on?'1':'0');
+      add('PAGE'+i+'_HEADER', p.header?'1':'0'); add('PAGE'+i+'_TITLE', p.title?'1':'0'); add('PAGE'+i+'_DOTS', p.dots?'1':'0');
+      add('PAGE'+i+'_CARDOP', String(p.opacity||0)); });
   }
 
   /* draft theme -> preview.php query params (so previews reflect unsaved theme) */
@@ -54,22 +57,35 @@
       if(e && e.value) q.push(kv[1]+'='+encodeURIComponent(e.value)); });
     return q.join('&');
   }
+  /* the global (theme-tab) card opacity value, default 90 */
+  function themeOpacity(){ if(!themeEl) return 90; var e=themeEl.querySelector('[name="CARD_OPACITY"]'); return e&&e.value?(parseInt(e.value,10)||90):90; }
 
   function refreshPreview(){
     var img = document.getElementById('idxprev-img'), note = document.getElementById('idxprev-note');
     if(!img) return;
-    var pidx, layout;
-    if(active==='theme'){ pidx=0; layout = pages.length ? build(pages[0].mods) : ''; }
-    else { pidx=active; layout = build(pages[active].mods); }
+    var pidx, layout, p;
+    if(active==='theme'){ pidx=0; p = pages[0] || {}; layout = pages.length ? build(pages[0].mods) : ''; }
+    else { pidx=active; p = pages[active] || {}; layout = build(pages[active].mods); }
     var th = themeParams();
+    /* preview the page's draft chrome toggles too (header/title/dots), plus the
+     * effective card opacity: a per-page override wins, else the global theme value
+     * (the theme tab always previews the global so you can see it change) */
+    var effOp = (active==='theme') ? themeOpacity() : ((p.opacity && p.opacity>=10) ? p.opacity : themeOpacity());
+    var cp = '&header='+(p.header===false?0:1)+'&title='+(p.title===false?0:1)+'&dots='+(p.dots===false?0:1)+'&cardop='+effOp;
+    /* draft name + position N/M so a new (unsaved) page previews as itself, not the
+     * saved SETTINGS page it index-collides with */
+    var et=0, eu=0; pages.forEach(function(pg,i){ if(pg.on){ et++; if(i<=pidx) eu++; } });
+    var meta = '&pname='+encodeURIComponent(p.name||'')+'&ppos='+(eu||1)+'&ptot='+(et+1);
     if(note) note.textContent='rendering…';
     clearTimeout(timer);
     timer = setTimeout(function(){
       img.onload = function(){ if(note) note.textContent=''; };
       img.onerror = function(){ if(note) note.textContent='preview failed'; };
-      img.src = BASE+'?page='+pidx+'&layout='+encodeURIComponent(layout)+(th?('&'+th):'')+'&scroll='+previewScroll+'&_='+Date.now();
+      img.src = BASE+'?page='+pidx+'&layout='+encodeURIComponent(layout)+(th?('&'+th):'')+cp+meta+'&scroll='+previewScroll+'&_='+Date.now();
     }, 350);
   }
+  /* let the wallpaper/logo picker (idxcp.js) refresh the preview after it saves */
+  window.idxRefreshPreview = function(){ try{ refreshPreview(); }catch(e){} };
 
   function renderTabs(){
     var bar = document.getElementById('idxlayout-tabs'); bar.innerHTML='';
@@ -164,6 +180,26 @@
     tog.appendChild(cb); tog.appendChild(el('span',null,' Show this page on the dashboard'));
     pane.appendChild(tog);
 
+    /* per-page chrome: hide any of these for a cleaner page — all off + a wallpaper
+     * gives a full-screen image page. */
+    var chrome = el('div','idxl-chrome');
+    chrome.appendChild(el('span','idxl-chrome-lbl','Show on this page:'));
+    [['header','Header bar'],['title','Title card'],['dots','Page dots']].forEach(function(pair){
+      var lab=el('label','idxl-ctoggle'); var c=el('input'); c.type='checkbox'; c.checked=p[pair[0]]!==false;
+      c.onchange=function(){ p[pair[0]]=c.checked; syncAll(); markChanged(); refreshPreview(); };
+      lab.appendChild(c); lab.appendChild(el('span',null,' '+pair[1]));
+      chrome.appendChild(lab);
+    });
+    /* per-page card opacity override (Inherit = use the global theme value) */
+    chrome.appendChild(el('span','idxl-chrome-lbl','Card opacity:'));
+    var opSel=el('select','idxl-opsel');
+    [['0','Inherit theme'],['100','100%'],['90','90%'],['75','75%'],['60','60%'],['45','45%'],['30','30%'],['20','20%'],['10','10%']].forEach(function(pair){
+      var o=el('option',null,pair[1]); o.value=pair[0]; if(String(p.opacity||0)===pair[0]) o.selected=true; opSel.appendChild(o);
+    });
+    opSel.onchange=function(){ p.opacity=parseInt(opSel.value,10)||0; syncAll(); markChanged(); refreshPreview(); };
+    chrome.appendChild(opSel);
+    pane.appendChild(chrome);
+
     var list = el('div','idxl-list');
     if(p.mods.length===0) list.appendChild(el('div','idxl-empty','No modules — add one below.'));
     p.mods.forEach(function(m,i){ list.appendChild(moduleRow(p.mods, m, i)); });
@@ -194,8 +230,9 @@
     try { CAT = JSON.parse(root.getAttribute('data-catalog') || '[]'); } catch(e){ CAT=[]; }
     try { ITEMS = JSON.parse(root.getAttribute('data-items') || '{}'); } catch(e){ ITEMS={}; }
     var ST = {}; try { ST = JSON.parse(root.getAttribute('data-layouts') || '{}'); } catch(e){}
-    (ST.pages || []).forEach(function(p){ pages.push({ name:cleanName(p.name)||'Page', mods:parse(p.layout), on:p.on?true:false }); });
-    if(pages.length===0) pages.push({ name:'Overview', mods:parse('host,cpu,mem,net,storage,uptime'), on:true });
+    (ST.pages || []).forEach(function(p){ pages.push({ name:cleanName(p.name)||'Page', mods:parse(p.layout), on:p.on?true:false,
+      header:p.header!==0, title:p.title!==0, dots:p.dots!==0, opacity:(p.cardop|0) }); });
+    if(pages.length===0) pages.push({ name:'Overview', mods:parse('host,cpu,mem,net,storage,uptime'), on:true, header:true, title:true, dots:true, opacity:0 });
 
     var css = document.createElement('style'); css.textContent =
       '#idxlayout-tabs{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px}'+
@@ -212,7 +249,11 @@
       /* .idxth-grid styling is shared from idxcp.js (used by the Lighting tab too) */
       '.idxl-pagehdr{display:flex;align-items:center;gap:6px;margin-bottom:12px}'+
       '.idxl-pagename{flex:1;min-width:120px;padding:6px 2px;font:inherit;font-weight:600;border:0 !important;border-bottom:1px solid rgba(128,128,128,.22) !important;background-color:transparent}'+
-      '.idxl-toggle{display:flex;align-items:center;gap:8px;margin:2px 0 26px;cursor:pointer}'+
+      '.idxl-toggle{display:flex;align-items:center;gap:8px;margin:2px 0 12px;cursor:pointer}'+
+      '.idxl-chrome{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;margin:0 0 24px}'+
+      '.idxl-chrome-lbl{opacity:.6;font-size:.85em}'+
+      '.idxl-ctoggle{display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.92em}'+
+      '.idxl-opsel{border:0 !important;border-bottom:1px solid rgba(128,128,128,.22) !important;background-color:transparent;font:inherit}'+
       '.idxl-list{display:flex;flex-direction:column;gap:0;margin-bottom:12px}'+
       /* compact line rows to match the theme tab (no boxes, one faint grey line);
        * the label grows so the (width-capped) style/name selects + buttons sit right */

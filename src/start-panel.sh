@@ -14,9 +14,10 @@ notify(){ /usr/local/emhttp/webGui/scripts/notify -i "$1" -s "Front panel" -d "$
 [ "$(cat /sys/class/dmi/id/product_name 2>/dev/null)" = "iDX6011 Pro" ] || exit 0
 
 # ---- settings (flash-persistent, webGUI-editable) ----
+# panel_dash reads settings.cfg itself (incl. the WALLPAPER / LOGO image paths) and
+# hot-reloads them live, so no --bg is passed here.
 BRIGHTNESS=75; INTERVAL=1; ROTATE=0
 [ -f $PANEL/settings.cfg ] && . $PANEL/settings.cfg
-WALLPAPER=$PANEL/wallpaper.png
 
 # ---- keep the panel boot path healthy (self-registered EFI entry) ----
 bash $P/assert-boot.sh 2>>$LOG
@@ -44,7 +45,6 @@ if [ "$(cat /sys/class/drm/card*-eDP-1/status 2>/dev/null | head -1)" = "connect
     cp $PANEL/panel_dash /usr/local/bin/panel_dash && chmod +x /usr/local/bin/panel_dash
     ARGS="--backlight $BRIGHTNESS --interval $INTERVAL"
     [ "$ROTATE" -gt 0 ] 2>/dev/null && ARGS="$ARGS --rotate $ROTATE"
-    [ -f "$WALLPAPER" ] && ARGS="$ARGS --bg $WALLPAPER"
     ( sleep 5; setsid /usr/local/bin/panel_dash $ARGS </dev/null >>$LOG 2>&1 ) </dev/null >/dev/null 2>&1 &
     disown 2>/dev/null
     echo "$(date) panel_dash starting ($ARGS)" >> $LOG

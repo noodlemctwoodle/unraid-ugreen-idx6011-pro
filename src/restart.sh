@@ -22,7 +22,7 @@ if [ "$(cat /sys/class/drm/card*-eDP-1/status 2>/dev/null | head -1)" = "connect
     [ -f "$PANEL/panel_dash" ] && { cp "$PANEL/panel_dash" /usr/local/bin/panel_dash; chmod +x /usr/local/bin/panel_dash; }
     ARGS="--backlight $BRIGHTNESS --interval $INTERVAL"
     [ "${ROTATE:-0}" -gt 0 ] 2>/dev/null && ARGS="$ARGS --rotate $ROTATE"
-    [ -f "$PANEL/wallpaper.png" ] && ARGS="$ARGS --bg $PANEL/wallpaper.png"
+    # wallpaper/logo come from settings.cfg (panel_dash reads + hot-reloads them)
     ( setsid /usr/local/bin/panel_dash $ARGS </dev/null >>/var/log/panel_dash.log 2>&1 ) </dev/null >/dev/null 2>&1 &
     disown 2>/dev/null
 fi

@@ -19,6 +19,8 @@ if ($catalog === '') $catalog = '[]';
 if ($layouts === '') $layouts = '{}';
 if ($items   === '') $items   = '{}';
 ?>
+<link type="text/css" rel="stylesheet" href="/webGui/styles/jquery.filetree.css">
+<script src="/webGui/javascript/jquery.filetree.js" charset="utf-8"></script>
 <script src="<?=idx_asset('idxcp.js')?>"></script>
 <script src="<?=idx_asset('idxlayout.js')?>"></script>
 
@@ -39,12 +41,18 @@ if ($items   === '') $items   = '{}';
     <label>_(Text size)_</label>
     <select name="TEXT_SCALE" class="idx-theme" data-default="100"><?php idx_opts([90=>'90%',100=>'100% (default)',110=>'110%',120=>'120%',130=>'130%'], idx_val($cfg,'TEXT_SCALE','100')); ?></select>
 
+    <label>_(Card opacity)_</label>
+    <select name="CARD_OPACITY" class="idx-theme" data-default="90"><?php idx_opts([100=>'100% (solid)',90=>'90% (default)',75=>'75%',60=>'60%',45=>'45%',30=>'30%',20=>'20%',10=>'10%'], idx_val($cfg,'CARD_OPACITY','90')); ?></select>
+    <div class="idxth-note">_(Lower opacity lets the wallpaper show through cards.)_</div>
+
     <label>_(Accent)_</label><?php idx_colorField($cfg,'COL_ACCENT','f15a2c','idx-theme'); ?>
     <label>_(Gradient start)_</label><?php idx_colorField($cfg,'COL_GRAD_A','e22828','idx-theme'); ?>
     <label>_(Gradient end)_</label><?php idx_colorField($cfg,'COL_GRAD_B','ff8c2f','idx-theme'); ?>
     <label>_(Background)_</label><?php idx_colorField($cfg,'COL_BG','1b1b1b','idx-theme'); ?>
     <label>_(Card fill)_</label><?php idx_colorField($cfg,'COL_CARD','262626','idx-theme'); ?>
     <label>_(Text)_</label><?php idx_colorField($cfg,'COL_TEXT','f2f2f2','idx-theme'); ?>
+    <label>_(Card titles)_</label><?php idx_colorField($cfg,'COL_TITLE','999999','idx-theme'); ?>
+    <label>_(Dim / secondary text)_</label><?php idx_colorField($cfg,'COL_DIM','999999','idx-theme'); ?>
     <label>_(Healthy / OK)_</label><?php idx_colorField($cfg,'COL_OK','3fb950','idx-theme'); ?>
     <label>_(Warning)_</label><?php idx_colorField($cfg,'COL_WARN','f0a020','idx-theme'); ?>
     <label>_(Critical)_</label><?php idx_colorField($cfg,'COL_BAD','e22828','idx-theme'); ?>
@@ -52,20 +60,24 @@ if ($items   === '') $items   = '{}';
   <p><input type="button" value="_(Restore theme defaults)_" onclick="idxReset('idx-theme')"></p>
   <div class="idxth-uploads">
     <div class="idxth-sec">_(Wallpaper &amp; header logo)_</div>
-    <span class="idxup" data-kind="wallpaper">
-      <div class="idxup-head">
-        <label>_(Wallpaper)_<span class="idxup-desc">_(scaled to the 258&times;960 screen)_</span></label>
-        <input type="file" accept="image/png,image/jpeg,image/gif,image/webp">
+    <div class="idxpick" data-key="WALLPAPER">
+      <label>_(Wallpaper)_<span class="idxpick-desc">_(point at any image already on the server &mdash; scaled to the 258&times;960 screen)_</span></label>
+      <div class="idxpick-row">
+        <input type="text" class="idxpick-path" readonly placeholder="_(none &mdash; brand background)_" value="<?=htmlspecialchars(idx_val($cfg,'WALLPAPER',''))?>">
+        <input type="button" class="idxpick-browse" value="_(Browse&hellip;)_">
+        <input type="button" class="idxpick-clear" value="_(Clear)_">
       </div>
-      <div class="idxup-actions"><input type="button" value="_(Upload)_"> <input type="button" value="_(Clear)_"> <span class="idxup-note"></span></div>
-    </span>
-    <span class="idxup" data-kind="logo">
-      <div class="idxup-head">
-        <label>_(Header logo)_<span class="idxup-desc">_(replaces the Unraid mark)_</span></label>
-        <input type="file" accept="image/png,image/jpeg,image/gif,image/webp">
+      <span class="idxpick-note"></span>
+    </div>
+    <div class="idxpick" data-key="LOGO">
+      <label>_(Header logo)_<span class="idxpick-desc">_(replaces the Unraid mark)_</span></label>
+      <div class="idxpick-row">
+        <input type="text" class="idxpick-path" readonly placeholder="_(none &mdash; Unraid mark)_" value="<?=htmlspecialchars(idx_val($cfg,'LOGO',''))?>">
+        <input type="button" class="idxpick-browse" value="_(Browse&hellip;)_">
+        <input type="button" class="idxpick-clear" value="_(Clear)_">
       </div>
-      <div class="idxup-actions"><input type="button" value="_(Upload)_"> <input type="button" value="_(Clear)_"> <span class="idxup-note"></span></div>
-    </span>
+      <span class="idxpick-note"></span>
+    </div>
   </div>
 </div>
 
@@ -76,4 +88,5 @@ if ($items   === '') $items   = '{}';
 > Start on the **Theme** tab for colours, font and text sizes, then pick a page tab to
 > reorder / add / remove / restyle its modules or toggle it off. The **live preview** is
 > rendered by the actual dashboard. **Apply** writes everything to `settings.cfg` and
-> restarts the panel; the same settings drive the physical screen.
+> restarts the panel; the same settings drive the physical screen. The **wallpaper** and
+> **header logo** save the moment you pick them and swap on the panel live &mdash; no restart.

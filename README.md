@@ -172,11 +172,16 @@ Everything is configured from **Settings → UGREEN iDX6011 Pro** in the Unraid 
 render of the real panel:
 
 - **Display ▸ Layout** — the visual page builder. Add / rename / reorder / delete pages,
-  toggle each on or off, add modules, and pick each module's **style** (and, for the
-  per-item cards, **which** disk / interface / container / VM). A live preview sits beside you.
-- **Display ▸ Theme** — the dashboard **font**, **heading / text sizes**, and the full
-  **colour palette** (accent, gradient, background, card, text, ok / warn / bad) via
-  colour pickers; upload a **wallpaper** and a **custom header logo** to replace the Unraid mark.
+  toggle each on or off, add modules (including **Spacer** gaps to push content down), and
+  pick each module's **style** (and, for the per-item cards, **which** disk / interface /
+  container / VM). Per page you can hide the **header bar / title card / page dots** — all
+  off + a wallpaper gives a **full-screen image page** — and set a **card-opacity** override.
+  A live preview sits beside you.
+- **Display ▸ Theme** — the dashboard **font**, **heading / text sizes**, the full
+  **colour palette** (accent, gradient, background, card, text, ok / warn / bad) via colour
+  pickers, and a global **card-opacity** slider. Point the panel at any image on the server
+  — a **file browser** — for the **wallpaper** and a **custom header logo**; both hot-swap on
+  the panel **live, with no restart**.
 - **Screen** — brightness, stats refresh, auto-rotate, screen-off timer, night mode,
   **fan mode**, network-rate units (bits / bytes) and the primary network interface.
 - **Lighting** — the front-LED master + power light, **activity mode**, and the LAN /
@@ -242,9 +247,10 @@ Theme (`FONT`, `HEAD_SCALE`, `TEXT_SCALE`, `COL_*`), the LED colours (`LED_*`) a
 page layout (`N_PAGES`, `PAGE<n>_*`) are also stored here but are best edited from the
 web UI. The common knobs are editable live from the panel's own **SETTINGS** page too.
 
-- **Wallpaper / header logo**: upload from **Display ▸ Theme**, or drop a `wallpaper.png`
-  (or `logo.png`) into `…/ugreen-idx6011-pro/panel/` — any size, auto-scaled; restart
-  the daemon (or reboot) after adding it manually.
+- **Wallpaper / header logo**: point at any image on the server from **Display ▸ Theme**
+  (a file browser) — stored as `WALLPAPER=` / `LOGO=` and hot-swapped on the panel **live,
+  no restart**. Any size, auto-scaled. A legacy `panel/wallpaper.png` / `logo.png` is still
+  honoured for back-compat.
 - Dashboard CLI flags (for manual runs): `--bg <img>` `--backlight <pct>`
   `--interval <s>` `--rotate <s>` `--touch </dev/i2c-N>` `--no-touch`
   `--cal <s|x|y>` `--once` `--shot <dir>` `--preview <page> <layout> <out>`;

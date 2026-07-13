@@ -13,20 +13,31 @@
 /* ---------- render ---------- */
 static void render(stats_t *st){
     g_anim = 0;                                       /* a live card re-arms this while drawing */
+    g_text_shadow = g_has_wallpaper;                  /* legibility drop shadow only over a wallpaper */
+    /* effective card opacity this frame: a per-page override wins over the global
+     * theme value (in preview mode the JS already folded that into cfg_card_opacity). */
+    g_card_opacity_eff = cfg_card_opacity;
+    if (!g_is_preview && cur_page >= 0 && cur_page < g_ncpage && g_cpage[cur_page].card_opacity >= 10)
+        g_card_opacity_eff = g_cpage[cur_page].card_opacity;
+    if (g_card_opacity_eff < 10)  g_card_opacity_eff = 10;
+    if (g_card_opacity_eff > 100) g_card_opacity_eff = 100;
     for (int y = 0; y < H; y++)
         memcpy(fbmem + y * fbpitch, bg + y * W, (size_t)W * 4);
     hdr_bottom = header_h();                          /* title card grows with heading size */
     int base = hdr_bottom + (st->notif_count > 0 ? gy(44) : 0);
-    int visible = FOOTER_Y - 12 - base;
+    int botlim = page_show_dots(cur_page) ? FOOTER_Y : H;   /* dots hidden -> content fills to the bottom */
+    int visible = botlim - 12 - base;
     int maxs = content_h[cur_page] - visible;
     if (maxs < 0) maxs = 0;
     if (scrolly[cur_page] > maxs) scrolly[cur_page] = maxs;
     if (scrolly[cur_page] < 0)    scrolly[cur_page] = 0;
     body_top = base - scrolly[cur_page];
     page_end = body_top;
-    g_clip_top = base; g_clip_bot = FOOTER_Y - 4;           /* clip the body to the content band */
-    if (g_preview_layout)                                    /* web preview: force content render */
-        render_modules(g_preview_layout, st);
+    g_clip_top = base; g_clip_bot = botlim - 4;             /* clip the body to the content band */
+    if (g_is_preview)                                        /* web preview: a draft page is ALWAYS content
+                                                              * (never the settings page it may index-collide
+                                                              * with); an empty layout draws an empty page */
+        render_modules(g_preview_layout ? g_preview_layout : "", st);
     else if (is_settings_page(cur_page)) page_settings(st);  /* built-in interactive page */
     else render_modules(g_cpage[cur_page].layout, st);       /* user content page */
     g_clip_top = 0; g_clip_bot = 1 << 20;                   /* header/footer draw unclipped */
@@ -42,7 +53,8 @@ static int write_shots(const char *dir, const char *bgpath){
     W = 258; H = 960; fbpitch = W;
     fbmem = malloc((size_t)W * H * 4);
     if (!fbmem){ fprintf(stderr, "shot: oom\n"); return 1; }
-    make_bg(bgpath);
+    make_bg(resolve_wallpaper(bgpath));
+    load_logo(resolve_logo());
 
     stats_t st; memset(&st, 0, sizeof st);
     read_cpu(&st); read_net(&st); read_gpu(&st); read_npu(&st); read_power(&st);
@@ -84,8 +96,8 @@ static int write_preview(int page, const char *layout, const char *outfile){
     W = 258; H = 960; fbpitch = W;
     fbmem = malloc((size_t)W * H * 4);
     if (!fbmem){ fprintf(stderr, "preview: oom\n"); return 1; }
-    const char *wp = CFG_DIR2 "/wallpaper.png";
-    make_bg(access(wp, F_OK) == 0 ? wp : NULL);
+    make_bg(resolve_wallpaper(NULL));
+    load_logo(resolve_logo());
 
     stats_t st; memset(&st, 0, sizeof st);
     read_cpu(&st); read_net(&st); read_gpu(&st); read_npu(&st); read_power(&st);
@@ -97,7 +109,16 @@ static int write_preview(int page, const char *layout, const char *outfile){
     hist_seed_demo(&st);
 
     if (page < 0) page = 0;
-    if (page >= n_total()) page = n_total() - 1;
+    if (page >= MAX_CPAGES) page = MAX_CPAGES - 1;     /* any draft page index (rendered as content) */
+    g_is_preview = 1;                                  /* draft page: content, draft name/position */
+    { const char *e;                                   /* draft per-page chrome toggles + identity */
+      if ((e = getenv("PANEL_PAGE_HEADER"))) g_prev_header = atoi(e) != 0;
+      if ((e = getenv("PANEL_PAGE_TITLE")))  g_prev_title  = atoi(e) != 0;
+      if ((e = getenv("PANEL_PAGE_DOTS")))   g_prev_dots   = atoi(e) != 0;
+      if ((e = getenv("PANEL_PAGE_NAME")))   snprintf(g_preview_name, sizeof g_preview_name, "%s", e);
+      if ((e = getenv("PANEL_PAGE_POS")))    g_preview_pos = atoi(e);
+      if ((e = getenv("PANEL_PAGE_TOTAL")))  g_preview_total = atoi(e);
+    }
     g_preview_layout = (layout && *layout) ? layout : NULL;
     cur_page = page; scrolly[page] = 0;
     render(&st);

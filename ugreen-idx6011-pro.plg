@@ -31,9 +31,15 @@
   disk) or Max. A floor keeps every fan spinning and a critical temperature forces
   100%. Live fan RPM on a Fans card, including an animated spinning-fan view.
 - Theme your dashboard. Choose the font, heading and text sizes, and every palette
-  colour with live colour pickers; upload a wallpaper and a custom header logo;
-  pick network-rate units (bits or bytes) and the primary network interface.
-  Cards grow with the text size instead of overlapping.
+  colour with live colour pickers - now including card-title and dim-text colours
+  plus a card-opacity slider. Point at a wallpaper and a header logo from any image
+  on the server via a file browser; both hot-swap on the panel live, with no restart.
+  Pick network-rate units (bits or bytes) and the primary network interface. Cards
+  grow with the text size instead of overlapping.
+- Wallpapers and full-screen pages. Make cards translucent so a wallpaper shows
+  through (globally or per page), add Spacer modules to push content down, and hide
+  any page's header bar / title card / page dots for a clean full-screen image page.
+  Text keeps a subtle shadow over a wallpaper so it stays legible.
 - Smarter front LEDs. Configurable LAN and per-state disk-light colours, power
   light on/off, and an activity mode that blinks the disk/LAN LEDs on I/O and goes
   solid when idle.
@@ -97,9 +103,10 @@ sed -i '/# UGREEN iDX6011 Pro front-panel dashboard/,/^fi$/d' /boot/config/go 2>
 mkdir -p /usr/local/emhttp/plugins/&name;/images
 [ -f "&plgdir;/images/&name;.png" ] &amp;&amp; cp "&plgdir;/images/&name;.png" /usr/local/emhttp/plugins/&name;/images/
 for f in UgreenIDX6011Pro.page UgreenIDX6011ProLighting.page \
-         UgreenIDX6011ProLayout.page idxcp.js idxcp-inc.php idxlayout.js preview.php upload.php restart.sh; do
+         UgreenIDX6011ProLayout.page idxcp.js idxcp-inc.php idxlayout.js preview.php restart.sh; do
   [ -f "&plgdir;/$f" ] &amp;&amp; cp "&plgdir;/$f" /usr/local/emhttp/plugins/&name;/
 done
+rm -f /usr/local/emhttp/plugins/&name;/upload.php   # removed: wallpaper/logo now use a file path, not an upload
 chmod +x /usr/local/emhttp/plugins/&name;/restart.sh 2>/dev/null
 [ -f "&plgdir;/start.sh" ] &amp;&amp; bash "&plgdir;/start.sh"
 [ -f "&plgdir;/start-panel.sh" ] &amp;&amp; bash "&plgdir;/start-panel.sh"

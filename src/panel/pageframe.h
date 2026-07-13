@@ -26,12 +26,23 @@ static int content_h[MAX_PAGES];
 static int cur_page;
 static int body_top = BODY_Y0;
 
+/* per-page chrome preview overrides: -1 = use the saved page flag; 0/1 force it.
+ * Set only by write_preview so the Display editor can preview draft header / title
+ * / page-dot toggles before they're applied. */
+static int g_prev_header = -1, g_prev_title = -1, g_prev_dots = -1;
+/* write_preview renders a DRAFT page: it must always be a CONTENT page (never the
+ * built-in SETTINGS page, whose saved index a new unsaved page collides with) and
+ * carry the draft name + position, not the saved page model's. */
+static int  g_is_preview = 0;
+static char g_preview_name[24] = "";
+static int  g_preview_pos = 0, g_preview_total = 0;
+
 /* the page title + position sit in a card below the clock; its height (and so the
  * y at which page content begins) grows with the heading/text size. */
 #define TITLECARD_H   28
 #define TITLECARD_TOP 12                         /* gap below the gradient rule (so they don't merge) */
 static int hdr_bottom = BODY_Y0;                 /* y where content begins (below title card) */
-static int header_h(void){ return HEADER_H + gy(TITLECARD_TOP) + gy(TITLECARD_H) + gy(8); }
+/* header_h() is defined below, once the per-page chrome helpers exist. */
 
 static void page_settings(stats_t *st);          /* the one built-in interactive page */
 
@@ -59,31 +70,55 @@ static int next_page(int cur, int dir){          /* next ENABLED page in a direc
 static int n_pages_on(void){ int n = 0, t = n_total(); for (int i = 0; i < t; i++) if (page_on(i)) n++; return n; }
 static int page_pos(int cur){ int p = 0, t = n_total(); for (int i = 0; i <= cur && i < t; i++) if (page_on(i)) p++; return p; }
 
+/* ---------- per-page chrome (header bar / title card / page dots) ----------
+ * The SETTINGS page always shows its chrome so it stays navigable. A preview
+ * override (g_prev_*) wins so the editor can preview draft toggles. */
+static int page_show_header(int i){ if (g_prev_header >= 0) return g_prev_header; if (is_settings_page(i)) return 1; return (i >= 0 && i < g_ncpage) ? g_cpage[i].header : 1; }
+static int page_show_title (int i){ if (g_prev_title  >= 0) return g_prev_title;  if (is_settings_page(i)) return 1; return (i >= 0 && i < g_ncpage) ? g_cpage[i].title  : 1; }
+static int page_show_dots  (int i){ if (g_prev_dots   >= 0) return g_prev_dots;   if (is_settings_page(i)) return 1; return (i >= 0 && i < g_ncpage) ? g_cpage[i].dots   : 1; }
+/* y at which page content begins: header bar and/or title card, each optional. */
+static int header_h(void){
+    int sh = page_show_header(cur_page), stt = page_show_title(cur_page);
+    if (sh && stt) return HEADER_H + gy(TITLECARD_TOP) + gy(TITLECARD_H) + gy(8);
+    if (sh)        return HEADER_H + gy(8);
+    if (stt)       return gy(TITLECARD_TOP) + gy(TITLECARD_H) + gy(8);
+    return gy(6);                                 /* full-bleed: just a tiny top margin */
+}
+
 static void draw_header(stats_t *st){
-    rect(0, 0, W, hdr_bottom - 6, UN_BLACK, 255);   /* opaque incl. title-card zone */
-    if (!draw_custom_logo(12, 25))                        /* custom logo.png if uploaded... */
-        draw_unraid_icon(12, 25);                         /* ...else the official 60x34 mark */
-    if (st->notif_count > 0){
-        char nb[16];
-        snprintf(nb, sizeof nb, "%d", st->notif_count > 99 ? 99 : st->notif_count);
-        int tw = text_w_raw(1.5f, nb);
-        uint32_t bc = st->notif_imp == 2 ? UN_BAD : st->notif_imp == 1 ? UN_WARN : UN_ORANGE;
-        rect(76, 12, tw + 12, 17, bc, 255);
-        text_raw(82, 16, 1.5f, 0x1b1b1b, nb);
+    int sh = page_show_header(cur_page), stt = page_show_title(cur_page);
+    char b[64];
+    if (sh){
+        rect(0, 0, W, hdr_bottom - 6, UN_BLACK, 255);     /* opaque header + title backdrop */
+        if (!draw_custom_logo(12, 25))                    /* custom logo if set... */
+            draw_unraid_icon(12, 25);                     /* ...else the official 60x34 mark */
+        if (st->notif_count > 0){
+            char nb[16];
+            snprintf(nb, sizeof nb, "%d", st->notif_count > 99 ? 99 : st->notif_count);
+            int tw = text_w_raw(1.5f, nb);
+            uint32_t bc = st->notif_imp == 2 ? UN_BAD : st->notif_imp == 1 ? UN_WARN : UN_ORANGE;
+            rect(76, 12, tw + 12, 17, bc, 255);
+            text_raw(82, 16, 1.5f, 0x1b1b1b, nb);
+        }
+        /* header chrome (clock/date) stays a fixed size — not user-scaled */
+        time_t t = time(NULL); struct tm tm; localtime_r(&t, &tm);
+        strftime(b, sizeof b, "%H:%M", &tm);
+        text_raw(W - 16 - text_w_raw(3.2f, b), 18, 3.2f, UN_TEXT, b);
+        strftime(b, sizeof b, "%a %d %b", &tm);
+        text_raw(W - 16 - text_w_raw(1.5f, b), 52, 1.5f, UN_DIM, b);
+        hgrad(0, HEADER_H, W, 3, UN_RED, UN_ORANGE);      /* signature rule */
     }
-    /* header chrome (clock/date/position) stays a fixed size — not user-scaled */
-    char b[64]; time_t t = time(NULL); struct tm tm; localtime_r(&t, &tm);
-    strftime(b, sizeof b, "%H:%M", &tm);
-    text_raw(W - 16 - text_w_raw(3.2f, b), 18, 3.2f, UN_TEXT, b);
-    strftime(b, sizeof b, "%a %d %b", &tm);
-    text_raw(W - 16 - text_w_raw(1.5f, b), 52, 1.5f, UN_DIM, b);
-    hgrad(0, HEADER_H, W, 3, UN_RED, UN_ORANGE);          /* signature rule */
-    /* page heading + position, in a card that grows with the heading size */
-    int tcY = HEADER_H + gy(TITLECARD_TOP), tcH = gy(TITLECARD_H);
-    card(tcY, tcH, NULL);
-    htext_c(tcY + gy(6), 2.2f, UN_TEXT, page_title(cur_page));
-    snprintf(b, sizeof b, "%d/%d", page_pos(cur_page), n_pages_on());
-    text_raw(W - 22 - text_w_raw(1.4f, b), tcY + gy(9), 1.4f, UN_DIM, b);
+    if (stt){
+        /* page heading + position, in a card that grows with the heading size */
+        int tcY = (sh ? HEADER_H : 0) + gy(TITLECARD_TOP), tcH = gy(TITLECARD_H);
+        card(tcY, tcH, NULL);
+        const char *ttl = (g_is_preview && g_preview_name[0]) ? g_preview_name : page_title(cur_page);
+        int pos = g_is_preview ? g_preview_pos : page_pos(cur_page);
+        int tot = g_is_preview ? g_preview_total : n_pages_on();
+        htext_c(tcY + gy(6), 2.2f, UN_TEXT, ttl);
+        snprintf(b, sizeof b, "%d/%d", pos, tot);
+        text_raw(W - 22 - text_w_raw(1.4f, b), tcY + gy(9), 1.4f, UN_DIM, b);
+    }
 }
 
 static void draw_banner(stats_t *st){
@@ -99,6 +134,7 @@ static void draw_banner(stats_t *st){
 }
 
 static void draw_footer(void){
+    if (!page_show_dots(cur_page)) return;             /* full-bleed page: no footer chrome */
     rect(0, FOOTER_Y - 4, W, H - (FOOTER_Y - 4), UN_BLACK, 255);
     hline(16, FOOTER_Y, W - 32, UN_GREY_70);
     int total = n_pages_on();

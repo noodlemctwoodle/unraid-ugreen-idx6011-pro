@@ -36,6 +36,7 @@ static const modinfo_t MODULES[] = {
     { "container","Container (pick one)",        mod_container,  2, { "card", "compact" }, 1, "containers" },
     { "vms",     "VMs (all in one card)",        mod_vms,        2, { "card", "compact" } },
     { "vm",      "VM (pick one)",                mod_vm,         2, { "card", "compact" }, 1, "vms" },
+    { "spacer",  "Spacer (empty gap)",           mod_spacer,     3, { "small", "medium", "big" } },
 };
 static const int N_MODULES = (int)(sizeof MODULES / sizeof MODULES[0]);
 
@@ -111,7 +112,8 @@ static int write_layouts_json(void){
         json_str(g_cpage[i].name);
         printf(",\"layout\":");
         json_str(g_cpage[i].layout);
-        printf(",\"on\":%d}", g_cpage[i].on);
+        printf(",\"on\":%d,\"header\":%d,\"title\":%d,\"dots\":%d,\"cardop\":%d}",
+               g_cpage[i].on, g_cpage[i].header, g_cpage[i].title, g_cpage[i].dots, g_cpage[i].card_opacity);
     }
     printf("]}\n");
     return 0;

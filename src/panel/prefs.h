@@ -20,7 +20,10 @@
  * older configs, migrated from the fixed LAYOUT_ and PAGE_ keys by pages_finalize().
  * pageframe.h consumes g_cpage / g_ncpage; SETTINGS is appended there. */
 #define MAX_CPAGES 12
-typedef struct { char name[24]; char layout[256]; int on; } cpage_t;
+/* header/title/dots: per-page chrome toggles (default on). All off + a wallpaper =
+ * a clean full-screen image page. card_opacity: 0 = inherit the global theme value,
+ * 10..100 = per-page override. */
+typedef struct { char name[24]; char layout[256]; int on; int header, title, dots; int card_opacity; } cpage_t;
 static cpage_t g_cpage[MAX_CPAGES];
 static int g_ncpage = 0;
 static int g_pages_from_cfg = 0;        /* 1 once N_PAGES / PAGE<n>_ is seen */
@@ -38,6 +41,12 @@ static int  cfg_net_bits  = 1;      /* 1 = net rates in bits (Kbps), 0 = bytes (
 static char cfg_font[32]  = "RobotoCondensed"; /* fonts/<name>.ttf; empty = built-in easy_font */
 static int  cfg_head_pct  = 100;    /* heading size %  (section titles)  */
 static int  cfg_text_pct  = 100;    /* body text size % (values, labels) */
+static char cfg_wallpaper[512] = "";/* background image path on the server; empty = brand gradient (or legacy panel/wallpaper.png) */
+static char cfg_logo[512]      = "";/* header logo image path on the server; empty = Unraid mark (or legacy panel/logo.png)      */
+static int  cfg_wallpaper_set  = 0; /* 1 once a WALLPAPER key is seen: then empty means "explicitly none" (gradient); */
+static int  cfg_logo_set       = 0; /* absent (0) means fall back to a legacy uploaded image for upgrade continuity.  */
+static int  cfg_card_opacity   = 90;/* global card fill opacity %, 10..100 — lower lets the wallpaper show through   */
+static int  g_card_opacity_eff = 90;/* opacity card() uses this frame: the current page's override, else the global  */
 /* per-page module layout: ordered "id[:variant],..." list drawn by render_modules().
  * Default matches the original hardcoded Overview (all default/bar variants). */
 static char cfg_layout_overview[256] = "host,cpu,mem,net,storage,uptime";
@@ -60,8 +69,12 @@ static uint32_t parse_hexcol(const char *v, uint32_t def){
 }
 
 static void settings_load(void){
+    for (int i = 0; i < MAX_CPAGES; i++){            /* per-page chrome defaults ON, opacity inherits */
+        g_cpage[i].header = g_cpage[i].title = g_cpage[i].dots = 1;
+        g_cpage[i].card_opacity = 0;                 /* 0 = inherit the global CARD_OPACITY */
+    }
     FILE *f = fopen(CFG_PATH, "r"); if (!f) return;
-    char line[256];
+    char line[700];   /* room for long wallpaper/logo paths + layout strings */
     while (fgets(line, sizeof line, f)){
         char *k, *v;
         if (!ini_kv(line, &k, &v)) continue;
@@ -75,8 +88,11 @@ static void settings_load(void){
         else if (!strcmp(k, "PRIMARY_IFACE"))  snprintf(cfg_primary_if, sizeof cfg_primary_if, "%s", v);
         else if (!strcmp(k, "NET_UNITS"))      cfg_net_bits = strcmp(v, "bytes") != 0;
         else if (!strcmp(k, "FONT"))           snprintf(cfg_font, sizeof cfg_font, "%s", v);
+        else if (!strcmp(k, "WALLPAPER")){     snprintf(cfg_wallpaper, sizeof cfg_wallpaper, "%s", v); cfg_wallpaper_set = 1; }
+        else if (!strcmp(k, "LOGO")){          snprintf(cfg_logo,      sizeof cfg_logo,      "%s", v); cfg_logo_set = 1; }
         else if (!strcmp(k, "HEAD_SCALE"))     cfg_head_pct = atoi(v);
         else if (!strcmp(k, "TEXT_SCALE"))     cfg_text_pct = atoi(v);
+        else if (!strcmp(k, "CARD_OPACITY"))   cfg_card_opacity = atoi(v);
         else if (!strcmp(k, "LAYOUT_OVERVIEW")) snprintf(cfg_layout_overview, sizeof cfg_layout_overview, "%s", v);
         else if (!strcmp(k, "LAYOUT_HARDWARE")) snprintf(cfg_layout_hardware, sizeof cfg_layout_hardware, "%s", v);
         else if (!strcmp(k, "LAYOUT_NETWORK"))  snprintf(cfg_layout_network,  sizeof cfg_layout_network,  "%s", v);
@@ -93,6 +109,10 @@ static void settings_load(void){
                 if      (!strcmp(u, "_NAME"))   snprintf(g_cpage[idx].name,   sizeof g_cpage[idx].name,   "%s", v);
                 else if (!strcmp(u, "_LAYOUT")) snprintf(g_cpage[idx].layout, sizeof g_cpage[idx].layout, "%s", v);
                 else if (!strcmp(u, "_ON"))     g_cpage[idx].on = atoi(v) != 0;
+                else if (!strcmp(u, "_HEADER")) g_cpage[idx].header = atoi(v) != 0;
+                else if (!strcmp(u, "_TITLE"))  g_cpage[idx].title  = atoi(v) != 0;
+                else if (!strcmp(u, "_DOTS"))   g_cpage[idx].dots   = atoi(v) != 0;
+                else if (!strcmp(u, "_CARDOP")) g_cpage[idx].card_opacity = atoi(v);
             }
         }
         else if (!strcmp(k, "PAGE_HOME"))       cfg_page_on[0] = atoi(v) != 0;
@@ -108,6 +128,7 @@ static void settings_load(void){
         else if (!strcmp(k, "COL_CARD"))       UN_GREY_80  = parse_hexcol(v, UN_GREY_80);
         else if (!strcmp(k, "COL_TEXT"))       UN_TEXT     = parse_hexcol(v, UN_TEXT);
         else if (!strcmp(k, "COL_DIM"))        UN_DIM      = parse_hexcol(v, UN_DIM);
+        else if (!strcmp(k, "COL_TITLE"))      UN_TITLE    = parse_hexcol(v, UN_TITLE);
         else if (!strcmp(k, "COL_OK"))         UN_OK       = parse_hexcol(v, UN_OK);
         else if (!strcmp(k, "COL_WARN"))       UN_WARN     = parse_hexcol(v, UN_WARN);
         else if (!strcmp(k, "COL_BAD"))        UN_BAD      = parse_hexcol(v, UN_BAD);
@@ -118,9 +139,45 @@ static void settings_load(void){
     if (cfg_interval < 1)     cfg_interval = 1;
     if (cfg_head_pct < 70) cfg_head_pct = 70; if (cfg_head_pct > 200) cfg_head_pct = 200;
     if (cfg_text_pct < 70) cfg_text_pct = 70; if (cfg_text_pct > 200) cfg_text_pct = 200;
+    if (cfg_card_opacity < 10) cfg_card_opacity = 10; if (cfg_card_opacity > 100) cfg_card_opacity = 100;
     g_head_scale  = cfg_head_pct / 100.0f;
     g_text_scale  = cfg_text_pct / 100.0f;
     g_geom_scale  = g_head_scale > g_text_scale ? g_head_scale : g_text_scale;
+}
+
+/* re-read ONLY the wallpaper / header-logo paths from settings.cfg. The main
+ * loop calls this when settings.cfg changes so image swaps apply live, with NO
+ * process restart (hence no screen flash). Deliberately narrow: re-running the
+ * full settings_load would disturb the finalised page model + baked palette. */
+static void settings_reload_images(void){
+    FILE *f = fopen(CFG_PATH, "r"); if (!f) return;
+    char line[700]; char *k, *v;
+    cfg_wallpaper[0] = 0; cfg_logo[0] = 0; cfg_wallpaper_set = 0; cfg_logo_set = 0;
+    while (fgets(line, sizeof line, f)){
+        if (!ini_kv(line, &k, &v)) continue;
+        if      (!strcmp(k, "WALLPAPER")){ snprintf(cfg_wallpaper, sizeof cfg_wallpaper, "%s", v); cfg_wallpaper_set = 1; }
+        else if (!strcmp(k, "LOGO")){      snprintf(cfg_logo,      sizeof cfg_logo,      "%s", v); cfg_logo_set = 1; }
+    }
+    fclose(f);
+}
+
+/* resolve the effective background image: an explicit --bg override (shots /
+ * preview) wins, else the configured path, else a legacy uploaded wallpaper.png
+ * for back-compat, else NULL (brand gradient). */
+static const char *resolve_wallpaper(const char *override){
+    const char *pw = getenv("PANEL_WALLPAPER");               /* web/showcase preview override */
+    if (pw && *pw) return pw;
+    if (override && *override) return override;               /* --bg (shots/preview) */
+    if (cfg_wallpaper_set)     return cfg_wallpaper[0] ? cfg_wallpaper : NULL;  /* explicit: empty = gradient */
+    static const char legacy[] = CFG_DIR2 "/wallpaper.png";   /* key absent: back-compat upload */
+    return access(legacy, F_OK) == 0 ? legacy : NULL;
+}
+/* resolve the effective header logo: configured path (empty = Unraid mark), else
+ * a legacy uploaded logo.png when the key was never set, else NULL (Unraid mark). */
+static const char *resolve_logo(void){
+    if (cfg_logo_set) return cfg_logo[0] ? cfg_logo : NULL;
+    static const char legacy[] = CFG_DIR2 "/logo.png";
+    return access(legacy, F_OK) == 0 ? legacy : NULL;
 }
 
 /* env overrides applied AFTER settings_load — used ONLY by the web live-preview
@@ -135,6 +192,8 @@ static void settings_env_overrides(void){
         if (cfg_text_pct < 70) cfg_text_pct = 70; if (cfg_text_pct > 200) cfg_text_pct = 200;
         g_text_scale = cfg_text_pct / 100.0f; }
     g_geom_scale = g_head_scale > g_text_scale ? g_head_scale : g_text_scale;
+    if ((v = getenv("PANEL_CARD_OPACITY")) && *v){ cfg_card_opacity = atoi(v);
+        if (cfg_card_opacity < 10) cfg_card_opacity = 10; if (cfg_card_opacity > 100) cfg_card_opacity = 100; }
     if ((v = getenv("PANEL_COL_ACCENT")) && *v) UN_ORANGE_M = parse_hexcol(v, UN_ORANGE_M);
     if ((v = getenv("PANEL_COL_GRAD_A")) && *v) UN_RED      = parse_hexcol(v, UN_RED);
     if ((v = getenv("PANEL_COL_GRAD_B")) && *v) UN_ORANGE   = parse_hexcol(v, UN_ORANGE);
@@ -142,6 +201,7 @@ static void settings_env_overrides(void){
     if ((v = getenv("PANEL_COL_CARD"))   && *v) UN_GREY_80  = parse_hexcol(v, UN_GREY_80);
     if ((v = getenv("PANEL_COL_TEXT"))   && *v) UN_TEXT     = parse_hexcol(v, UN_TEXT);
     if ((v = getenv("PANEL_COL_DIM"))    && *v) UN_DIM      = parse_hexcol(v, UN_DIM);
+    if ((v = getenv("PANEL_COL_TITLE"))  && *v) UN_TITLE    = parse_hexcol(v, UN_TITLE);
     if ((v = getenv("PANEL_COL_OK"))     && *v) UN_OK       = parse_hexcol(v, UN_OK);
     if ((v = getenv("PANEL_COL_WARN"))   && *v) UN_WARN     = parse_hexcol(v, UN_WARN);
     if ((v = getenv("PANEL_COL_BAD"))    && *v) UN_BAD      = parse_hexcol(v, UN_BAD);

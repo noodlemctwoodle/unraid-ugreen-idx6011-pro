@@ -37,7 +37,7 @@ install -m0644 "images/$NAME.png" "$STAGE/images/"
 install -m0644 src/UgreenIDX6011Pro.page \
                src/UgreenIDX6011ProLighting.page src/UgreenIDX6011ProLayout.page "$STAGE/"
 install -m0644 src/webgui/idxcp.js src/webgui/idxcp-inc.php \
-               src/webgui/idxlayout.js src/webgui/preview.php src/webgui/upload.php "$STAGE/"
+               src/webgui/idxlayout.js src/webgui/preview.php "$STAGE/"
 # --- dashboard binary + per-kernel touch modules + display overlay -----------
 install -d "$STAGE/panel/modules/$KVER" "$STAGE/panel/overlay/$KVER"
 # dashboard binary: prefer a freshly-built one (CI / src/panel/build.sh); the

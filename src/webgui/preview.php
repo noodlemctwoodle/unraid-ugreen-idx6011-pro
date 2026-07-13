@@ -11,7 +11,7 @@
  * inputs are sanitised; panel_dash also skips any unknown ids.
  */
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 0;
-if ($page < 0 || $page > 5) $page = 0;
+if ($page < 0 || $page > 11) $page = 0;   /* up to MAX_CPAGES pages */
 $layout = isset($_GET['layout']) ? strtolower($_GET['layout']) : '';
 $layout = preg_replace('/[^a-z0-9,:_-]/', '', $layout);
 
@@ -24,7 +24,7 @@ $hex = function ($k) {          /* 6-hex colour */
 };
 $colmap = ['accent'=>'PANEL_COL_ACCENT','grada'=>'PANEL_COL_GRAD_A','gradb'=>'PANEL_COL_GRAD_B',
            'bg'=>'PANEL_COL_BG','card'=>'PANEL_COL_CARD','ctext'=>'PANEL_COL_TEXT','dim'=>'PANEL_COL_DIM',
-           'ok'=>'PANEL_COL_OK','warn'=>'PANEL_COL_WARN','bad'=>'PANEL_COL_BAD'];
+           'ctitle'=>'PANEL_COL_TITLE','ok'=>'PANEL_COL_OK','warn'=>'PANEL_COL_WARN','bad'=>'PANEL_COL_BAD'];
 foreach ($colmap as $q => $e) { $c = $hex($q); if ($c !== null) $env .= $e . '=' . escapeshellarg($c) . ' '; }
 if (isset($_GET['font'])) {
     $f = preg_replace('/[^A-Za-z0-9]/', '', $_GET['font']);
@@ -34,6 +34,15 @@ foreach (['head'=>'PANEL_HEAD','text'=>'PANEL_TEXT'] as $q => $e) {
     if (isset($_GET[$q])) { $n = max(70, min(150, (int)$_GET[$q])); $env .= $e . '=' . (int)$n . ' '; }
 }
 if (isset($_GET['scroll'])) { $s = max(0, min(20000, (int)$_GET['scroll'])); $env .= 'PANEL_SCROLL=' . (int)$s . ' '; }
+if (isset($_GET['cardop'])) { $o = max(10, min(100, (int)$_GET['cardop'])); $env .= 'PANEL_CARD_OPACITY=' . (int)$o . ' '; }
+/* draft per-page chrome toggles (header bar / title card / page dots) */
+foreach (['header'=>'PANEL_PAGE_HEADER','title'=>'PANEL_PAGE_TITLE','dots'=>'PANEL_PAGE_DOTS'] as $q => $e) {
+    if (isset($_GET[$q])) $env .= $e . '=' . ((int)$_GET[$q] ? 1 : 0) . ' ';
+}
+/* draft page identity (name + position N/M) so a new/unsaved page previews correctly */
+if (isset($_GET['pname'])) { $nm = preg_replace('/[\x00-\x1f]/', '', substr((string)$_GET['pname'], 0, 23)); $env .= 'PANEL_PAGE_NAME=' . escapeshellarg($nm) . ' '; }
+if (isset($_GET['ppos']))  $env .= 'PANEL_PAGE_POS='   . max(0, min(99, (int)$_GET['ppos'])) . ' ';
+if (isset($_GET['ptot']))  $env .= 'PANEL_PAGE_TOTAL=' . max(1, min(99, (int)$_GET['ptot'])) . ' ';
 
 $bin = '/usr/local/bin/panel_dash';
 $tmp = sys_get_temp_dir() . '/idxprev_' . getmypid() . '_' . mt_rand() . '.png';

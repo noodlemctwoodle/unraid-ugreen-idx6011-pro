@@ -21,9 +21,16 @@ and the plugin's in-app `<CHANGES>` list.
   disk) or Max. A floor keeps every fan spinning and a critical temperature forces
   100%. Live fan RPM on a Fans card, including an animated spinning-fan view.
 - **Theme your dashboard.** Choose the font, heading and text sizes, and every
-  palette colour with live colour pickers; upload a wallpaper and a custom header
-  logo; pick network-rate units (bits or bytes) and the primary network interface.
-  Cards grow with the text size instead of overlapping.
+  palette colour with live colour pickers — now including **card-title** and
+  **dim-text** colours plus a **card-opacity** slider. Point the panel at any image
+  on the server for the **wallpaper** and **header logo** via a file browser; both
+  hot-swap on the panel **live, with no restart**. Pick network-rate units (bits or
+  bytes) and the primary network interface. Cards grow with the text size instead of
+  overlapping.
+- **Wallpapers & full-screen pages.** Make cards translucent so a wallpaper shows
+  through — globally or per page — add **Spacer** modules to push content down, and
+  hide any page's **header bar / title card / page dots** for a clean **full-screen
+  image page**. Text keeps a subtle drop shadow over a wallpaper so it stays legible.
 - **Smarter front LEDs.** Configurable LAN and per-state disk-light colours, power
   light on/off, and an activity mode that blinks the disk/LAN LEDs on I/O and goes
   solid when idle.

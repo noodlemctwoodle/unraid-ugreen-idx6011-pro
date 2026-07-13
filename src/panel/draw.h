@@ -186,8 +186,19 @@ static void text_ttf(int x, int y, float scale, uint32_t c, const char *s){
     }
 }
 
+/* g_has_wallpaper: set by build_bg when the background is a loaded image (not the
+ * brand gradient). g_text_shadow: render() turns on a 1px dark drop shadow behind
+ * ALL text while a wallpaper is showing, so labels/values stay legible over any
+ * image (and translucent cards). No wallpaper => no shadow => the default dark
+ * theme is byte-for-byte unchanged and pays no extra cost. */
+static int g_has_wallpaper = 0, g_text_shadow = 0;
+
 /* raw renderer (no user size multiplier) — used for fixed header chrome */
 static void text_raw(int x, int y, float scale, uint32_t c, const char *s){
+    if (g_text_shadow){                                  /* drop shadow for legibility over a wallpaper */
+        if (g_font_ok) text_ttf(x + 1, y + 1, scale, 0x000000, s);
+        else           text_easy(x + 1, y + 1, scale, 0x000000, s);
+    }
     if (g_font_ok) text_ttf(x, y, scale, c, s);
     else           text_easy(x, y, scale, c, s);
 }
@@ -239,7 +250,8 @@ static uint32_t UN_GREY_90  = 0x141414;
 static uint32_t UN_GREY_80  = 0x262626;  /* card fill                       */
 static uint32_t UN_GREY_70  = 0x333333;  /* dividers / card top edge        */
 static uint32_t UN_TEXT     = 0xf2f2f2;  /* primary text                    */
-static uint32_t UN_DIM      = 0x999999;  /* dim/label text                  */
+static uint32_t UN_DIM      = 0x999999;  /* dim/label/secondary text        */
+static uint32_t UN_TITLE    = 0x999999;  /* card section-heading colour (defaults to dim) */
 static uint32_t UN_OK       = 0x3fb950;  /* healthy / array STARTED         */
 static uint32_t UN_WARN     = 0xf0a020;  /* warning                         */
 static uint32_t UN_BAD      = 0xe22828;  /* error / critical                */
@@ -305,14 +317,17 @@ static void draw_unraid_icon(int x, int y){
     }
 }
 
-/* optional custom header logo (panel/logo.png) — scaled to fit the header mark area
- * (max 84x44), blitted with alpha. Returns 1 if drawn, 0 to fall back to the Unraid
- * mark. Loaded once; a panel restart picks up a newly-uploaded logo. */
+/* optional custom header logo — scaled to fit the header mark area (max 84x44),
+ * blitted with alpha. Loaded via load_logo() from the configured path; the main
+ * loop reloads it live when the path or the file changes (no restart, no flash). */
+static unsigned char *g_logo_img; static int g_logo_iw, g_logo_ih;
+static void load_logo(const char *path){
+    if (g_logo_img){ stbi_image_free(g_logo_img); g_logo_img = NULL; g_logo_iw = g_logo_ih = 0; }
+    if (path && *path) g_logo_img = stbi_load(path, &g_logo_iw, &g_logo_ih, NULL, 4);
+}
+/* Returns 1 if a custom logo is drawn, 0 to fall back to the Unraid mark. */
 static int draw_custom_logo(int x, int y){
-    static int tried; static unsigned char *img; static int iw, ih;
-    if (!tried){ tried = 1;
-        img = stbi_load("/boot/config/plugins/ugreen-idx6011-pro/panel/logo.png", &iw, &ih, NULL, 4);
-    }
+    unsigned char *img = g_logo_img; int iw = g_logo_iw, ih = g_logo_ih;
     if (!img || iw <= 0 || ih <= 0) return 0;
     float sc = 1.0f;
     if (iw > 84) sc = 84.0f / iw;
@@ -335,15 +350,18 @@ static int draw_custom_logo(int x, int y){
 }
 
 /* ---------- background (v1 image path; brand-dark fallback) ---------- */
-static void make_bg(const char *path){
-    bg = malloc((size_t)W * H * 4);
+/* build a fresh W*H background buffer from an image path (scaled to the panel),
+ * or the brand gradient if the path is empty/unreadable. Caller owns the buffer. */
+static uint32_t *build_bg(const char *path){
+    uint32_t *b = malloc((size_t)W * H * 4);
     int iw, ih, comp; unsigned char *img = NULL;
-    if (path) img = stbi_load(path, &iw, &ih, &comp, 3);
+    if (path && *path) img = stbi_load(path, &iw, &ih, &comp, 3);
+    g_has_wallpaper = (img != NULL);                  /* drives the text drop shadow */
     if (img){
         for (int y = 0; y < H; y++) for (int x = 0; x < W; x++){
             int sx = x * iw / W, sy = y * ih / H;
             unsigned char *p = img + (sy * iw + sx) * 3;
-            bg[y * W + x] = (uint32_t)p[0] << 16 | (uint32_t)p[1] << 8 | p[2];
+            b[y * W + x] = (uint32_t)p[0] << 16 | (uint32_t)p[1] << 8 | p[2];
         }
         stbi_image_free(img);
         fprintf(stderr, "background: %s (%dx%d)\n", path, iw, ih);
@@ -351,9 +369,18 @@ static void make_bg(const char *path){
         for (int y = 0; y < H; y++){            /* brand black -> near black */
             float t = (float)y / H;
             uint8_t g = (uint8_t)(27 - 14 * t);  /* 0x1b -> 0x0d */
-            for (int x = 0; x < W; x++) bg[y * W + x] = (uint32_t)g << 16 | (uint32_t)g << 8 | g;
+            for (int x = 0; x < W; x++) b[y * W + x] = (uint32_t)g << 16 | (uint32_t)g << 8 | g;
         }
     }
+    return b;
+}
+static void make_bg(const char *path){ bg = build_bg(path); }
+/* hot-swap the wallpaper with no visible tear: build the whole new buffer first,
+ * then swap the pointer between frames and free the old one. Lets the main loop
+ * change the wallpaper live (no process restart, no screen flash). */
+static void swap_bg(const char *path){
+    uint32_t *nb = build_bg(path);
+    uint32_t *old = bg; bg = nb; free(old);
 }
 
 

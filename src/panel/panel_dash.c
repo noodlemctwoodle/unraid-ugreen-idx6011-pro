@@ -108,11 +108,34 @@
 #include "modules/mod_disks.h"
 #include "modules/mod_containers.h"
 #include "modules/mod_vms.h"
+#include "modules/mod_spacer.h"
 #include "modules/registry.h"
 #include "pages/settings.h"      /* the one built-in interactive page; content pages are
                                     config-driven (g_cpage) and drawn via render_modules */
 #include "render.h"
 #include "touch.h"
+
+/* ---------- live wallpaper / logo hot-reload ----------
+ * The web editor saves the wallpaper/logo path to settings.cfg WITHOUT a panel
+ * restart; the main loop watches settings.cfg + the image files (~1 Hz) and
+ * swaps them in place, so a change appears seamlessly with no screen flash. */
+static const char *g_bg_override = NULL;          /* --bg (shots/preview) — wins over cfg */
+static time_t g_cfg_mtime = 0, g_wp_mtime = 0, g_logo_mtime = 0;
+static char   g_cur_wp[512] = "", g_cur_logo[512] = "";
+static time_t fmtime(const char *p){ struct stat s; return (p && *p && stat(p, &s) == 0) ? s.st_mtime : 0; }
+static int reload_assets(void){                   /* returns 1 if the wallpaper/logo changed */
+    int changed = 0; struct stat s;
+    if (stat(CFG_PATH, &s) == 0 && s.st_mtime != g_cfg_mtime){ g_cfg_mtime = s.st_mtime; settings_reload_images(); }
+    const char *wp = resolve_wallpaper(g_bg_override); time_t wm = fmtime(wp);
+    if (strcmp(g_cur_wp, wp ? wp : "") || wm != g_wp_mtime){
+        snprintf(g_cur_wp, sizeof g_cur_wp, "%s", wp ? wp : ""); g_wp_mtime = wm; swap_bg(wp); changed = 1;
+    }
+    const char *lg = resolve_logo(); time_t lm = fmtime(lg);
+    if (strcmp(g_cur_logo, lg ? lg : "") || lm != g_logo_mtime){
+        snprintf(g_cur_logo, sizeof g_cur_logo, "%s", lg ? lg : ""); g_logo_mtime = lm; load_logo(lg); changed = 1;
+    }
+    return changed;
+}
 
 /* ---------- main ---------- */
 int main(int argc, char **argv){
@@ -221,12 +244,23 @@ int main(int argc, char **argv){
     if (drmModeAddFB(fd, W, H, 24, 32, cd.pitch, cd.handle, &fb_id)){ perror("addfb"); return 1; }
     struct drm_mode_map_dumb md = { .handle = cd.handle };
     if (drmIoctl(fd, DRM_IOCTL_MODE_MAP_DUMB, &md)){ perror("map_dumb"); return 1; }
-    fbmem = mmap(0, cd.size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, md.offset);
-    if (fbmem == MAP_FAILED){ perror("mmap"); return 1; }
+    uint32_t *scanout = mmap(0, cd.size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, md.offset);
+    if (scanout == MAP_FAILED){ perror("mmap"); return 1; }
     fbpitch = cd.pitch / 4;
+    /* Render off-screen into a back buffer, then blit the FINISHED frame to the DRM
+     * scanout in one memcpy. Writing directly to the scanout let the panel catch a
+     * half-drawn frame (wallpaper memcpy'd, header not yet painted over it) -> a
+     * top-edge flash, very visible at animation frame rates over a busy wallpaper. */
+    fbmem = calloc(cd.size, 1);
+    if (!fbmem){ perror("backbuf"); return 1; }
 
     drmSetMaster(fd); /* best effort; SetCrtc needs master or no-master-present */
-    make_bg(bgpath);
+    g_bg_override = bgpath;                        /* seed the live wallpaper/logo watcher */
+    { const char *w0 = resolve_wallpaper(bgpath); make_bg(w0);
+      snprintf(g_cur_wp, sizeof g_cur_wp, "%s", w0 ? w0 : ""); g_wp_mtime = fmtime(w0); }
+    { const char *l0 = resolve_logo(); load_logo(l0);
+      snprintf(g_cur_logo, sizeof g_cur_logo, "%s", l0 ? l0 : ""); g_logo_mtime = fmtime(l0); }
+    { struct stat cs; if (stat(CFG_PATH, &cs) == 0) g_cfg_mtime = cs.st_mtime; }
     apply_brightness();
 
     signal(SIGINT, on_sig); signal(SIGTERM, on_sig);
@@ -243,7 +277,7 @@ int main(int argc, char **argv){
     scr_w = W; scr_h = H;
 
     int first = 1, dim = 0, screen_off = 0;
-    long next_stats = 0, anim_next = 0;
+    long next_stats = 0, anim_next = 0, next_assets = 0;
     long last_touch = now_ms(), last_rotate = now_ms();
     while (!stop_flag){
         long nowms = now_ms();
@@ -320,8 +354,15 @@ int main(int argc, char **argv){
         if (g_anim && !screen_off && !dim && nowms >= anim_next){
             dirty = 1; anim_next = nowms + 66;
         }
+        /* live wallpaper/logo: pick up an edited path or a changed file (~1 Hz)
+         * and swap it in place — no restart, so the change appears without a flash. */
+        if (nowms >= next_assets){
+            next_assets = nowms + 1000;
+            if (!screen_off && reload_assets()) dirty = 1;
+        }
         if (dirty){
             render(&st);
+            memcpy(scanout, fbmem, cd.size);   /* blit the complete frame in one pass */
             /* i915 FBC caches a compressed copy of the scanout buffer; CPU
              * writes to a dumb buffer don't invalidate it. DirtyFB does. */
             drmModeDirtyFB(fd, fb_id, NULL, 0);
