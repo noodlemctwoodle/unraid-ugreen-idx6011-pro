@@ -52,14 +52,20 @@ if ($items   === '') $items   = '{}';
   <p><input type="button" value="_(Restore theme defaults)_" onclick="idxReset('idx-theme')"></p>
   <div class="idxth-uploads">
     <div class="idxth-sec">_(Wallpaper &amp; header logo)_</div>
-    <div class="idxup-row">
-      <label>_(Wallpaper)_<span class="idxup-desc">_(scaled to the 258&times;960 screen)_</span></label>
-      <span class="idxup" data-kind="wallpaper"><input type="file" accept="image/png,image/jpeg,image/gif,image/webp"> <input type="button" value="_(Upload)_"> <input type="button" value="_(Clear)_"> <span class="idxup-note"></span></span>
-    </div>
-    <div class="idxup-row">
-      <label>_(Header logo)_<span class="idxup-desc">_(replaces the Unraid mark)_</span></label>
-      <span class="idxup" data-kind="logo"><input type="file" accept="image/png,image/jpeg,image/gif,image/webp"> <input type="button" value="_(Upload)_"> <input type="button" value="_(Clear)_"> <span class="idxup-note"></span></span>
-    </div>
+    <span class="idxup" data-kind="wallpaper">
+      <div class="idxup-head">
+        <label>_(Wallpaper)_<span class="idxup-desc">_(scaled to the 258&times;960 screen)_</span></label>
+        <input type="file" accept="image/png,image/jpeg,image/gif,image/webp">
+      </div>
+      <div class="idxup-actions"><input type="button" value="_(Upload)_"> <input type="button" value="_(Clear)_"> <span class="idxup-note"></span></div>
+    </span>
+    <span class="idxup" data-kind="logo">
+      <div class="idxup-head">
+        <label>_(Header logo)_<span class="idxup-desc">_(replaces the Unraid mark)_</span></label>
+        <input type="file" accept="image/png,image/jpeg,image/gif,image/webp">
+      </div>
+      <div class="idxup-actions"><input type="button" value="_(Upload)_"> <input type="button" value="_(Clear)_"> <span class="idxup-note"></span></div>
+    </span>
   </div>
 </div>
 

@@ -90,12 +90,13 @@
       /* wallpaper / header-logo rows: same faint grey line + bold label, no dark
        * file-input border */
       '.idxth-uploads input[type=file]{border:0 !important;background:transparent}'+
-      '.idxup-row{display:grid;grid-template-columns:auto 1fr;column-gap:16px;align-items:center;padding:9px 0;border-bottom:1px solid rgba(128,128,128,.22)}'+
-      '.idxup-row > label{font-weight:600;opacity:.9}'+
+      /* head = label | file chooser with the grey row line under it; the upload /
+       * clear buttons then sit BELOW that line in their own actions row */
+      '.idxup-head{display:grid;grid-template-columns:auto 1fr;column-gap:16px;align-items:center;padding:9px 0;border-bottom:1px solid rgba(128,128,128,.22)}'+
+      '.idxup-head > label{font-weight:600;opacity:.9}'+
+      '.idxup-head > input{justify-self:start}'+
       '.idxup-desc{display:block;font-weight:400;opacity:.6;font-size:.8em;margin-top:2px}'+
-      '.idxup{display:flex;flex-wrap:wrap;align-items:center;gap:8px}'+
-      /* upload status text sits on its own dim line so it never floats loose after
-       * the buttons; the reserved height stops the row jumping when it appears */
+      '.idxup-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:10px 0 6px}'+
       '.idxup-note{flex-basis:100%;opacity:.7;font-size:.85em;min-height:1.15em;margin-top:2px}'+
       '.idxth-grid label{opacity:.9;font-weight:600}'+
       /* swatch + hex on ONE line, left-aligned within the (full-width) cell */
