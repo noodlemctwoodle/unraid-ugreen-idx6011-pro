@@ -1,0 +1,54 @@
+# Changelog
+
+All notable user-facing changes to the **UGREEN iDX6011 Pro** Unraid plugin.
+Versions are date-based (`YYYY.MM.DD`); the same notes drive each GitHub release
+and the plugin's in-app `<CHANGES>` list.
+
+## 2026.07.13
+
+- **Fully customisable dashboard.** Build any page from a library of modules and
+  pick each one's look — bar, ring, gauge, history graph, area, segmented blocks,
+  used/free split, trend, or big number. New modules: **Array status**, **Updates**
+  (Unraid OS + plugins), **Power draw**, **NPU**, **Fans**, **Host**, **VMs**, and
+  per-item **Disk / Interface / Container / VM** cards. The Docker cards show each
+  container's IP and flag when an image update is available.
+- **Web Layout editor with a live preview.** Add, rename, reorder, delete and
+  show/hide pages; for each module choose its visualisation (and, for per-item
+  cards, which disk/interface/container/VM) — with a live render of the real
+  258×960 panel beside you.
+- **Fan control from the panel.** Drive all four chassis fans on Auto / Silent /
+  Quiet / Turbo temperature curves (CPU fans follow the CPU, case fans the hottest
+  disk) or Max. A floor keeps every fan spinning and a critical temperature forces
+  100%. Live fan RPM on a Fans card, including an animated spinning-fan view.
+- **Theme your dashboard.** Choose the font, heading and text sizes, and every
+  palette colour with live colour pickers; upload a wallpaper and a custom header
+  logo; pick network-rate units (bits or bytes) and the primary network interface.
+  Cards grow with the text size instead of overlapping.
+- **Smarter front LEDs.** Configurable LAN and per-state disk-light colours, power
+  light on/off, and an activity mode that blinks the disk/LAN LEDs on I/O and goes
+  solid when idle.
+- **Redesigned settings.** Screen, Lighting and Display (theme + layout) tabs now
+  share one consistent look; everything is also editable live from the panel's own
+  touch Settings page.
+
+## 2026.07.12.1
+
+- New plugin icon: original line-art of the UGREEN iDX6011 Pro by Deivizzz.
+
+## 2026.07.12
+
+- Initial release. The full front panel for the UGREEN NASync iDX6011 Pro on
+  Unraid, working natively — no UGOS required.
+- 258×960 touch LCD dashboard: seven swipeable pages (Home, Overview, Hardware,
+  Network, Disks, Docker, and an interactive touch Settings page) with live
+  CPU/memory/network/disk/GPU/power stats, array + notification state, and the
+  official Unraid header mark.
+- Smart front LEDs (power / 2× LAN / 6× disk): drive presence, SMART health
+  (green/amber/red) and LAN link, updated live.
+- Self-contained install: downloads a SHA256-verified payload and registers its
+  own EFI boot entry (no UGOS/NVMe/grub dependency); the panel lights once the box
+  boots that entry. If it stays dark, set that entry first in the BIOS under
+  Boot → UEFI USB Hard Disk Drive BBS Priorities, then reboot.
+- Bundled touch modules + display wake-probe overlay are built for Unraid 7.3.2
+  (kernel 6.18.38-Unraid); rebuild with `boot/build-overlay.sh` for other kernels.
+- Requires the BIOS Watchdog Timer disabled (Ctrl+F1 in BIOS setup reveals it).

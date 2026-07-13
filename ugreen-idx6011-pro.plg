@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name    "ugreen-idx6011-pro">
 <!ENTITY author  "noodlemctwoodle">
-<!ENTITY version "2026.07.12.1">
+<!ENTITY version "2026.07.13">
 <!ENTITY plgdir  "/boot/config/plugins/&name;">
 ]>
 
@@ -15,6 +15,31 @@
         pluginURL="https://raw.githubusercontent.com/noodlemctwoodle/unraid-ugreen-idx6011-pro/main/&name;.plg">
 
 <CHANGES>
+###2026.07.13
+- Fully customisable dashboard. Build any page from a library of modules and pick
+  each one's look: bar, ring, gauge, history graph, area, segmented blocks,
+  used/free split, trend, or big number. New modules - Array status, Updates
+  (Unraid OS + plugins), Power draw, NPU, Fans, Host, VMs, and per-item Disk /
+  Interface / Container / VM cards. The Docker cards show each container's IP and
+  flag when an image update is available.
+- Web Layout editor with a live preview. Add, rename, reorder, delete and
+  show/hide pages; for each module choose its visualisation (and, for per-item
+  cards, which disk/interface/container/VM), with a live render of the real
+  258x960 panel beside you.
+- Fan control from the panel. Drive all four chassis fans on Auto / Silent /
+  Quiet / Turbo temperature curves (CPU fans follow the CPU, case fans the hottest
+  disk) or Max. A floor keeps every fan spinning and a critical temperature forces
+  100%. Live fan RPM on a Fans card, including an animated spinning-fan view.
+- Theme your dashboard. Choose the font, heading and text sizes, and every palette
+  colour with live colour pickers; upload a wallpaper and a custom header logo;
+  pick network-rate units (bits or bytes) and the primary network interface.
+  Cards grow with the text size instead of overlapping.
+- Smarter front LEDs. Configurable LAN and per-state disk-light colours, power
+  light on/off, and an activity mode that blinks the disk/LAN LEDs on I/O and goes
+  solid when idle.
+- Redesigned settings. Screen, Lighting and Display (theme + layout) tabs now
+  share one consistent look; everything is also editable live from the panel's own
+  touch Settings page.
 ###2026.07.12.1
 - New plugin icon: original line-art of the UGREEN iDX6011 Pro by Deivizzz.
 ###2026.07.12
