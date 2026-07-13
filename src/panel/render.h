@@ -71,5 +71,47 @@ static int write_shots(const char *dir, const char *bgpath){
     return 0;
 }
 
+/* offscreen: render ONE page with a DRAFT layout to a PNG — the web layout editor's
+ * live preview. Uses live stats + the current theme + the wallpaper if present, so
+ * the preview is pixel-identical to what the panel will show. */
+static int write_preview(int page, const char *layout, const char *outfile){
+    W = 258; H = 960; fbpitch = W;
+    fbmem = malloc((size_t)W * H * 4);
+    if (!fbmem){ fprintf(stderr, "preview: oom\n"); return 1; }
+    const char *wp = CFG_DIR2 "/wallpaper.png";
+    make_bg(access(wp, F_OK) == 0 ? wp : NULL);
+
+    stats_t st; memset(&st, 0, sizeof st);
+    read_cpu(&st); read_net(&st); read_gpu(&st); read_npu(&st); read_power(&st);
+    usleep(400 * 1000);
+    read_cpu(&st);  read_mem(&st);  read_net(&st);  read_disk(&st);
+    read_temp(&st); read_misc(&st); read_disks(&st); read_gpu(&st);
+    read_npu(&st);  read_fans(&st); read_zones(&st); read_docker(&st);
+    read_power(&st); read_about(&st); read_notif(&st);
+    for (int i = 0; i < SPARK_N; i++)
+        hist_push(st.cpu, st.gpu_avail ? st.gpu_busy : 0);
+
+    if (page < 0) page = 0;
+    if (page >= NPAGES) page = NPAGES - 1;
+    g_preview_layout = (layout && *layout) ? layout : NULL;
+    cur_page = page; scrolly[page] = 0;
+    render(&st);
+    g_preview_layout = NULL;
+
+    unsigned char *rgba = malloc((size_t)W * H * 4);
+    if (!rgba){ free(fbmem); return 1; }
+    for (int i = 0; i < W * H; i++){
+        uint32_t c = fbmem[i];
+        rgba[i * 4 + 0] = (c >> 16) & 0xff;
+        rgba[i * 4 + 1] = (c >>  8) & 0xff;
+        rgba[i * 4 + 2] =  c        & 0xff;
+        rgba[i * 4 + 3] = 255;
+    }
+    int ok = stbi_write_png(outfile, W, H, 4, rgba, W * 4);
+    fprintf(stderr, "preview: %s %s\n", ok ? "wrote" : "FAILED", outfile);
+    free(rgba); free(fbmem);
+    return ok ? 0 : 1;
+}
+
 
 #endif /* PANEL_RENDER_H */

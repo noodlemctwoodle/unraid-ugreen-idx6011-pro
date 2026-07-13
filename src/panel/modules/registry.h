@@ -44,9 +44,14 @@ static int mod_variant_idx(const modinfo_t *m, const char *v){
     return 0;
 }
 
+/* when set (by --preview), render_modules uses this layout instead of the page's
+ * configured one — lets the web editor render a DRAFT layout via the real renderer */
+static const char *g_preview_layout = NULL;
+
 /* draw a page body from an ordered "id[:variant],id[:variant],..." layout.
  * Unknown ids are skipped. Sets page_end for the scroll/height bookkeeping. */
 static void render_modules(const char *layout, stats_t *st){
+    if (g_preview_layout) layout = g_preview_layout;
     char buf[256];
     snprintf(buf, sizeof buf, "%s", layout ? layout : "");
     int y = body_top;

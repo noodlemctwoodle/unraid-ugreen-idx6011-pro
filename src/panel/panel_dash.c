@@ -118,6 +118,7 @@ int main(int argc, char **argv){
     const char *bgpath = NULL; int once = 0;
     const char *touch_hint = NULL; int no_touch = 0;
     const char *shot_dir = NULL;
+    int prev_page = -1; const char *prev_layout = NULL, *prev_out = NULL;
 
     settings_load();                            /* flash cfg first, CLI overrides */
     for (int i = 1; i < argc; i++){
@@ -128,6 +129,9 @@ int main(int argc, char **argv){
         else if (!strcmp(argv[i], "--touch") && i + 1 < argc) touch_hint = argv[++i];
         else if (!strcmp(argv[i], "--no-touch")) no_touch = 1;
         else if (!strcmp(argv[i], "--shot") && i + 1 < argc) shot_dir = argv[++i];
+        else if (!strcmp(argv[i], "--preview") && i + 3 < argc){   /* <page> <layout> <out.png> */
+            prev_page = atoi(argv[++i]); prev_layout = argv[++i]; prev_out = argv[++i];
+        }
         else if (!strcmp(argv[i], "--rotate") && i + 1 < argc) cfg_rotate = atoi(argv[++i]);
         else if (!strcmp(argv[i], "--cal") && i + 1 < argc){
             const char *c = argv[++i];
@@ -136,6 +140,7 @@ int main(int argc, char **argv){
             cal_inv_y   = strchr(c, 'y') != NULL;
         }
     }
+    if (prev_out) return write_preview(prev_page, prev_layout, prev_out);  /* one page, draft layout */
     if (shot_dir) return write_shots(shot_dir, bgpath);   /* offscreen PNG render, then exit */
     if (cfg_interval < 1) cfg_interval = 1;
     if (cfg_brightness < 5) cfg_brightness = 5;
