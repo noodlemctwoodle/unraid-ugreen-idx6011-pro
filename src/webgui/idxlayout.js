@@ -66,7 +66,14 @@
     var mods = state[p.key].mods, cm = catMod(m.id);
     var row = el('div','idxl-row');
     row.appendChild(el('span','idxl-name', (cm||{label:m.id}).label));
-    if(cm && cm.variants && cm.variants.length>1){
+    if(cm && cm.indexed){                                /* per-item: which #? (1-based) */
+      var num = el('input','idxl-var'); num.type='number'; num.min='1';
+      num.value = String((parseInt(m.variant,10)||0) + 1);
+      num.title = (cm.label||m.id) + ' number';
+      num.onchange = function(){ var n=Math.max(1, parseInt(num.value,10)||1);
+        num.value=String(n); m.variant=String(n-1); changed(); };
+      row.appendChild(num);
+    } else if(cm && cm.variants && cm.variants.length>1){
       var sel = el('select','idxl-var');
       cm.variants.forEach(function(v){ var o=el('option',null,v); o.value=v;
         if((m.variant||cm.variants[0])===v) o.selected=true; sel.appendChild(o); });

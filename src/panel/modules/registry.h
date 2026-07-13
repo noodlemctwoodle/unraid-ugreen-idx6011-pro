@@ -25,9 +25,12 @@ static const modinfo_t MODULES[] = {
     { "cputemp", "CPU Temp",   mod_cputemp,    1, { "bar" } },
     { "npu",     "NPU",        mod_npu,        1, { "card" } },
     { "power",   "Power",      mod_power,      1, { "card" } },
-    { "ifaces",  "Interfaces", mod_ifaces,     1, { "list" } },
+    { "ifaces",  "Interfaces", mod_ifaces,     2, { "full", "compact" } },
+    { "iface",   "Interface",  mod_iface,      1, { "card" }, 1 },
     { "disks",   "Disks",      mod_disks,      1, { "list" } },
+    { "disk",    "Disk",       mod_disk,       1, { "card" }, 1 },
     { "containers","Containers",mod_containers,1, { "list" } },
+    { "container","Container", mod_container,  1, { "card" }, 1 },
     { "vms",     "VMs",        mod_vms,        1, { "card" } },
 };
 static const int N_MODULES = (int)(sizeof MODULES / sizeof MODULES[0]);
@@ -41,6 +44,7 @@ static int mod_variant_idx(const modinfo_t *m, const char *v){
     if (!v || !*v) return 0;
     for (int i = 0; i < m->nvariants; i++)
         if (!strcmp(m->variants[i], v)) return i;
+    if (v[0] >= '0' && v[0] <= '9') return atoi(v);  /* per-item instance index (disk:2, ...) */
     return 0;
 }
 
@@ -73,8 +77,8 @@ static void render_modules(const char *layout, stats_t *st){
 static int write_modules_json(void){
     printf("[");
     for (int i = 0; i < N_MODULES; i++){
-        printf("%s{\"id\":\"%s\",\"label\":\"%s\",\"variants\":[",
-               i ? "," : "", MODULES[i].id, MODULES[i].label);
+        printf("%s{\"id\":\"%s\",\"label\":\"%s\",\"indexed\":%d,\"variants\":[",
+               i ? "," : "", MODULES[i].id, MODULES[i].label, MODULES[i].indexed);
         for (int v = 0; v < MODULES[i].nvariants; v++)
             printf("%s\"%s\"", v ? "," : "", MODULES[i].variants[v]);
         printf("]}");

@@ -40,7 +40,10 @@ static int mod_cpu(int y, stats_t *st, int variant){
 
 Rules:
 - Draw starting at `y`; **return the total height you consumed** (card + gap). The
-  page renderer advances `y` by your return value.
+  page renderer advances `y` by your return value. This return value is also what
+  makes scrolling work: **touch/scroll/navigation are handled globally** by the main
+  loop (swipe = page nav, drag = up/down scroll) — a module never handles input, it
+  just draws and returns its height, and the page scrolls automatically.
 - **Never lay a card out by hand.** Compose the shim helpers below so your card
   matches every other card. If you need a new card shape, add it to `cardstyle.h`
   (so it's reusable + consistent), don't inline it.

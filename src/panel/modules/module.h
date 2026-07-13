@@ -26,6 +26,8 @@ typedef struct {
     modfn       fn;          /* draw function (returns height consumed)       */
     int         nvariants;   /* number of display styles (>= 1)              */
     const char *variants[6]; /* style ids, e.g. {"bar","ring","graph"}       */
+    int         indexed;     /* 1 = per-item: variant is a numeric instance   */
+                             /*   index (e.g. disk:0, iface:1, container:2)   */
 } modinfo_t;
 
 #endif /* PANEL_MODULE_H */
