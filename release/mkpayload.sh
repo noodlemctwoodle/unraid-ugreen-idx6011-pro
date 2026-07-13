@@ -34,7 +34,7 @@ install -m0644 prebuilt/i2c-tools-*.txz "$STAGE/"
 # (the .plg install copies the pages/inc/JS/restart.sh into the webGUI plugin dir)
 install -d "$STAGE/images"
 install -m0644 "images/$NAME.png" "$STAGE/images/"
-install -m0644 src/UgreenIDX6011Pro.page src/UgreenIDX6011ProScreen.page \
+install -m0644 src/UgreenIDX6011Pro.page \
                src/UgreenIDX6011ProLighting.page src/UgreenIDX6011ProLayout.page "$STAGE/"
 install -m0644 src/webgui/idxcp.js src/webgui/idxcp-inc.php \
                src/webgui/idxlayout.js src/webgui/preview.php src/webgui/upload.php "$STAGE/"
