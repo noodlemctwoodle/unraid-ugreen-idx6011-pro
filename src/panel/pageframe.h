@@ -61,7 +61,8 @@ static int page_pos(int cur){ int p = 0; for (int i = 0; i <= cur && i < NPAGES;
 
 static void draw_header(stats_t *st){
     rect(0, 0, W, BODY_Y0 - 6, UN_BLACK, 255);   /* opaque incl. title zone */
-    draw_unraid_icon(12, 25);                             /* official 60x34 mark */
+    if (!draw_custom_logo(12, 25))                        /* custom logo.png if uploaded... */
+        draw_unraid_icon(12, 25);                         /* ...else the official 60x34 mark */
     if (st->notif_count > 0){
         char nb[16];
         snprintf(nb, sizeof nb, "%d", st->notif_count > 99 ? 99 : st->notif_count);

@@ -48,6 +48,29 @@
     for(var j=0;j<sel.length;j++){ sel[j].value=sel[j].getAttribute('data-default');
       sel[j].dispatchEvent(new Event('change',{bubbles:true})); markChanged(sel[j]); }
   };
-  function initAll(){ var cps=document.querySelectorAll('.idxcp'); for(var i=0;i<cps.length;i++) setup(cps[i]); }
+  /* wallpaper / header-logo upload controls (.idxup) -> upload.php, then the panel
+   * restarts to apply. Separate from the form Apply (a file, not a cfg key). */
+  function setupUploads(){
+    var ups=document.querySelectorAll('.idxup');
+    for(var i=0;i<ups.length;i++){ (function(up){
+      var kind=up.getAttribute('data-kind'), file=up.querySelector('input[type=file]'),
+          note=up.querySelector('.idxup-note'), btns=up.querySelectorAll('input[type=button]'),
+          base='/plugins/ugreen-idx6011-pro/upload.php?kind='+kind;
+      if(btns[0]) btns[0].addEventListener('click',function(){
+        if(!file.files||!file.files[0]){ note.textContent='choose a file first'; return; }
+        var fd=new FormData(); fd.append('file', file.files[0]); note.textContent='uploading…';
+        fetch(base,{method:'POST',body:fd}).then(function(r){return r.json();})
+          .then(function(j){ note.textContent=j.ok?'uploaded — panel updating…':('failed: '+(j.err||'')); if(j.ok) file.value=''; })
+          .catch(function(){ note.textContent='upload failed'; });
+      });
+      if(btns[1]) btns[1].addEventListener('click',function(){
+        note.textContent='clearing…';
+        fetch(base+'&clear=1',{method:'POST'}).then(function(r){return r.json();})
+          .then(function(j){ note.textContent=j.ok?'cleared — panel updating…':'failed'; })
+          .catch(function(){ note.textContent='failed'; });
+      });
+    })(ups[i]); }
+  }
+  function initAll(){ var cps=document.querySelectorAll('.idxcp'); for(var i=0;i<cps.length;i++) setup(cps[i]); setupUploads(); }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',initAll); else initAll();
 })();

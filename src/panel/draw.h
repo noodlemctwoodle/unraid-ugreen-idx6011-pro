@@ -149,6 +149,35 @@ static void draw_unraid_icon(int x, int y){
     }
 }
 
+/* optional custom header logo (panel/logo.png) — scaled to fit the header mark area
+ * (max 84x44), blitted with alpha. Returns 1 if drawn, 0 to fall back to the Unraid
+ * mark. Loaded once; a panel restart picks up a newly-uploaded logo. */
+static int draw_custom_logo(int x, int y){
+    static int tried; static unsigned char *img; static int iw, ih;
+    if (!tried){ tried = 1;
+        img = stbi_load("/boot/config/plugins/ugreen-idx6011-pro/panel/logo.png", &iw, &ih, NULL, 4);
+    }
+    if (!img || iw <= 0 || ih <= 0) return 0;
+    float sc = 1.0f;
+    if (iw > 84) sc = 84.0f / iw;
+    if (ih * sc > 44) sc = 44.0f / ih;
+    int dw = (int)(iw * sc), dh = (int)(ih * sc);
+    for (int j = 0; j < dh; j++){
+        int py = y + j; if ((unsigned)py >= (unsigned)H) continue;
+        int sy = (int)(j / sc); if (sy >= ih) sy = ih - 1;
+        for (int i = 0; i < dw; i++){
+            int pxx = x + i; if ((unsigned)pxx >= (unsigned)W) continue;
+            int sx = (int)(i / sc); if (sx >= iw) sx = iw - 1;
+            unsigned char *p = img + (sy * iw + sx) * 4;
+            uint8_t a = p[3]; if (!a) continue;
+            uint32_t c = (uint32_t)p[0] << 16 | (uint32_t)p[1] << 8 | p[2];
+            uint32_t *d = &fbmem[py * fbpitch + pxx];
+            *d = (a == 255) ? c : blend(*d, c, a);
+        }
+    }
+    return 1;
+}
+
 /* ---------- background (v1 image path; brand-dark fallback) ---------- */
 static void make_bg(const char *path){
     bg = malloc((size_t)W * H * 4);

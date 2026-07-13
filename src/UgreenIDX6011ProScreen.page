@@ -43,6 +43,15 @@ _(Primary network interface &mdash; shown on Overview &amp; Home)_:
   </select>
 
 &nbsp;
+: **_(Wallpaper &amp; header logo)_**
+
+_(Wallpaper image &mdash; scaled to the 258&times;960 screen)_:
+: <span class="idxup" data-kind="wallpaper"><input type="file" accept="image/png,image/jpeg,image/gif,image/webp"> <input type="button" value="_(Upload)_"> <input type="button" value="_(Clear)_"> <span class="idxup-note"></span></span>
+
+_(Header logo &mdash; replaces the Unraid mark)_:
+: <span class="idxup" data-kind="logo"><input type="file" accept="image/png,image/jpeg,image/gif,image/webp"> <input type="button" value="_(Upload)_"> <input type="button" value="_(Clear)_"> <span class="idxup-note"></span></span>
+
+&nbsp;
 : **_(Theme colours &mdash; leave default for the Unraid look)_**
 
 _(Accent &mdash; spines, gauges, dots)_:
