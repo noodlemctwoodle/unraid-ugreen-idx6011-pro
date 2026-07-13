@@ -15,9 +15,12 @@ static int mod_mem(int y, stats_t *st, int variant){
     char v[32];
     double mp = st->mem_tot_mb ? 100.0 * st->mem_used_mb / st->mem_tot_mb : 0;
     snprintf(v, sizeof v, "%.0f%%", mp);
-    int h = metric_card(y, "MEMORY", mp, v, variant == 1);
-    snprintf(v, sizeof v, "%.1f / %.1f GB", st->mem_used_mb / 1024.0, st->mem_tot_mb / 1024.0);
-    metric_detail(y, v, UN_DIM, variant == 1);
+    int style = variant==1 ? 1 : variant==2 ? 2 : variant==3 ? 3 : 0;  /* ring/big/gauge/bar */
+    int h = metric_card(y, "MEMORY", mp, v, style);
+    if (style == 0 || style == 1){
+        snprintf(v, sizeof v, "%.1f / %.1f GB", st->mem_used_mb / 1024.0, st->mem_tot_mb / 1024.0);
+        metric_detail(y, v, UN_DIM, style == 1);
+    }
     return h;
 }
 

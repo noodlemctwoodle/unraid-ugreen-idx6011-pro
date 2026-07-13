@@ -25,7 +25,7 @@ typedef struct {
     const char *label;       /* human label for the web layout editor        */
     modfn       fn;          /* draw function (returns height consumed)       */
     int         nvariants;   /* number of display styles (>= 1)              */
-    const char *variants[4]; /* style ids, e.g. {"bar","ring"}               */
+    const char *variants[6]; /* style ids, e.g. {"bar","ring","graph"}       */
 } modinfo_t;
 
 #endif /* PANEL_MODULE_H */

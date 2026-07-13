@@ -16,12 +16,12 @@
 
 static const modinfo_t MODULES[] = {
     { "host",    "Host",     mod_host,    1, { "card" } },
-    { "cpu",     "CPU",      mod_cpu,     3, { "bar", "ring", "graph" } },
-    { "mem",     "Memory",   mod_mem,     2, { "bar", "ring" } },
+    { "cpu",     "CPU",      mod_cpu,     5, { "bar", "ring", "graph", "big", "gauge" } },
+    { "mem",     "Memory",   mod_mem,     4, { "bar", "ring", "big", "gauge" } },
     { "net",     "Network",  mod_net,     1, { "rows" } },
-    { "storage", "Storage",  mod_storage, 2, { "bar", "ring" } },
+    { "storage", "Storage",  mod_storage, 4, { "bar", "ring", "big", "gauge" } },
     { "uptime",  "Uptime",   mod_uptime,  1, { "card" } },
-    { "gpu",     "GPU",        mod_gpu,        2, { "bar", "graph" } },
+    { "gpu",     "GPU",        mod_gpu,        4, { "bar", "graph", "big", "gauge" } },
     { "cputemp", "CPU Temp",   mod_cputemp,    1, { "bar" } },
     { "npu",     "NPU",        mod_npu,        1, { "card" } },
     { "power",   "Power",      mod_power,      1, { "card" } },

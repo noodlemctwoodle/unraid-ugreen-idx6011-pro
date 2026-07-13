@@ -69,15 +69,41 @@ static void card_sub(int y, int slot, const char *s, uint32_t col){
     text(C_R - text_w(C_SUB, v), y + (slot ? 80 : 50), C_SUB, col, v);
 }
 
-/* STANDARD METRIC CARD: title + big value with a bar (ring=0) or ring (ring=1).
- * Returns the advance (card height + gap). Add temp/power etc. via card_sub(). */
-static int metric_card(int y, const char *title, double pct, const char *value, int ring){
+/* 270-degree arc gauge (speedometer): filled clockwise from the lower-left, with a
+ * 90-degree gap at the bottom. Same annulus approach as ring_gauge. */
+static void arc_gauge(int cx, int cy, int ro, int ri, double pct, uint32_t col){
+    if (pct < 0) pct = 0; if (pct > 100) pct = 100;
+    float lim = (float)(pct / 100.0), gaphalf = 0.125f, sweep = 1.0f - 2.0f * gaphalf;
+    int ro2 = ro * ro, ri2 = ri * ri;
+    for (int dy = -ro; dy <= ro; dy++)
+        for (int dx = -ro; dx <= ro; dx++){
+            int d2 = dx * dx + dy * dy;
+            if (d2 > ro2 || d2 < ri2) continue;
+            float a = atan2f((float)dx, (float)dy);      /* 0 at bottom, clockwise + */
+            if (a < 0) a += 2.0f * (float)M_PI;
+            float t = a / (2.0f * (float)M_PI);          /* 0..1 from bottom, cw */
+            if (t < gaphalf || t > 1.0f - gaphalf) continue;   /* the bottom gap */
+            float frac = (t - gaphalf) / sweep;
+            px(cx + dx, cy + dy, frac <= lim ? col : 0x2a2a2a);
+        }
+}
+
+/* STANDARD METRIC CARD. style: 0=bar, 1=ring, 2=big (large centred value), 3=gauge.
+ * Returns the advance (card height + gap). Add temp/power via card_sub() (bar/ring
+ * only) and a used/total line via metric_detail(). */
+static int metric_card(int y, const char *title, double pct, const char *value, int style){
     card(y, CH_METRIC, title);
-    if (ring){
+    if (style == 1){                                     /* ring */
         int cy = y + 82;
         ring_gauge(RING_CX, cy, RING_RO, 27, pct, col_load(pct));
         text(RING_CX - text_w(2.2f, value) / 2, cy - 9, 2.2f, UN_TEXT, value);
-    } else {
+    } else if (style == 2){                              /* big — large centred value */
+        text_c(y + 54, 6.4f, UN_TEXT, value);
+    } else if (style == 3){                              /* gauge — 270° arc */
+        int cy = y + 92;
+        arc_gauge(W / 2, cy, 46, 32, pct, col_load(pct));
+        text(W / 2 - text_w(2.6f, value) / 2, cy - 12, 2.6f, UN_TEXT, value);
+    } else {                                             /* bar (default) */
         text(C_X0, y + 44, C_VAL, UN_TEXT, value);
         bar(C_X0, y + 108, C_W, 18, pct, col_load(pct));
     }
