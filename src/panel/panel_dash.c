@@ -86,6 +86,7 @@
 #include "actions.h"
 #include "pageframe.h"
 #include "modules/module.h"
+#include "modules/cardstyle.h"
 #include "modules/mod_host.h"
 #include "modules/mod_cpu.h"
 #include "modules/mod_mem.h"
