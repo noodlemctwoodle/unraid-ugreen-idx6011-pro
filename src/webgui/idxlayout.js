@@ -25,7 +25,7 @@
 
   function catMod(id){ for(var i=0;i<CAT.length;i++) if(CAT[i].id===id) return CAT[i]; return null; }
   function parse(s){ var o=[]; (s||'').split(',').forEach(function(t){ t=t.trim(); if(!t)return;
-    var c=t.split(':'); o.push({id:c[0], variant:c[1]||''}); }); return o; }
+    var i=t.indexOf(':'); o.push({id: i<0?t:t.slice(0,i), variant: i<0?'':t.slice(i+1)}); }); return o; }
   function build(mods){ return mods.map(function(m){ return m.variant ? m.id+':'+m.variant : m.id; }).join(','); }
   function el(tag, cls, txt){ var e=document.createElement(tag); if(cls)e.className=cls; if(txt!=null)e.textContent=txt; return e; }
   function cleanName(s){ return String(s==null?'':s).replace(/[\x00-\x1f]/g,' ').slice(0,23); }
@@ -92,24 +92,34 @@
     var cm = catMod(m.id);
     var row = el('div','idxl-row');
     row.appendChild(el('span','idxl-name', (cm||{label:m.id}).label));
-    if(cm && cm.indexed){                                /* per-item: pick which one by NAME */
+    if(cm && cm.indexed){                                /* per-item: pick WHICH (name) + how (style) */
       var items = ITEMS[cm.itemsrc] || [];
+      var hasStyles = cm.variants && cm.variants.length>1;
+      var raw = m.variant||'', ci = raw.indexOf(':');    /* "name" or "name:style" */
+      var curName = ci<0 ? raw : raw.slice(0,ci);
+      var curStyle = ci<0 ? '' : raw.slice(ci+1);
+      if(curName && items.indexOf(curName)<0 && /^\d+$/.test(curName)) curName = items[parseInt(curName,10)]||'';
+      if(!curName && items.length) curName = items[0];
+      if(hasStyles && !curStyle) curStyle = cm.variants[0];
+      var encode = function(){ m.variant = (hasStyles && curStyle && curStyle!==cm.variants[0]) ? (curName+':'+curStyle) : curName; };
+      var was = m.variant; encode(); if(m.variant!==was) syncAll();   /* normalise */
       if(items.length){
-        var isel = el('select','idxl-var idxl-item');
-        var cur = m.variant;                             /* resolve legacy numeric index -> name */
-        if(cur && items.indexOf(cur)<0 && /^\d+$/.test(cur)) cur = items[parseInt(cur,10)] || '';
-        if(!cur) cur = items[0];
-        if(cur !== m.variant){ m.variant = cur; syncAll(); }   /* normalise to a name */
-        items.forEach(function(nm){ var o=el('option',null,nm); o.value=nm; if(nm===cur) o.selected=true; isel.appendChild(o); });
-        isel.onchange=function(){ m.variant=isel.value; changed(); };
-        row.appendChild(isel);
+        var nsel = el('select','idxl-var idxl-item');
+        items.forEach(function(nm){ var o=el('option',null,nm); o.value=nm; if(nm===curName) o.selected=true; nsel.appendChild(o); });
+        nsel.onchange=function(){ curName=nsel.value; encode(); changed(); };
+        row.appendChild(nsel);
       } else {                                           /* no live list — fall back to a number */
         var num = el('input','idxl-var'); num.type='number'; num.min='1';
-        num.value = String((parseInt(m.variant,10)||0) + 1);
-        num.title = (cm.label||m.id) + ' number';
+        num.value = String((parseInt(curName,10)||0) + 1);
         num.onchange = function(){ var n=Math.max(1, parseInt(num.value,10)||1);
-          num.value=String(n); m.variant=String(n-1); changed(); };
+          num.value=String(n); curName=String(n-1); encode(); changed(); };
         row.appendChild(num);
+      }
+      if(hasStyles){                                     /* visualisation style */
+        var ssel = el('select','idxl-var');
+        cm.variants.forEach(function(v){ var o=el('option',null,v); o.value=v; if(v===curStyle) o.selected=true; ssel.appendChild(o); });
+        ssel.onchange=function(){ curStyle=ssel.value; encode(); changed(); };
+        row.appendChild(ssel);
       }
     } else if(cm && cm.variants && cm.variants.length>1){
       var sel = el('select','idxl-var');
@@ -208,7 +218,7 @@
       '#idxprev-img{width:170px;height:auto;border:1px solid rgba(128,128,128,.5);border-radius:6px;background:#111;display:block}'+
       '#idxprev-note{font-size:.8em;opacity:.7;height:1.2em;margin-top:4px}'+
       '#idxprev-scroll{display:flex;gap:6px;justify-content:center;margin-top:6px}'+
-      '#idxprev-scroll button{width:56px;height:26px;border:1px solid #888;border-radius:5px;background:transparent;color:inherit;cursor:pointer;font:inherit}'+
+      '#idxprev-scroll .idxl-btn{flex:1;height:30px}'+
       '.idxl-prevlabel{font-size:.8em;opacity:.6;margin-bottom:5px;letter-spacing:.5px;text-transform:uppercase}';
     document.head.appendChild(css);
 
@@ -217,8 +227,8 @@
       '<div id="idxlayout-body"><div id="idxlayout-pane"></div>'+
       '<div id="idxprev-wrap"><div class="idxl-prevlabel">Live preview</div>'+
       '<img id="idxprev-img" alt="preview"><div id="idxprev-note"></div>'+
-      '<div id="idxprev-scroll"><button type="button" id="idxprev-up">▲</button>'+
-      '<button type="button" id="idxprev-down">▼</button></div></div></div>';
+      '<div id="idxprev-scroll"><button type="button" class="idxl-btn" id="idxprev-up">▲</button>'+
+      '<button type="button" class="idxl-btn" id="idxprev-down">▼</button></div></div></div>';
     document.getElementById('idxprev-up').onclick = function(){ previewScroll = Math.max(0, previewScroll - SCROLL_STEP); refreshPreview(); };
     document.getElementById('idxprev-down').onclick = function(){ previewScroll += SCROLL_STEP; refreshPreview(); };
 

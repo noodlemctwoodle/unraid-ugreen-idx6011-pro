@@ -76,15 +76,19 @@ static int mod_ifaces(int y, stats_t *st, int variant){      /* all interfaces *
     return y - y0;
 }
 
-static int mod_iface(int y, stats_t *st, int variant){       /* one interface, picked by name */
+static int mod_iface(int y, stats_t *st, int variant){       /* one interface, "name" or "name:style" */
     (void)variant;
+    char key[64]; snprintf(key, sizeof key, "%s", g_item_key);
+    char *style = strchr(key, ':'); if (style) *style++ = 0;  /* split name : style */
+    int sidx = 0;                                             /* full / compact / mini / big */
+    if (style){ if (!strcmp(style, "compact")) sidx = 1; else if (!strcmp(style, "mini")) sidx = 2; else if (!strcmp(style, "big")) sidx = 3; }
     int i = -1;
-    if (g_item_key[0]){
-        for (int k = 0; k < st->n_ifaces; k++) if (!strcmp(st->ifc[k].name, g_item_key)){ i = k; break; }
-        if (i < 0 && g_item_key[0] >= '0' && g_item_key[0] <= '9'){ int n = atoi(g_item_key); if (n >= 0 && n < st->n_ifaces) i = n; }
+    if (key[0]){
+        for (int k = 0; k < st->n_ifaces; k++) if (!strcmp(st->ifc[k].name, key)){ i = k; break; }
+        if (i < 0 && key[0] >= '0' && key[0] <= '9'){ int n = atoi(key); if (n >= 0 && n < st->n_ifaces) i = n; }
     } else if (st->n_ifaces > 0) i = 0;
     if (i < 0) return value_card(y, 76, "INTERFACE", "not present", UN_DIM);
-    return iface_card(y, &st->ifc[i], !strcmp(st->ifc[i].name, st->prim_if), 0);
+    return iface_card(y, &st->ifc[i], !strcmp(st->ifc[i].name, st->prim_if), sidx);
 }
 
 #endif /* PANEL_MOD_IFACES_H */

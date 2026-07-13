@@ -26,7 +26,7 @@ static const modinfo_t MODULES[] = {
     { "npu",     "NPU",                mod_npu,      1, { "card" } },
     { "power",   "Power draw",         mod_power,    2, { "card", "big" } },
     { "ifaces",  "Interfaces (all in one card)", mod_ifaces, 4, { "full", "compact", "mini", "big" } },
-    { "iface",   "Interface (pick one)",         mod_iface,  1, { "card" }, 1, "ifaces" },
+    { "iface",   "Interface (pick one)",         mod_iface,  4, { "full", "compact", "mini", "big" }, 1, "ifaces" },
     { "disks",   "Disks (all in one card)",      mod_disks,  1, { "list" } },
     { "disk",    "Disk (pick one)",              mod_disk,   1, { "card" }, 1, "disks" },
     { "containers","Containers (all in one card)",mod_containers,1, { "list" } },
