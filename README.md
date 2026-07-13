@@ -14,28 +14,39 @@ running **Unraid** — the full front panel, working natively, no UGOS required 
 > affiliated with, or endorsed by UGREEN.
 
 **Jump to:** [Features](#features) · [Requirements](#requirements) · [How it works](#how-it-works) ·
-[Install](#installation) · [Dashboard](#the-dashboard) · [LEDs](#front-panel-leds) ·
+[Install](#installation) · [Dashboard](#the-dashboard) · [Customise](#customise-it) · [LEDs](#front-panel-leds) ·
 [Configuration](#configuration) · [Upgrades](#after-an-unraid-os-upgrade) ·
 [Troubleshooting](#troubleshooting) · [Building](#building-from-source) · [Credits](#credits)
 
 ## Features
 
-- **Swipeable touch dashboard** on the 258×960 front LCD — seven pages: Home
-  (CPU ring gauge), Overview, Hardware (sparklines), Network, Disks, Docker, and an
-  interactive Settings page
-- **Touch navigation**: swipe left/right for pages, up/down to scroll, tap the
-  footer for next page, long-press to dim, tap to wake
-- **Live stats**: CPU %/temp, memory, per-interface network rates + totals,
-  per-disk temps/usage/health, GPU & NPU utilisation, **power draw** (Intel RAPL),
-  array/parity state, docker count, Unraid **notifications** badge + banner
-- **Smart front LEDs** (9× RGB): power white; LAN1/2 blue on link; each disk bay
-  green/amber/red from SMART health, off when empty — updates live (~2 s)
-- **Wallpaper support** — drop `wallpaper.png` in the plugin's `panel/` dir, auto-scaled to the panel
-- Backlight control, optional auto page rotation
+- **Fully customisable touch dashboard** on the 258×960 front LCD. Build any page
+  from a library of modules — CPU, memory, network, storage, GPU, NPU, power, fans,
+  uptime, host, array status, OS/plugin updates, and per-item disk / interface /
+  container / VM cards — each with a choice of visual styles: bar, ring, gauge,
+  history graph, area, segmented blocks, used/free split, trend, or big number.
+- **Web Layout editor** in the Unraid settings UI, with a **live preview** of the
+  real panel: add / rename / reorder / delete pages, toggle them on or off, and pick
+  each module's visualisation (and, for per-item cards, which disk/interface/etc.).
+- **Theme it**: choose the dashboard font, heading and text sizes, and every palette
+  colour with live colour pickers; upload a **wallpaper** and a **custom header
+  logo**; pick network-rate units (bits or bytes) and the primary interface.
+- **Fan control** from the panel: drive all four chassis fans on Auto / Silent /
+  Quiet / Turbo temperature curves (CPU fans by CPU temp, case fans by the hottest
+  disk) or Max — a floor keeps every fan spinning, with a forced 100% at critical
+  temps. Live RPM on a Fans card, including an **animated spinning-fan** view.
+- **Live stats**: CPU %/temp, memory, per-interface network rates + totals, per-disk
+  temps/usage/health, GPU & NPU utilisation, **power draw** (Intel RAPL), array/parity
+  state, docker containers (with IPs + image-update flags), VMs, and Unraid
+  **notifications** badge + banner.
+- **Smart front LEDs** (9× RGB): power, LAN link, and per-bay disk health — with
+  configurable colours, on/off, and an **activity mode** that blinks on I/O.
+- **Touch navigation**: swipe for pages, drag to scroll, tap the footer for next, tap
+  to wake, long-press to dim — plus an on-panel Settings page for the common knobs.
 - **Survives reboots and self-heals**: proper Unraid plugin (verified against the
-  plugin-manager schema), re-asserts its boot chain at every start
-- Everything needed is in this repo — sources, the kernel wake-probe patch + overlay
-  builder, and prebuilt binaries for disaster recovery
+  plugin-manager schema), re-asserts its boot chain at every start. Everything needed
+  is in this repo — sources, the kernel wake-probe patch + overlay builder, and
+  prebuilt binaries for disaster recovery.
 
 ## Requirements
 
@@ -112,17 +123,38 @@ otherwise the box hard-resets every ~2 minutes on any non-UGOS OS.
   </tr>
 </table>
 
-<p align="center"><sub>Live 258×960 front panel, rendered on-device.</sub></p>
+<p align="center"><sub>Live 258×960 front panel, rendered on-device — the <b>default</b> pages (every one is fully editable).</sub></p>
 
-| Page | Contents |
+The pages above are just a starting point. **Every page is built from modules you
+choose in the web Layout editor**, each with its own visual style — so no two panels
+have to look alike:
+
+<table align="center">
+  <tr>
+    <td align="center" valign="top"><img src="images/screenshots/graphs.png"     width="120" alt="History graphs"><br><sub><b>History graphs</b></sub></td>
+    <td align="center" valign="top"><img src="images/screenshots/gauges.png"      width="120" alt="Ring + arc gauges"><br><sub><b>Rings &amp; gauges</b></sub></td>
+    <td align="center" valign="top"><img src="images/screenshots/mixed.png"       width="120" alt="Blocks, split, trend, big"><br><sub><b>Blocks / split / trend</b></sub></td>
+    <td align="center" valign="top"><img src="images/screenshots/status.png"      width="120" alt="Status cards"><br><sub><b>Status cards</b></sub></td>
+  </tr>
+  <tr>
+    <td align="center" valign="top"><img src="images/screenshots/fans-dials.png"  width="120" alt="Animated fan dials"><br><sub><b>Fan dials</b></sub></td>
+    <td align="center" valign="top"><img src="images/screenshots/theme-orange.png" width="120" alt="Default orange theme"><br><sub><b>Theme: default</b></sub></td>
+    <td align="center" valign="top"><img src="images/screenshots/theme-blue.png"   width="120" alt="Blue theme"><br><sub><b>Theme: blue</b></sub></td>
+    <td align="center" valign="top"><img src="images/screenshots/theme-green.png"  width="120" alt="Green theme"><br><sub><b>Theme: green</b></sub></td>
+  </tr>
+</table>
+
+<p align="center"><sub>A few of the module styles + palettes — mix and match your own in the Layout editor.</sub></p>
+
+| Default page | Contents |
 |------|----------|
-| **HOME** | CPU ring gauge + stacked RAM / CPU-temp / network / storage tiles + uptime |
+| **HOME** | CPU + memory + storage ring gauges, primary network rates, power, uptime |
 | **OVERVIEW** | hostname/IP, array + parity state, CPU %+temp+watts, RAM, net rates, storage |
-| **HARDWARE** | CPU %+temp with 60-sample sparkline, memory, GPU %+MHz sparkline, NPU, power |
+| **HARDWARE** | CPU sparkline + temp, **fan dials**, memory, GPU %+MHz sparkline, NPU, power |
 | **NETWORK** | one card per interface: rates, IPv4/IPv6, RX/TX totals since boot |
 | **DISKS** | one card per disk: health dot, temp / SLEEP, errors, usage bar, capacity |
-| **DOCKER** | running/total count + one row per container (status dot, name, status) |
-| **SETTINGS** | **touch controls**: brightness slider, screen-off timer, auto-rotate, LED toggle, night mode, restart, reboot/shutdown (hold-to-confirm) |
+| **DOCKER** | running/total count + one card per container (status, IP, update flag) + VMs |
+| **SETTINGS** | **touch controls**: brightness slider, screen-off timer, auto-rotate, LED toggle, night mode, **fan mode**, restart, reboot/shutdown (hold-to-confirm) |
 
 | Gesture | Action |
 |---------|--------|
@@ -132,7 +164,29 @@ otherwise the box hard-resets every ~2 minutes on any non-UGOS OS.
 | Tap | wake backlight |
 | Long-press | dim toggle |
 
+## Customise it
+
+Everything is configured from **Settings → UGREEN iDX6011 Pro** in the Unraid web UI
+(three tabs: **Screen**, **Lighting**, **Display**), and most of it live-previews on a
+render of the real panel:
+
+- **Display ▸ Layout** — the visual page builder. Add / rename / reorder / delete pages,
+  toggle each on or off, add modules, and pick each module's **style** (and, for the
+  per-item cards, **which** disk / interface / container / VM). A live preview sits beside you.
+- **Display ▸ Theme** — the dashboard **font**, **heading / text sizes**, and the full
+  **colour palette** (accent, gradient, background, card, text, ok / warn / bad) via
+  colour pickers; upload a **wallpaper** and a **custom header logo** to replace the Unraid mark.
+- **Screen** — brightness, stats refresh, auto-rotate, screen-off timer, night mode,
+  **fan mode**, network-rate units (bits / bytes) and the primary network interface.
+- **Lighting** — the front-LED master + power light, **activity mode**, and the LAN /
+  per-disk-state **LED colours**.
+
+The common knobs (brightness, rotate, LEDs, night mode, fan mode…) are also editable
+live from the panel's own touch **SETTINGS** page.
+
 ## Front-panel LEDs
+
+Colours and behaviour are configurable on the **Lighting** tab; the defaults:
 
 | LED | Behaviour |
 |-----|-----------|
@@ -167,7 +221,9 @@ bash /boot/config/plugins/ugreen-idx6011-pro/calibrate.sh
 
 ## Configuration
 
-`/boot/config/plugins/ugreen-idx6011-pro/panel/settings.cfg` (user edits survive updates):
+Almost everything is set from the web UI (see [Customise it](#customise-it)); the
+underlying store is `/boot/config/plugins/ugreen-idx6011-pro/panel/settings.cfg`
+(user edits survive updates). The core keys:
 
 | Key | Default | Meaning |
 |-----|---------|---------|
@@ -177,19 +233,21 @@ bash /boot/config/plugins/ugreen-idx6011-pro/calibrate.sh
 | `SCREEN_OFF_MIN` | `0` | blank the panel after N idle minutes; `0` = never |
 | `NIGHT` | `0` | night mode: clamp brightness to 15% |
 | `LEDS` | `1` | front LEDs on/off |
+| `FAN_MODE` | `auto` | fans: `auto` (firmware), `silent` / `quiet` / `turbo` (temperature curves), or `max` (100%). Curves keep every fan ≥25% and force 100% at critical temps |
+| `NET_UNITS` | `bits` | network-rate units: `bits` (Kbps/Mbps, matches Unraid) or `bytes` (KB/s) |
 | `PRIMARY_IFACE` | *(auto)* | interface whose rates the Overview/Home pages show; empty = auto-pick the default-route interface. Set e.g. `bond0` to match the Unraid dashboard. Falls back to auto-pick if the named interface is absent. |
 
-Most of these are editable live from the **SETTINGS** page on the panel itself.
+Theme (`FONT`, `HEAD_SCALE`, `TEXT_SCALE`, `COL_*`), the LED colours (`LED_*`) and the
+page layout (`N_PAGES`, `PAGE<n>_*`) are also stored here but are best edited from the
+web UI. The common knobs are editable live from the panel's own **SETTINGS** page too.
 
-- **Wallpaper**: place a file named `wallpaper.png` in `…/ugreen-idx6011-pro/panel/`
-  (any size — auto-scaled to 258×960). The decoder reads PNG or JPEG data, but the
-  file must carry the `wallpaper.png` name to be picked up; restart the daemon (or
-  reboot) after adding it.
-  into `/boot/config/plugins/ugreen-idx6011-pro/panel/`.
-- **LED colours/brightness/timing**: variables at the top of `src/monitor.sh`.
+- **Wallpaper / header logo**: upload from **Display ▸ Theme**, or drop a `wallpaper.png`
+  (or `logo.png`) into `…/ugreen-idx6011-pro/panel/` — any size, auto-scaled; restart
+  the daemon (or reboot) after adding it manually.
 - Dashboard CLI flags (for manual runs): `--bg <img>` `--backlight <pct>`
   `--interval <s>` `--rotate <s>` `--touch </dev/i2c-N>` `--no-touch`
-  `--cal <s|x|y>` `--once`; `TOUCH_DEBUG=1` traces touch frames.
+  `--cal <s|x|y>` `--once` `--shot <dir>` `--preview <page> <layout> <out>`;
+  `TOUCH_DEBUG=1` traces touch frames.
 
 ## After an Unraid OS upgrade
 
@@ -244,16 +302,16 @@ docs/front-panel-blueprint.md   numbered install runbook + hardware reference ap
 docs/PLUGIN.md           Unraid plugin-schema conformance + release process
 ```
 
-## Known limitations / roadmap
+## Known limitations
 
-- **Fan monitoring/control** — the fan curves live in the EC; register mapping on
-  this model is not done yet (the kindred
-  [Reevoy24/ugreen-idx6011-panel](https://github.com/Reevoy24/ugreen-idx6011-panel)
-  project documents EC fan work for Proxmox/TrueNAS — a good starting point)
-- No disk-activity blink yet (needs a small CLI patch to stop the init probe
-  zeroing the power LED)
-- Unraid webGUI settings page + packaged one-URL release (plg + txz) — planned;
-  the conformance groundwork is done ([docs/PLUGIN.md](docs/PLUGIN.md))
+- The display-module overlay is **kernel-bound** — after an Unraid OS upgrade the
+  panel stays dark (with a notification, nothing breaks) until you rebuild it — one
+  command, then reboot (see [above](#after-an-unraid-os-upgrade)).
+- **Fan control** is active only while `panel_dash` runs: a clean stop hands the fans
+  straight back to firmware auto, but an uncatchable kill leaves them at their last
+  (still-spinning, ≥25%) speed until the process restarts.
+- The Docker **image-update** flag is best-effort — read from Unraid's docker
+  update-status file, so it only appears for Community-Applications-managed containers.
 
 ## Credits
 
