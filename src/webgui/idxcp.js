@@ -77,10 +77,18 @@
     if(document.getElementById('idxcp-css')) return;
     var s=document.createElement('style'); s.id='idxcp-css';
     s.textContent =
-      '.idxth-grid{display:grid;grid-template-columns:auto 1fr;gap:9px 12px;align-items:center;max-width:680px}'+
+      /* label | control grid; the label column auto-sizes to the widest label so
+       * rows line up. Cells stretch to fill their track + row height, and each
+       * carries a bottom border, so the two cells form ONE full-width row line. */
+      '.idxth-grid{display:grid;grid-template-columns:auto 1fr;column-gap:16px;row-gap:0;width:100%;max-width:1000px}'+
+      '.idxth-grid > label,.idxth-grid > select,.idxth-grid > .idxcp{border-bottom:1px solid rgba(128,128,128,.22);padding:9px 0;box-sizing:border-box;justify-self:stretch}'+
+      '.idxth-grid > label,.idxth-grid > .idxcp{display:flex;align-items:center}'+
       '.idxth-grid label{opacity:.85}'+
-      '.idxth-grid > .idxcp,.idxth-grid > select{justify-self:start}'+
-      '.idxth-sec{grid-column:1/-1;margin:10px 0 2px;font-weight:600;opacity:.8;letter-spacing:.4px;text-transform:uppercase;font-size:.85em}';
+      /* swatch + hex on ONE line, left-aligned within the (full-width) cell */
+      '.idxcp{gap:9px}'+
+      '.idxcp-chip{flex:0 0 auto;width:46px;height:26px;padding:0;border:1px solid rgba(128,128,128,.5);border-radius:13px;background:none;cursor:pointer}'+
+      '.idxcp-hex{flex:0 0 auto;width:90px}'+
+      '.idxth-sec{grid-column:1/-1;border:none;margin:13px 0 3px;padding:0;font-weight:600;opacity:.8;letter-spacing:.4px;text-transform:uppercase;font-size:.85em}';
     document.head.appendChild(s);
   }
   function initAll(){ injectCss(); var cps=document.querySelectorAll('.idxcp'); for(var i=0;i<cps.length;i++) setup(cps[i]); setupUploads(); }
