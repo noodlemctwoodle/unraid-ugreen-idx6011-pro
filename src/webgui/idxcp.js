@@ -93,6 +93,9 @@
       '.idxup-row{padding:10px 0;border-bottom:1px solid rgba(128,128,128,.22)}'+
       '.idxup-row > label{display:block;font-weight:600;opacity:.9;margin-bottom:8px}'+
       '.idxup{display:flex;flex-wrap:wrap;align-items:center;gap:8px}'+
+      /* upload status text sits on its own dim line so it never floats loose after
+       * the buttons; the reserved height stops the row jumping when it appears */
+      '.idxup-note{flex-basis:100%;opacity:.7;font-size:.85em;min-height:1.15em;margin-top:2px}'+
       '.idxth-grid label{opacity:.9;font-weight:600}'+
       /* swatch + hex on ONE line, left-aligned within the (full-width) cell */
       '.idxcp{gap:9px}'+
