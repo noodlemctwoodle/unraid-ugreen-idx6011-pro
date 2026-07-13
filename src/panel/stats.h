@@ -14,6 +14,7 @@
 #define MAX_IFACES 6
 #define MAX_DISKS  12
 #define MAX_CTRS   20
+#define MAX_VMS    16
 
 typedef struct {
     char name[32], ip[44], ip6[48];
@@ -37,6 +38,11 @@ typedef struct {
 } ctr_t;
 
 typedef struct {
+    char name[48];
+    int  running;                    /* 1 = a libvirt .pid exists            */
+} vm_t;
+
+typedef struct {
     char host[64], ip[48], arr[32];
     double cpu; long mem_used_mb, mem_tot_mb;
     double rx_kbs, tx_kbs;
@@ -57,6 +63,7 @@ typedef struct {
     int docker_total;                /* total containers, -1 = n/a */
     int n_ctrs; ctr_t ctrs[MAX_CTRS];
     int vm_enabled, vm_count;
+    int n_vms; vm_t vms[MAX_VMS];
     int pkg_temp, nvme_temp, board_temp;
     char version[32], kernel[64];
     unsigned long long resync, resync_pos; char resync_act[32];

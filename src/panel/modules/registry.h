@@ -32,7 +32,8 @@ static const modinfo_t MODULES[] = {
     { "disk",    "Disk (pick one)",              mod_disk,   1, { "card" }, 1, "disks" },
     { "containers","Containers (all in one card)",mod_containers,1, { "list" } },
     { "container","Container (pick one)",        mod_container,  1, { "card" }, 1, "containers" },
-    { "vms",     "VMs",                mod_vms,      1, { "card" } },
+    { "vms",     "VMs (all in one card)",        mod_vms,        1, { "card" } },
+    { "vm",      "VM (pick one)",                mod_vm,         1, { "card" }, 1, "vms" },
 };
 static const int N_MODULES = (int)(sizeof MODULES / sizeof MODULES[0]);
 
@@ -125,6 +126,8 @@ static int write_items_json(void){
     for (int i = 0; i < st.n_disks; i++){ if (i) putchar(','); json_str(st.disks[i].name); }
     printf("],\"containers\":[");
     for (int i = 0; i < st.n_ctrs; i++){ if (i) putchar(','); json_str(st.ctrs[i].name); }
+    printf("],\"vms\":[");
+    for (int i = 0; i < st.n_vms; i++){ if (i) putchar(','); json_str(st.vms[i].name); }
     printf("]}\n");
     return 0;
 }
