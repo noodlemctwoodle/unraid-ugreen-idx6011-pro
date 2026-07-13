@@ -260,16 +260,18 @@
   function saveTheme(note){
     var name=(prompt('Save theme as (name):','my-theme')||'').trim().replace(/[^A-Za-z0-9 _-]/g,'').replace(/\s+/g,'-');
     if(!name) return;
-    var keys={}, body='csrf_token='+encodeURIComponent(typeof csrf_token!=='undefined'?csrf_token:'')
-            +'&'+encodeURIComponent('#file')+'='+encodeURIComponent('ugreen-idx6011-pro/panel/themes/'+name+'.cfg');
+    /* POST to the plugin's validated writer (theme.php) — it re-checks every value
+     * server-side and writes only clean keys to panel/themes/<name>.cfg. */
+    var keys={}, body='csrf_token='+encodeURIComponent(typeof csrf_token!=='undefined'?csrf_token:'')+'&name='+encodeURIComponent(name);
     THEME_KEYS.forEach(function(k){ var e=themeCtl(k); if(e&&e.value!==''){ keys[k]=e.value; body+='&'+encodeURIComponent(k)+'='+encodeURIComponent(e.value); } });
     if(note) note.textContent='saving…';
-    fetch('/update.php',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:body})
-      .then(function(r){ if(!r.ok) throw 0;
-        var i; for(i=0;i<SAVED.length;i++) if(SAVED[i].name===name) break;
-        if(i<SAVED.length) SAVED[i]={name:name,keys:keys}; else SAVED.push({name:name,keys:keys});
-        rebuildThemeSelect(); if(note) note.textContent='saved theme “'+name+'” to disk'; })
-      .catch(function(){ if(note) note.textContent='save failed'; });
+    fetch('/plugins/ugreen-idx6011-pro/theme.php',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:body})
+      .then(function(r){ return r.json(); })
+      .then(function(j){ if(!j || !j.ok) throw (j && j.err) || 'error';
+        var nm=j.name||name, i; for(i=0;i<SAVED.length;i++) if(SAVED[i].name===nm) break;
+        if(i<SAVED.length) SAVED[i]={name:nm,keys:keys}; else SAVED.push({name:nm,keys:keys});
+        rebuildThemeSelect(); if(note) note.textContent='saved theme “'+nm+'” to disk'; })
+      .catch(function(e){ if(note) note.textContent='save failed'+(e?': '+e:''); });
   }
   function injectThemes(){
     if(!themeEl) return;

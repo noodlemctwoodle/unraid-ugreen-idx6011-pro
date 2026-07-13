@@ -108,7 +108,7 @@ sed -i '/# UGREEN iDX6011 Pro front-panel dashboard/,/^fi$/d' /boot/config/go 2>
 mkdir -p /usr/local/emhttp/plugins/&name;/images
 [ -f "&plgdir;/images/&name;.png" ] &amp;&amp; cp "&plgdir;/images/&name;.png" /usr/local/emhttp/plugins/&name;/images/
 for f in UgreenIDX6011Pro.page UgreenIDX6011ProLighting.page \
-         UgreenIDX6011ProLayout.page idxcp.js idxcp-inc.php idxlayout.js preview.php restart.sh; do
+         UgreenIDX6011ProLayout.page idxcp.js idxcp-inc.php idxlayout.js preview.php theme.php restart.sh; do
   [ -f "&plgdir;/$f" ] &amp;&amp; cp "&plgdir;/$f" /usr/local/emhttp/plugins/&name;/
 done
 rm -f /usr/local/emhttp/plugins/&name;/upload.php   # removed: wallpaper/logo now use a file path, not an upload
