@@ -16,15 +16,16 @@
 static int iface_card(int y, iface_t *ic, int prim, int style){
     char b[64], r1[32], r2[32];
 
-    if (style == 2){                                     /* mini — one line */
-        int ch = 52;
+    if (style == 2){                                     /* mini — name as title + DN/UP full-width below */
+        int ch = 74;
         card(y, gy(ch), NULL);
-        rect(C_X0, y + gy(20), gy(11), gy(11), col_dot(ic->up), 255);
-        htext(C_X0 + gy(18), y + gy(14), 2.0f, UN_TEXT, ic->name);
+        rect(C_X0, y + gy(11), gy(11), gy(11), col_dot(ic->up), 255);
+        htext(C_X0 + gy(18), y + gy(6), 1.9f, UN_TEXT, ic->name);
+        if (!ic->up) text(C_R - text_w(1.4f, "DOWN"), y + gy(9), 1.4f, UN_DIM, "DOWN");
         fmt_rate(r1, sizeof r1, ic->rx_kbs); fmt_rate(r2, sizeof r2, ic->tx_kbs);
-        snprintf(b, sizeof b, "DN %s  UP %s", r1, r2);
-        trunc_fit(b, 1.7f, (W - 22) - (C_X0 + gy(18) + htext_w(2.0f, ic->name) + 10));
-        text((W - 22) - text_w(1.7f, b), y + gy(18), 1.7f, UN_DIM, b);
+        snprintf(b, sizeof b, "DN %s   UP %s", r1, r2);
+        trunc_fit(b, 1.7f, W - 44);
+        text(C_X0, y + gy(42), 1.7f, UN_DIM, b);
         return gy(ch) + gy(C_GAP);
     }
     if (style == 3){                                     /* big — large DN/UP rates */
