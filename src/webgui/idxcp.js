@@ -82,6 +82,9 @@
        * carries a bottom border, so the two cells form ONE full-width row line. */
       '.idxth-grid{display:grid;grid-template-columns:auto 1fr;column-gap:16px;row-gap:0;width:100%;max-width:680px}'+
       '.idxth-grid > label,.idxth-grid > select,.idxth-grid > input,.idxth-grid > .idxcp{border-bottom:1px solid rgba(128,128,128,.22);padding:9px 0;box-sizing:border-box;justify-self:stretch}'+
+      /* drop the native control box (Unraid draws a darker border) so only the one
+       * faint grey row line shows; keep the bottom border set above */
+      '.idxth-grid > select,.idxth-grid > input{border-top:0;border-left:0;border-right:0;box-shadow:none;background:transparent}'+
       '.idxth-grid > label,.idxth-grid > .idxcp{display:flex;align-items:center}'+
       '.idxth-note{grid-column:1/-1;margin:1px 0 7px;padding:0;opacity:.7;font-size:.85em;line-height:1.4}'+
       '.idxth-grid label{opacity:.9;font-weight:600}'+
@@ -92,7 +95,7 @@
       '.idxcp-chip::-webkit-color-swatch-wrapper{padding:0}'+
       '.idxcp-chip::-webkit-color-swatch{border:none;border-radius:12px}'+
       '.idxcp-chip::-moz-color-swatch{border:none;border-radius:12px}'+
-      '.idxcp-hex{flex:0 0 auto;width:90px}'+
+      '.idxcp-hex{flex:0 0 auto;width:90px;border:0;box-shadow:none;background:transparent}'+
       '.idxth-sec{grid-column:1/-1;border:none;margin:13px 0 3px;padding:0;font-weight:600;opacity:.8;letter-spacing:.4px;text-transform:uppercase;font-size:.85em}';
     document.head.appendChild(s);
   }
