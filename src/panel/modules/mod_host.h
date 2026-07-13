@@ -12,22 +12,22 @@
 static int mod_host(int y, stats_t *st, int variant){
     (void)variant;
     char b[128];
-    card(y, 112, NULL);
+    card(y, gy(112), NULL);
     text_bold((W - text_w(2.9f, st->host[0] ? st->host : "unraid")) / 2 - 1,
-              y + 14, 2.9f, UN_TEXT, st->host[0] ? st->host : "unraid");
-    text_c(y + 52, 2.3f, UN_DIM, st->ip[0] ? st->ip : "no ip");
+              y + gy(14), 2.9f, UN_TEXT, st->host[0] ? st->host : "unraid");
+    text_c(y + gy(52), 2.3f, UN_DIM, st->ip[0] ? st->ip : "no ip");
     if (st->arr[0]){
         if (st->resync > 0){
             double pct = 100.0 * (double)st->resync_pos / (double)st->resync;
             snprintf(b, sizeof b, "%s %.1f%%",
                      st->resync_act[0] ? st->resync_act : "sync", pct);
-            text_c(y + 82, 1.8f, UN_WARN, b);
+            text_c(y + gy(82), 1.8f, UN_WARN, b);
         } else {
             snprintf(b, sizeof b, "array: %s", st->arr);
-            text_c(y + 82, 1.8f, strcmp(st->arr, "STARTED") ? UN_WARN : UN_OK, b);
+            text_c(y + gy(82), 1.8f, strcmp(st->arr, "STARTED") ? UN_WARN : UN_OK, b);
         }
     }
-    return 124;
+    return gy(124);
 }
 
 #endif /* PANEL_MOD_HOST_H */

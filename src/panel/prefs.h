@@ -91,10 +91,11 @@ static void settings_load(void){
     if (cfg_brightness < 5)   cfg_brightness = 5;
     if (cfg_brightness > 100) cfg_brightness = 100;
     if (cfg_interval < 1)     cfg_interval = 1;
-    if (cfg_head_pct < 70) cfg_head_pct = 70; if (cfg_head_pct > 150) cfg_head_pct = 150;
-    if (cfg_text_pct < 70) cfg_text_pct = 70; if (cfg_text_pct > 150) cfg_text_pct = 150;
-    g_head_scale = cfg_head_pct / 100.0f;
-    g_text_scale = cfg_text_pct / 100.0f;
+    if (cfg_head_pct < 70) cfg_head_pct = 70; if (cfg_head_pct > 200) cfg_head_pct = 200;
+    if (cfg_text_pct < 70) cfg_text_pct = 70; if (cfg_text_pct > 200) cfg_text_pct = 200;
+    g_head_scale  = cfg_head_pct / 100.0f;
+    g_text_scale  = cfg_text_pct / 100.0f;
+    g_geom_scale  = g_head_scale > g_text_scale ? g_head_scale : g_text_scale;
 }
 
 /* env overrides applied AFTER settings_load — used ONLY by the web live-preview
@@ -103,11 +104,12 @@ static void settings_load(void){
 static void settings_env_overrides(void){
     const char *v;
     if ((v = getenv("PANEL_HEAD")) && *v){ cfg_head_pct = atoi(v);
-        if (cfg_head_pct < 70) cfg_head_pct = 70; if (cfg_head_pct > 150) cfg_head_pct = 150;
+        if (cfg_head_pct < 70) cfg_head_pct = 70; if (cfg_head_pct > 200) cfg_head_pct = 200;
         g_head_scale = cfg_head_pct / 100.0f; }
     if ((v = getenv("PANEL_TEXT")) && *v){ cfg_text_pct = atoi(v);
-        if (cfg_text_pct < 70) cfg_text_pct = 70; if (cfg_text_pct > 150) cfg_text_pct = 150;
+        if (cfg_text_pct < 70) cfg_text_pct = 70; if (cfg_text_pct > 200) cfg_text_pct = 200;
         g_text_scale = cfg_text_pct / 100.0f; }
+    g_geom_scale = g_head_scale > g_text_scale ? g_head_scale : g_text_scale;
     if ((v = getenv("PANEL_COL_ACCENT")) && *v) UN_ORANGE_M = parse_hexcol(v, UN_ORANGE_M);
     if ((v = getenv("PANEL_COL_GRAD_A")) && *v) UN_RED      = parse_hexcol(v, UN_RED);
     if ((v = getenv("PANEL_COL_GRAD_B")) && *v) UN_ORANGE   = parse_hexcol(v, UN_ORANGE);

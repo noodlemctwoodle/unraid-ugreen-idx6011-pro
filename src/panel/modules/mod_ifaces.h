@@ -16,33 +16,33 @@ static int iface_card(int y, iface_t *ic, int prim, int compact){
     char b[64], r1[32], r2[32];
     if (compact){                                        /* name + link + DN/UP (no IPs/totals) */
         int ch = 108;
-        card(y, ch, NULL);
+        card(y, gy(ch), NULL);
         item_head(y, col_dot(ic->up), ic->name, 2.3f,
                   ic->up ? "LINK" : "DOWN", 1.5f, col_state(ic->up));
         fmt_rate(r1, sizeof r1, ic->rx_kbs); snprintf(b, sizeof b, "DN  %s", r1);
-        text(C_X0 + 18, y + 44, 1.9f, UN_TEXT, b);
+        text(C_X0 + gy(18), y + gy(44), 1.9f, UN_TEXT, b);
         fmt_rate(r2, sizeof r2, ic->tx_kbs); snprintf(b, sizeof b, "UP  %s", r2);
-        text(C_X0 + 18, y + 72, 1.9f, UN_TEXT, b);
-        return ch + C_GAP;
+        text(C_X0 + gy(18), y + gy(72), 1.9f, UN_TEXT, b);
+        return gy(ch) + gy(C_GAP);
     }
     int has6 = ic->ip6[0] != 0;
     int ch = 172 + (has6 ? 22 : 0);
-    card(y, ch, NULL);
+    card(y, gy(ch), NULL);
     item_head(y, col_dot(ic->up), ic->name, 2.4f, ic->up ? "LINK" : "DOWN", 1.6f, col_state(ic->up));
     if (prim)
-        text(C_X0 + 18 + text_w(2.4f, ic->name) + 12, y + 18, 1.4f, UN_ORANGE, "PRIMARY");
-    int cy = y + 48;
-    text(C_X0 + 18, cy, 2.0f, UN_DIM, ic->ip[0] ? ic->ip : "-"); cy += 28;
+        text(C_X0 + gy(18) + htext_w(2.4f, ic->name) + gy(12), y + gy(18), 1.4f, UN_ORANGE, "PRIMARY");
+    int cy = y + gy(48);
+    text(C_X0 + gy(18), cy, 2.0f, UN_DIM, ic->ip[0] ? ic->ip : "-"); cy += gy(28);
     if (has6){ snprintf(b, sizeof b, "%s", ic->ip6); trunc_fit(b, 1.5f, W - 64);
-               text(C_X0 + 18, cy, 1.5f, UN_DIM, b); cy += 22; }
+               text(C_X0 + gy(18), cy, 1.5f, UN_DIM, b); cy += gy(22); }
     fmt_rate(r1, sizeof r1, ic->rx_kbs); snprintf(b, sizeof b, "DN  %s", r1);
-    text(C_X0 + 18, cy, 2.0f, UN_TEXT, b); cy += 28;
+    text(C_X0 + gy(18), cy, 2.0f, UN_TEXT, b); cy += gy(28);
     fmt_rate(r2, sizeof r2, ic->tx_kbs); snprintf(b, sizeof b, "UP  %s", r2);
-    text(C_X0 + 18, cy, 2.0f, UN_TEXT, b); cy += 30;
+    text(C_X0 + gy(18), cy, 2.0f, UN_TEXT, b); cy += gy(30);
     fmt_bytes(r1, sizeof r1, ic->rx_tot); fmt_bytes(r2, sizeof r2, ic->tx_tot);
     snprintf(b, sizeof b, "RX %s   TX %s", r1, r2); trunc_fit(b, 1.6f, W - 62);
-    text(C_X0 + 18, cy, 1.6f, UN_DIM, b);
-    return ch + C_GAP;
+    text(C_X0 + gy(18), cy, 1.6f, UN_DIM, b);
+    return gy(ch) + gy(C_GAP);
 }
 
 static int mod_ifaces(int y, stats_t *st, int variant){      /* all interfaces */

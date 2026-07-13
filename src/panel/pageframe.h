@@ -24,6 +24,13 @@ static int content_h[NPAGES];
 static int cur_page;
 static int body_top = BODY_Y0;
 
+/* the page title + position sit in a card below the clock; its height (and so the
+ * y at which page content begins) grows with the heading/text size. */
+#define TITLECARD_H   28
+#define TITLECARD_TOP 12                         /* gap below the gradient rule (so they don't merge) */
+static int hdr_bottom = BODY_Y0;                 /* y where content begins (below title card) */
+static int header_h(void){ return HEADER_H + gy(TITLECARD_TOP) + gy(TITLECARD_H) + gy(8); }
+
 #define PAGE_SETTINGS 6
 
 typedef void (*page_fn)(stats_t *st);
@@ -60,7 +67,7 @@ static int n_pages_on(void){ int n = 0; for (int i = 0; i < NPAGES; i++) if (pag
 static int page_pos(int cur){ int p = 0; for (int i = 0; i <= cur && i < NPAGES; i++) if (page_on(i)) p++; return p; }
 
 static void draw_header(stats_t *st){
-    rect(0, 0, W, BODY_Y0 - 6, UN_BLACK, 255);   /* opaque incl. title zone */
+    rect(0, 0, W, hdr_bottom - 6, UN_BLACK, 255);   /* opaque incl. title-card zone */
     if (!draw_custom_logo(12, 25))                        /* custom logo.png if uploaded... */
         draw_unraid_icon(12, 25);                         /* ...else the official 60x34 mark */
     if (st->notif_count > 0){
@@ -78,21 +85,24 @@ static void draw_header(stats_t *st){
     strftime(b, sizeof b, "%a %d %b", &tm);
     text_raw(W - 16 - text_w_raw(1.5f, b), 52, 1.5f, UN_DIM, b);
     hgrad(0, HEADER_H, W, 3, UN_RED, UN_ORANGE);          /* signature rule */
-    htext_c(HEADER_H + 18, 2.2f, UN_DIM, pages[cur_page].title);   /* page heading */
+    /* page heading + position, in a card that grows with the heading size */
+    int tcY = HEADER_H + gy(TITLECARD_TOP), tcH = gy(TITLECARD_H);
+    card(tcY, tcH, NULL);
+    htext_c(tcY + gy(6), 2.2f, UN_TEXT, pages[cur_page].title);
     snprintf(b, sizeof b, "%d/%d", page_pos(cur_page), n_pages_on());
-    text_raw(W - 16 - text_w_raw(1.4f, b), HEADER_H + 22, 1.4f, 0x555555, b);
+    text_raw(W - 22 - text_w_raw(1.4f, b), tcY + gy(9), 1.4f, UN_DIM, b);
 }
 
 static void draw_banner(stats_t *st){
     uint32_t c = st->notif_imp == 2 ? UN_BAD : st->notif_imp == 1 ? UN_WARN : UN_ORANGE_M;
-    rect(10, BODY_Y0, W - 20, 36, UN_GREY_80, 245);
-    rect(10, BODY_Y0, 3, 36, c, 255);
+    rect(10, hdr_bottom, W - 20, gy(36), UN_GREY_80, 245);
+    rect(10, hdr_bottom, 3, gy(36), c, 255);
     char b[32]; snprintf(b, sizeof b, "%d UNREAD", st->notif_count);
-    text(22, BODY_Y0 + 5, 1.3f, c, b);
+    text(22, hdr_bottom + gy(5), 1.3f, c, b);
     char subj[128];
     snprintf(subj, sizeof subj, "%s", st->notif_subj[0] ? st->notif_subj : "notification");
     trunc_fit(subj, 1.5f, W - 44);
-    text(22, BODY_Y0 + 19, 1.5f, UN_TEXT, subj);
+    text(22, hdr_bottom + gy(19), 1.5f, UN_TEXT, subj);
 }
 
 static void draw_footer(void){

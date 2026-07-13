@@ -18,12 +18,12 @@ static uint32_t col_ctr(const char *state){
 }
 static int ctr_card(int y, ctr_t *c){
     char b[128];
-    card(y, 64, NULL);
+    card(y, gy(64), NULL);
     item_head(y, col_ctr(c->state), c->name, 2.1f, NULL, 0, 0);
     snprintf(b, sizeof b, "%s", c->status[0] ? c->status : c->state);
     trunc_fit(b, 1.6f, W - 66);
-    text(C_X0 + 18, y + 38, 1.6f, UN_DIM, b);
-    return 64 + C_GAP;
+    text(C_X0 + gy(18), y + gy(38), 1.6f, UN_DIM, b);
+    return gy(64) + gy(C_GAP);
 }
 
 static int mod_containers(int y, stats_t *st, int variant){  /* summary + all containers */

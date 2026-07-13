@@ -182,6 +182,14 @@ static int text_w_raw(float scale, const char *s){
 static float g_text_scale = 1.0f;
 static float g_head_scale = 1.0f;
 
+/* vertical LAYOUT scale = max(head, text). Cards scale their y-offsets, heights,
+ * gaps and ring/gauge radii by this, so bigger text just makes cards taller
+ * (never overlaps). gy() is the identity at 100%, so the default look is
+ * byte-for-byte unchanged. Only vertical geometry scales — the panel width is
+ * fixed at 258 px, so horizontal insets/bar widths stay put. */
+static float g_geom_scale = 1.0f;
+static inline int gy(float v){ return (int)(v * g_geom_scale + 0.5f); }
+
 static void text(int x, int y, float scale, uint32_t c, const char *s){ text_raw(x, y, scale * g_text_scale, c, s); }
 static int  text_w(float scale, const char *s){ return text_w_raw(scale * g_text_scale, s); }
 static void htext(int x, int y, float scale, uint32_t c, const char *s){ text_raw(x, y, scale * g_head_scale, c, s); }

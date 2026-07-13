@@ -156,6 +156,16 @@ that owns a zone (or add one that `trunc_fit`s). And **always `--shot` a layout
 change and eyeball it**, watching ring-variant details and long strings in
 particular (a right-aligned long string over a ring gauge was the classic trap).
 
+**Vertical geometry must scale — wrap it in `gy()`.** So bigger Theme sizes grow
+cards instead of overlapping, every *vertical* literal (y-offsets, card heights,
+gaps, bar/ring/gauge radii) is passed through `gy()` (draw.h), which multiplies
+by `g_geom_scale = max(head, text)` and is the identity at 100%. If you compose
+the shim helpers you get this for free. If you draw a **custom** card layout,
+wrap each vertical value yourself: `card(y, gy(120), ...)`, `text(C_X0, y +
+gy(44), ...)`, `return gy(120) + gy(C_GAP);`. Leave *horizontal* values alone —
+the 258 px width is fixed. Verify with `PANEL_HEAD=150 PANEL_TEXT=150
+panel_dash --preview …`.
+
 ## Registering a module
 
 Add it to the table in `registry.h` (id, label for the web editor, fn, variant

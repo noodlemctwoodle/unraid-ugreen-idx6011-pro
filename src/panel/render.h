@@ -14,7 +14,8 @@
 static void render(stats_t *st){
     for (int y = 0; y < H; y++)
         memcpy(fbmem + y * fbpitch, bg + y * W, (size_t)W * 4);
-    int base = BODY_Y0 + (st->notif_count > 0 ? 44 : 0);
+    hdr_bottom = header_h();                          /* title card grows with heading size */
+    int base = hdr_bottom + (st->notif_count > 0 ? gy(44) : 0);
     int visible = FOOTER_Y - 12 - base;
     int maxs = content_h[cur_page] - visible;
     if (maxs < 0) maxs = 0;
