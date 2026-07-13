@@ -87,17 +87,28 @@ static int write_modules_json(void){
     return 0;
 }
 
-/* print the current effective per-page layouts + enable toggles as JSON (for the
- * web layout editor to load real state without duplicating the defaults). Layout
- * strings are [a-z0-9,:] so need no JSON escaping. */
+/* JSON-escape a string to stdout (names are user-entered; layouts are [a-z0-9,:]) */
+static void json_str(const char *s){
+    putchar('"');
+    for (const unsigned char *p = (const unsigned char *)s; *p; p++){
+        if (*p == '"' || *p == '\\'){ putchar('\\'); putchar((char)*p); }
+        else if (*p < 0x20)          printf("\\u%04x", *p);
+        else                         putchar((char)*p);
+    }
+    putchar('"');
+}
+/* print the current content pages (name + module layout + enable) as JSON, for the
+ * web layout editor to load real state. Requires pages_finalize() to have run. */
 static int write_layouts_json(void){
-    printf("{\"home\":\"%s\",\"overview\":\"%s\",\"hardware\":\"%s\","
-           "\"network\":\"%s\",\"disks\":\"%s\",\"docker\":\"%s\","
-           "\"on\":[%d,%d,%d,%d,%d,%d]}\n",
-           cfg_layout_home, cfg_layout_overview, cfg_layout_hardware,
-           cfg_layout_network, cfg_layout_disks, cfg_layout_docker,
-           cfg_page_on[0], cfg_page_on[1], cfg_page_on[2],
-           cfg_page_on[3], cfg_page_on[4], cfg_page_on[5]);
+    printf("{\"pages\":[");
+    for (int i = 0; i < g_ncpage; i++){
+        printf("%s{\"name\":", i ? "," : "");
+        json_str(g_cpage[i].name);
+        printf(",\"layout\":");
+        json_str(g_cpage[i].layout);
+        printf(",\"on\":%d}", g_cpage[i].on);
+    }
+    printf("]}\n");
     return 0;
 }
 

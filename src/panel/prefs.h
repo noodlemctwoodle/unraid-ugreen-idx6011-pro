@@ -15,6 +15,17 @@
 #define CFG_DIR2 "/boot/config/plugins/ugreen-idx6011-pro/panel"
 #define CFG_PATH "/boot/config/plugins/ugreen-idx6011-pro/panel/settings.cfg"
 
+/* dynamic content pages (name + module layout + enable). Populated from
+ * settings.cfg — either the new model (N_PAGES / PAGE<n>_NAME|LAYOUT|ON) or, for
+ * older configs, migrated from the fixed LAYOUT_ and PAGE_ keys by pages_finalize().
+ * pageframe.h consumes g_cpage / g_ncpage; SETTINGS is appended there. */
+#define MAX_CPAGES 12
+typedef struct { char name[24]; char layout[256]; int on; } cpage_t;
+static cpage_t g_cpage[MAX_CPAGES];
+static int g_ncpage = 0;
+static int g_pages_from_cfg = 0;        /* 1 once N_PAGES / PAGE<n>_ is seen */
+static int g_pmax = -1;                 /* highest PAGE<n>_ index seen (fallback count) */
+
 static int cfg_brightness = 75;     /* 5..100 */
 static int cfg_interval   = 1;      /* stats seconds */
 static int cfg_rotate     = 0;      /* auto-rotate seconds: 0/10/20/60 */
@@ -70,6 +81,18 @@ static void settings_load(void){
         else if (!strcmp(k, "LAYOUT_DISKS"))    snprintf(cfg_layout_disks,    sizeof cfg_layout_disks,    "%s", v);
         else if (!strcmp(k, "LAYOUT_DOCKER"))   snprintf(cfg_layout_docker,   sizeof cfg_layout_docker,   "%s", v);
         else if (!strcmp(k, "LAYOUT_HOME"))     snprintf(cfg_layout_home,     sizeof cfg_layout_home,     "%s", v);
+        else if (!strcmp(k, "N_PAGES")){ int n = atoi(v); if (n < 0) n = 0; if (n > MAX_CPAGES) n = MAX_CPAGES;
+                                         g_ncpage = n; g_pages_from_cfg = 1; }
+        else if (!strncmp(k, "PAGE", 4) && k[4] >= '0' && k[4] <= '9'){   /* PAGE<n>_NAME|LAYOUT|ON */
+            g_pages_from_cfg = 1;
+            int idx = atoi(k + 4); const char *u = strchr(k + 4, '_');
+            if (u && idx >= 0 && idx < MAX_CPAGES){
+                if (idx > g_pmax) g_pmax = idx;
+                if      (!strcmp(u, "_NAME"))   snprintf(g_cpage[idx].name,   sizeof g_cpage[idx].name,   "%s", v);
+                else if (!strcmp(u, "_LAYOUT")) snprintf(g_cpage[idx].layout, sizeof g_cpage[idx].layout, "%s", v);
+                else if (!strcmp(u, "_ON"))     g_cpage[idx].on = atoi(v) != 0;
+            }
+        }
         else if (!strcmp(k, "PAGE_HOME"))       cfg_page_on[0] = atoi(v) != 0;
         else if (!strcmp(k, "PAGE_OVERVIEW"))   cfg_page_on[1] = atoi(v) != 0;
         else if (!strcmp(k, "PAGE_HARDWARE"))   cfg_page_on[2] = atoi(v) != 0;
@@ -120,6 +143,34 @@ static void settings_env_overrides(void){
     if ((v = getenv("PANEL_COL_OK"))     && *v) UN_OK       = parse_hexcol(v, UN_OK);
     if ((v = getenv("PANEL_COL_WARN"))   && *v) UN_WARN     = parse_hexcol(v, UN_WARN);
     if ((v = getenv("PANEL_COL_BAD"))    && *v) UN_BAD      = parse_hexcol(v, UN_BAD);
+}
+
+/* build the runtime content-page list: from the new N_PAGES / PAGE<n>_ model if
+ * the cfg used it, otherwise migrate from the older fixed per-page keys. Always
+ * leaves at least one content page. Called once after settings_load + overrides. */
+static void pages_finalize(void){
+    if (g_pages_from_cfg){
+        if (g_ncpage <= 0) g_ncpage = g_pmax + 1;          /* no N_PAGES -> infer from indices */
+        if (g_ncpage > MAX_CPAGES) g_ncpage = MAX_CPAGES;
+        for (int i = 0; i < g_ncpage; i++)
+            if (!g_cpage[i].name[0]) snprintf(g_cpage[i].name, sizeof g_cpage[i].name, "Page %d", i + 1);
+    } else {                                               /* migrate the fixed six */
+        const char *nm[6] = { "Home", "Overview", "Hardware", "Network", "Disks", "Docker" };
+        const char *ly[6] = { cfg_layout_home, cfg_layout_overview, cfg_layout_hardware,
+                              cfg_layout_network, cfg_layout_disks, cfg_layout_docker };
+        g_ncpage = 6;
+        for (int i = 0; i < 6; i++){
+            snprintf(g_cpage[i].name,   sizeof g_cpage[i].name,   "%s", nm[i]);
+            snprintf(g_cpage[i].layout, sizeof g_cpage[i].layout, "%s", ly[i]);
+            g_cpage[i].on = cfg_page_on[i];
+        }
+    }
+    if (g_ncpage < 1){                                     /* never zero pages */
+        g_ncpage = 1;
+        snprintf(g_cpage[0].name,   sizeof g_cpage[0].name,   "Overview");
+        snprintf(g_cpage[0].layout, sizeof g_cpage[0].layout, "host,cpu,mem,net,storage,uptime");
+        g_cpage[0].on = 1;
+    }
 }
 
 /* keys the dashboard owns; anything else in settings.cfg (LED_* for monitor.sh,

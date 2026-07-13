@@ -176,23 +176,31 @@ before `registry.h`):
 { "cpu", "CPU", mod_cpu, 2, { "bar", "ring" } },
 ```
 
-## Layout config
+## Layout config — dynamic pages
 
-Each page is an ordered `id[:variant],...` string in `settings.cfg`, e.g.
+Pages are **fully user-defined**: a page is a display name + an ordered
+`id[:variant],...` module layout + an enable flag. `settings.cfg` stores them as:
 
 ```
-LAYOUT_OVERVIEW=host,cpu:ring,mem,net,storage,uptime
+N_PAGES=3
+PAGE0_NAME=Home
+PAGE0_LAYOUT=cpu:ring,mem:ring,net,storage:ring,power,uptime
+PAGE0_ON=1
+PAGE1_NAME=Overview
+PAGE1_LAYOUT=host,cpu:ring,mem,net,storage,uptime
+PAGE1_ON=1
+...
 ```
 
-`render_modules()` parses it, looks each id up in the registry, resolves the
-variant name to an index, and calls the module. Unknown ids are skipped. Defaults
-live in `prefs.h` (`cfg_layout_<page>`).
-
-Every page is config-driven: `LAYOUT_OVERVIEW`, `LAYOUT_HARDWARE`, `LAYOUT_NETWORK`,
-`LAYOUT_DISKS`, `LAYOUT_DOCKER`, `LAYOUT_HOME`. **Home is a blank canvas** — its
-default is only a starter; put any modules you like on it. Pages are
-enabled/disabled and reordered from the **web layout editor** (writes these
-strings) — see the settings `.page` files.
+`pages_finalize()` (prefs.h) builds the runtime list `g_cpage[]` from these keys,
+or — for older configs with no `N_PAGES` — migrates the fixed `LAYOUT_` / `PAGE_`
+defaults. The built-in **SETTINGS** page is appended after the content pages and
+is always on. For each content page, `render_modules()` parses its layout, looks
+each id up in the registry, resolves the variant, and calls the module (unknown
+ids are skipped). Add / rename / reorder / delete pages, and edit each page's
+modules, from the **web layout editor** (Layout tab), which writes the
+`N_PAGES` / `PAGE<n>_*` fields. There is no fixed page set — put any modules on
+any page you like.
 
 ## Build + verify
 

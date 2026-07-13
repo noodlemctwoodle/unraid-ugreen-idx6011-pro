@@ -10,16 +10,18 @@
 #ifndef PANEL_PAGEFRAME_H
 #define PANEL_PAGEFRAME_H
 
-/* ---------- page system ---------- */
-#define NPAGES    7
+/* ---------- page system (dynamic: user-defined content pages + built-in SETTINGS) ----------
+ * MAX_CPAGES / cpage_t / g_cpage / g_ncpage are defined in prefs.h (loaded first).
+ * SETTINGS is the always-present last page. */
+#define MAX_PAGES  (MAX_CPAGES + 1)     /* + the always-present SETTINGS page      */
 #define HEADER_H  84
 #define BODY_Y0   124
 #define FOOTER_Y  918
 #define SCROLL_STEP 300
 static long rotate_ms = 0;              /* auto-rotate off by default */
-static int scrolly[NPAGES];
+static int scrolly[MAX_PAGES];
 static int page_end;                    /* set by each page: content bottom y */
-static int content_h[NPAGES];
+static int content_h[MAX_PAGES];
 
 static int cur_page;
 static int body_top = BODY_Y0;
@@ -31,40 +33,31 @@ static int body_top = BODY_Y0;
 static int hdr_bottom = BODY_Y0;                 /* y where content begins (below title card) */
 static int header_h(void){ return HEADER_H + gy(TITLECARD_TOP) + gy(TITLECARD_H) + gy(8); }
 
-#define PAGE_SETTINGS 6
+static void page_settings(stats_t *st);          /* the one built-in interactive page */
 
-typedef void (*page_fn)(stats_t *st);
-static void page_home(stats_t *st);
-static void page_overview(stats_t *st);
-static void page_hardware(stats_t *st);
-static void page_network(stats_t *st);
-static void page_disks(stats_t *st);
-static void page_docker(stats_t *st);
-static void page_settings(stats_t *st);
-static const struct { const char *title; page_fn body; } pages[NPAGES] = {
-    { "HOME",     page_home     },
-    { "OVERVIEW", page_overview },
-    { "HARDWARE", page_hardware },
-    { "NETWORK",  page_network  },
-    { "DISKS",    page_disks    },
-    { "DOCKER",   page_docker   },
-    { "SETTINGS", page_settings },
-};
+/* SETTINGS is the last navigable page, at index g_ncpage. */
+static int n_total(void){ return g_ncpage + 1; }
+static int is_settings_page(int i){ return i == g_ncpage; }
+static const char *page_title(int i){
+    if (is_settings_page(i)) return "SETTINGS";
+    return (i >= 0 && i < g_ncpage) ? g_cpage[i].name : "";
+}
 
-/* ---------- page enable/skip (PAGE_<X> toggles; SETTINGS is always on) ---------- */
+/* ---------- page enable/skip (SETTINGS is always on) ---------- */
 static int page_on(int i){
-    if (i == PAGE_SETTINGS) return 1;
-    return (i >= 0 && i < NPAGES) ? cfg_page_on[i] : 0;
+    if (is_settings_page(i)) return 1;
+    return (i >= 0 && i < g_ncpage) ? g_cpage[i].on : 0;
 }
 static int next_page(int cur, int dir){          /* next ENABLED page in a direction */
-    for (int k = 0; k < NPAGES; k++){
-        cur = (cur + dir + NPAGES) % NPAGES;
+    int n = n_total();
+    for (int k = 0; k < n; k++){
+        cur = (cur + dir + n) % n;
         if (page_on(cur)) return cur;
     }
     return cur;                                  /* all off can't happen (SETTINGS on) */
 }
-static int n_pages_on(void){ int n = 0; for (int i = 0; i < NPAGES; i++) if (page_on(i)) n++; return n; }
-static int page_pos(int cur){ int p = 0; for (int i = 0; i <= cur && i < NPAGES; i++) if (page_on(i)) p++; return p; }
+static int n_pages_on(void){ int n = 0, t = n_total(); for (int i = 0; i < t; i++) if (page_on(i)) n++; return n; }
+static int page_pos(int cur){ int p = 0, t = n_total(); for (int i = 0; i <= cur && i < t; i++) if (page_on(i)) p++; return p; }
 
 static void draw_header(stats_t *st){
     rect(0, 0, W, hdr_bottom - 6, UN_BLACK, 255);   /* opaque incl. title-card zone */
@@ -88,7 +81,7 @@ static void draw_header(stats_t *st){
     /* page heading + position, in a card that grows with the heading size */
     int tcY = HEADER_H + gy(TITLECARD_TOP), tcH = gy(TITLECARD_H);
     card(tcY, tcH, NULL);
-    htext_c(tcY + gy(6), 2.2f, UN_TEXT, pages[cur_page].title);
+    htext_c(tcY + gy(6), 2.2f, UN_TEXT, page_title(cur_page));
     snprintf(b, sizeof b, "%d/%d", page_pos(cur_page), n_pages_on());
     text_raw(W - 22 - text_w_raw(1.4f, b), tcY + gy(9), 1.4f, UN_DIM, b);
 }
@@ -110,7 +103,7 @@ static void draw_footer(void){
     hline(16, FOOTER_Y, W - 32, UN_GREY_70);
     int total = n_pages_on();
     int pitch = 24, x0 = (W - (total - 1) * pitch) / 2, j = 0;
-    for (int i = 0; i < NPAGES; i++){
+    for (int i = 0; i < n_total(); i++){
         if (!page_on(i)) continue;
         int cx = x0 + j * pitch; j++;
         if (i == cur_page){

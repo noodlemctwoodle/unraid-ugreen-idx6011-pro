@@ -23,7 +23,10 @@ static void render(stats_t *st){
     if (scrolly[cur_page] < 0)    scrolly[cur_page] = 0;
     body_top = base - scrolly[cur_page];
     page_end = body_top;
-    pages[cur_page].body(st);
+    if (g_preview_layout)                                    /* web preview: force content render */
+        render_modules(g_preview_layout, st);
+    else if (is_settings_page(cur_page)) page_settings(st);  /* built-in interactive page */
+    else render_modules(g_cpage[cur_page].layout, st);       /* user content page */
     content_h[cur_page] = page_end - body_top;
     draw_header(st);
     if (st->notif_count > 0) draw_banner(st);
@@ -50,7 +53,7 @@ static int write_shots(const char *dir, const char *bgpath){
 
     unsigned char *rgba = malloc((size_t)W * H * 4);
     if (!rgba){ free(fbmem); return 1; }
-    for (int p = 0; p < NPAGES; p++){
+    for (int p = 0; p < n_total(); p++){
         cur_page = p; scrolly[p] = 0;
         render(&st);
         for (int i = 0; i < W * H; i++){            /* XRGB8888 -> RGBA8888 */
@@ -60,7 +63,7 @@ static int write_shots(const char *dir, const char *bgpath){
             rgba[i * 4 + 2] =  c        & 0xff;
             rgba[i * 4 + 3] = 255;
         }
-        char nm[32]; snprintf(nm, sizeof nm, "%s", pages[p].title);
+        char nm[32]; snprintf(nm, sizeof nm, "%s", page_title(p));
         for (char *q = nm; *q; q++) *q = (char)tolower((unsigned char)*q);
         char path[512]; snprintf(path, sizeof path, "%s/%d-%s.png", dir, p + 1, nm);
         if (stbi_write_png(path, W, H, 4, rgba, W * 4))
@@ -93,7 +96,7 @@ static int write_preview(int page, const char *layout, const char *outfile){
         hist_push(st.cpu, st.gpu_avail ? st.gpu_busy : 0);
 
     if (page < 0) page = 0;
-    if (page >= NPAGES) page = NPAGES - 1;
+    if (page >= n_total()) page = n_total() - 1;
     g_preview_layout = (layout && *layout) ? layout : NULL;
     cur_page = page; scrolly[page] = 0;
     render(&st);

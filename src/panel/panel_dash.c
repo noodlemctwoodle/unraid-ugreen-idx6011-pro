@@ -104,13 +104,8 @@
 #include "modules/mod_containers.h"
 #include "modules/mod_vms.h"
 #include "modules/registry.h"
-#include "pages/home.h"
-#include "pages/overview.h"
-#include "pages/hardware.h"
-#include "pages/network.h"
-#include "pages/disks.h"
-#include "pages/docker.h"
-#include "pages/settings.h"
+#include "pages/settings.h"      /* the one built-in interactive page; content pages are
+                                    config-driven (g_cpage) and drawn via render_modules */
 #include "render.h"
 #include "touch.h"
 
@@ -158,6 +153,7 @@ int main(int argc, char **argv){
         fp = fontbuf;
     }
     settings_env_overrides();                   /* draft theme/size for the web preview */
+    pages_finalize();                           /* build the content-page list (cfg or migrated) */
     font_init(fp);                              /* real TTF; falls back to easy_font */
     if (want_modules == 1) return write_modules_json();   /* module catalog for the web editor */
     if (want_modules == 2) return write_layouts_json();   /* current layouts + toggles */
@@ -271,7 +267,7 @@ int main(int argc, char **argv){
             case TOUCH_DRAG:
                 scrolly[cur_page] -= ev.y; dirty = 1; break;   /* 1:1 finger scroll */
             case TOUCH_TAP:
-                if (cur_page == PAGE_SETTINGS && widget_tap(ev.x, ev.y)){
+                if (is_settings_page(cur_page) && widget_tap(ev.x, ev.y)){
                     dirty = 1;
                 } else if (ev.y >= FOOTER_Y){
                     cur_page = next_page(cur_page, +1); confirm_which = 0; dirty = 1;
@@ -280,7 +276,7 @@ int main(int argc, char **argv){
                 }
                 break;
             case TOUCH_LONG_PRESS:
-                if (cur_page == PAGE_SETTINGS && widget_long(ev.x, ev.y)){
+                if (is_settings_page(cur_page) && widget_long(ev.x, ev.y)){
                     dirty = 1;
                 } else {
                     dim = !dim;
@@ -292,7 +288,7 @@ int main(int argc, char **argv){
         }
         if (confirm_which && nowms >= confirm_until){          /* confirm expired */
             confirm_which = 0;
-            if (cur_page == PAGE_SETTINGS) dirty = 1;
+            if (is_settings_page(cur_page)) dirty = 1;
         }
         if (!screen_off && cfg_screen_off > 0 &&
             nowms - last_touch >= (long)cfg_screen_off * 60000L){
