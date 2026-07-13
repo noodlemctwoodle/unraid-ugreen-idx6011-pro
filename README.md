@@ -31,10 +31,11 @@ running **Unraid** — the full front panel, working natively, no UGOS required 
 - **Theme it**: choose the dashboard font, heading and text sizes, and every palette
   colour with live colour pickers; upload a **wallpaper** and a **custom header
   logo**; pick network-rate units (bits or bytes) and the primary interface.
-- **Fan control** from the panel: drive all four chassis fans on Auto / Silent /
-  Quiet / Turbo temperature curves (CPU fans by CPU temp, case fans by the hottest
-  disk) or Max — a floor keeps every fan spinning, with a forced 100% at critical
-  temps. Live RPM on a Fans card, including an **animated spinning-fan** view.
+- **Fan control** from the panel: leave the fans to firmware (Auto), drive all four
+  on **Silent / Quiet / Turbo** temperature curves (CPU fans by CPU temp, case fans by
+  the hottest disk), or run them flat out (**Max**) — a floor keeps every fan spinning,
+  with a forced 100% at critical temps. Live RPM on a Fans card, including an
+  **animated spinning-fan** view.
 - **Live stats**: CPU %/temp, memory, per-interface network rates + totals, per-disk
   temps/usage/health, GPU & NPU utilisation, **power draw** (Intel RAPL), array/parity
   state, docker containers (with IPs + image-update flags), VMs, and Unraid

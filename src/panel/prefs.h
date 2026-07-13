@@ -41,7 +41,7 @@ static int  cfg_text_pct  = 100;    /* body text size % (values, labels) */
 /* per-page module layout: ordered "id[:variant],..." list drawn by render_modules().
  * Default matches the original hardcoded Overview (all default/bar variants). */
 static char cfg_layout_overview[256] = "host,cpu,mem,net,storage,uptime";
-static char cfg_layout_hardware[256] = "cpu:graph,cputemp,mem,gpu:graph,npu,power";
+static char cfg_layout_hardware[256] = "cpu:graph,cputemp,fans,mem,gpu:graph,npu,power";
 static char cfg_layout_network[256]  = "ifaces";
 static char cfg_layout_disks[256]    = "disks";
 static char cfg_layout_docker[256]   = "containers,vms";
