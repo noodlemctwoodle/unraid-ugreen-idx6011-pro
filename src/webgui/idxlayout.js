@@ -224,12 +224,79 @@
   function changed(){ syncAll(); markChanged(); render(); }
   function onTheme(){ markChanged(); refreshPreview(); }
 
+  /* ---- theme presets + export / import ----------------------------------
+   * A theme is just the Theme-tab keys. Export serialises them to a short code
+   * (idx1:<base64>) users can share; import/presets set the controls (firing the
+   * usual events so the swatches sync, the preview updates and Apply enables). */
+  var THEME_KEYS = ['FONT','HEAD_SCALE','TEXT_SCALE','CARD_OPACITY','COL_ACCENT','COL_GRAD_A',
+    'COL_GRAD_B','COL_BG','COL_CARD','COL_TEXT','COL_TITLE','COL_DIM','COL_OK','COL_WARN','COL_BAD'];
+  var PRESETS = {
+    'Unraid (default)':{COL_ACCENT:'f15a2c',COL_GRAD_A:'e22828',COL_GRAD_B:'ff8c2f',COL_BG:'1b1b1b',COL_CARD:'262626',COL_TEXT:'f2f2f2',COL_TITLE:'999999',COL_DIM:'999999',COL_OK:'3fb950',COL_WARN:'f0a020',COL_BAD:'e22828'},
+    'Sakura':{COL_ACCENT:'f26fb2',COL_GRAD_A:'e0559a',COL_GRAD_B:'ff8fc8',COL_BG:'1a1418',COL_CARD:'27202a',COL_TEXT:'f6f0f4',COL_TITLE:'f2b8d8',COL_DIM:'c9bcc6',COL_OK:'3fb950',COL_WARN:'f0a020',COL_BAD:'e2405a'},
+    'Ember':{COL_ACCENT:'ff8a2b',COL_GRAD_A:'ff6a2b',COL_GRAD_B:'ffb347',COL_BG:'1a1512',COL_CARD:'2a2119',COL_TEXT:'f7f2ec',COL_TITLE:'ffcfa0',COL_DIM:'cfc3b6',COL_OK:'4caf50',COL_WARN:'ffb300',COL_BAD:'e2503a'},
+    'Abyss':{COL_ACCENT:'3d7bff',COL_GRAD_A:'2b5bd9',COL_GRAD_B:'4fa8ff',COL_BG:'0f1320',COL_CARD:'1a2030',COL_TEXT:'eef2ff',COL_TITLE:'a8c4ff',COL_DIM:'b6c0d6',COL_OK:'3fb950',COL_WARN:'f0a020',COL_BAD:'ff5a6a'},
+    'Aurora':{COL_ACCENT:'2bd4a8',COL_GRAD_A:'1fa88a',COL_GRAD_B:'4fe0c0',COL_BG:'0f1a17',COL_CARD:'1a2a25',COL_TEXT:'eefaf5',COL_TITLE:'9fe8d4',COL_DIM:'b6d0c8',COL_OK:'3fb950',COL_WARN:'f0a020',COL_BAD:'e2405a'},
+    'Grape':{COL_ACCENT:'a06bff',COL_GRAD_A:'8149e0',COL_GRAD_B:'b98cff',COL_BG:'15111f',COL_CARD:'231d33',COL_TEXT:'f2eefc',COL_TITLE:'c9b0ff',COL_DIM:'c2bcd0',COL_OK:'3fb950',COL_WARN:'f0a020',COL_BAD:'ff5a7a'},
+    'Cyber':{COL_ACCENT:'00e5ff',COL_GRAD_A:'00b8d4',COL_GRAD_B:'18ffe0',COL_BG:'0a0f14',COL_CARD:'12202a',COL_TEXT:'e6feff',COL_TITLE:'7fe9ff',COL_DIM:'a0c4cc',COL_OK:'22e6a0',COL_WARN:'ffd21f',COL_BAD:'ff3b6b'},
+    'Mono':{COL_ACCENT:'c8c8c8',COL_GRAD_A:'a0a0a0',COL_GRAD_B:'e0e0e0',COL_BG:'141414',COL_CARD:'242424',COL_TEXT:'f2f2f2',COL_TITLE:'cfcfcf',COL_DIM:'9a9a9a',COL_OK:'8fbf8f',COL_WARN:'cfc08a',COL_BAD:'cf8f8f'}
+  };
+  function themeCtl(k){ return themeEl ? themeEl.querySelector('[name="'+k+'"]') : null; }
+  function setThemeVal(k,v){ var e=themeCtl(k); if(!e||v==null) return;
+    e.value=v; e.dispatchEvent(new Event('input',{bubbles:true})); e.dispatchEvent(new Event('change',{bubbles:true})); }
+  function applyTheme(obj){ for(var k in obj) setThemeVal(k,obj[k]); markChanged(); refreshPreview(); }
+  var SAVED = [];    /* saved theme files, from #idxlayout data-themes (set in init) */
+  var _tsel = null;
+  function savedKeys(name){ for(var i=0;i<SAVED.length;i++) if(SAVED[i].name===name) return SAVED[i].keys; return null; }
+  function rebuildThemeSelect(){
+    if(!_tsel) return; _tsel.innerHTML='';
+    var ph=el('option',null,'Load a theme…'); ph.value=''; _tsel.appendChild(ph);
+    var gp=el('optgroup'); gp.label='Presets';
+    for(var pn in PRESETS){ var o=el('option',null,pn); o.value='p:'+pn; gp.appendChild(o); } _tsel.appendChild(gp);
+    if(SAVED.length){ var gs=el('optgroup'); gs.label='Saved themes';
+      SAVED.forEach(function(s){ var o=el('option',null,s.name); o.value='s:'+s.name; gs.appendChild(o); }); _tsel.appendChild(gs); }
+  }
+  /* save the current Theme-tab values to panel/themes/<name>.cfg via update.php
+   * (no #command); it becomes selectable immediately and shareable as a file. */
+  function saveTheme(note){
+    var name=(prompt('Save theme as (name):','my-theme')||'').trim().replace(/[^A-Za-z0-9 _-]/g,'').replace(/\s+/g,'-');
+    if(!name) return;
+    var keys={}, body='csrf_token='+encodeURIComponent(typeof csrf_token!=='undefined'?csrf_token:'')
+            +'&'+encodeURIComponent('#file')+'='+encodeURIComponent('ugreen-idx6011-pro/panel/themes/'+name+'.cfg');
+    THEME_KEYS.forEach(function(k){ var e=themeCtl(k); if(e&&e.value!==''){ keys[k]=e.value; body+='&'+encodeURIComponent(k)+'='+encodeURIComponent(e.value); } });
+    if(note) note.textContent='saving…';
+    fetch('/update.php',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:body})
+      .then(function(r){ if(!r.ok) throw 0;
+        var i; for(i=0;i<SAVED.length;i++) if(SAVED[i].name===name) break;
+        if(i<SAVED.length) SAVED[i]={name:name,keys:keys}; else SAVED.push({name:name,keys:keys});
+        rebuildThemeSelect(); if(note) note.textContent='saved theme “'+name+'” to disk'; })
+      .catch(function(){ if(note) note.textContent='save failed'; });
+  }
+  function injectThemes(){
+    if(!themeEl) return;
+    var wrap=el('div','idxth-themes');
+    wrap.appendChild(el('div','idxth-sec','Theme presets & saved themes'));
+    var note=el('div','idxth-note2');
+    var row=el('div','idxth-themerow');
+    _tsel=el('select','idxl-opsel'); rebuildThemeSelect();
+    _tsel.onchange=function(){ var v=_tsel.value; if(!v) return;
+      var obj = v.charAt(0)==='p' ? PRESETS[v.slice(2)] : savedKeys(v.slice(2));
+      if(obj){ applyTheme(obj); note.textContent='applied “'+v.slice(2)+'” — Apply to save it to the panel'; }
+      _tsel.selectedIndex=0; };
+    var saveb=el('button','idxl-btn idxth-tbtn','Save current…'); saveb.type='button';
+    saveb.onclick=function(){ saveTheme(note); };
+    row.appendChild(_tsel); row.appendChild(saveb);
+    wrap.appendChild(row); wrap.appendChild(note);
+    wrap.appendChild(el('div','idxth-hint','Saved themes live in the plugin’s panel/themes folder (on the flash “config” share) — copy a .cfg there to share or install one.'));
+    themeEl.appendChild(wrap);
+  }
+
   function init(){
     root = document.getElementById('idxlayout'); if(!root) return;
     form = root.closest('form');
     try { CAT = JSON.parse(root.getAttribute('data-catalog') || '[]'); } catch(e){ CAT=[]; }
     try { ITEMS = JSON.parse(root.getAttribute('data-items') || '{}'); } catch(e){ ITEMS={}; }
     var ST = {}; try { ST = JSON.parse(root.getAttribute('data-layouts') || '{}'); } catch(e){}
+    try { SAVED = JSON.parse(root.getAttribute('data-themes') || '[]'); } catch(e){ SAVED=[]; }
     (ST.pages || []).forEach(function(p){ pages.push({ name:cleanName(p.name)||'Page', mods:parse(p.layout), on:p.on?true:false,
       header:p.header!==0, title:p.title!==0, dots:p.dots!==0, opacity:(p.cardop|0) }); });
     if(pages.length===0) pages.push({ name:'Overview', mods:parse('host,cpu,mem,net,storage,uptime'), on:true, header:true, title:true, dots:true, opacity:0 });
@@ -254,6 +321,11 @@
       '.idxl-chrome-lbl{opacity:.6;font-size:.85em}'+
       '.idxl-ctoggle{display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.92em}'+
       '.idxl-opsel{border:0 !important;border-bottom:1px solid rgba(128,128,128,.22) !important;background-color:transparent;font:inherit}'+
+      '.idxth-themes{max-width:680px;margin-top:26px}'+
+      '.idxth-themerow{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:6px 0}'+
+      '.idxth-tbtn{width:auto !important;height:30px;padding:0 12px}'+
+      '.idxth-note2{opacity:.7;font-size:.85em;min-height:1.15em;margin-top:6px}'+
+      '.idxth-hint{opacity:.55;font-size:.8em;margin-top:6px;line-height:1.4}'+
       '.idxl-list{display:flex;flex-direction:column;gap:0;margin-bottom:12px}'+
       /* compact line rows to match the theme tab (no boxes, one faint grey line);
        * the label grows so the (width-capped) style/name selects + buttons sit right */
@@ -292,6 +364,7 @@
       body.insertBefore(themeEl, document.getElementById('idxprev-wrap'));
       themeEl.addEventListener('input', onTheme);
       themeEl.addEventListener('change', onTheme);
+      injectThemes();
     }
     syncAll(); render();
   }

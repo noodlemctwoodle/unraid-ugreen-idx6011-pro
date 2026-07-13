@@ -17,6 +17,23 @@ function idx_cfg() {
 }
 function idx_val($cfg, $k, $def = '') { return isset($cfg[$k]) ? $cfg[$k] : $def; }
 
+/* saved theme files (panel/themes/*.cfg) -> [{name, keys:{K:V,...}}, ...] for the
+ * Load-theme dropdown. A theme is just the Theme-tab keys; share one by copying its
+ * .cfg (the themes folder is on the flash `config` share). */
+function idx_themes() {
+    $dir  = '/boot/config/plugins/ugreen-idx6011-pro/panel/themes';
+    $keys = ['FONT','HEAD_SCALE','TEXT_SCALE','CARD_OPACITY','COL_ACCENT','COL_GRAD_A',
+             'COL_GRAD_B','COL_BG','COL_CARD','COL_TEXT','COL_TITLE','COL_DIM','COL_OK','COL_WARN','COL_BAD'];
+    $out = [];
+    foreach (glob("$dir/*.cfg") ?: [] as $f) {
+        $ini = @parse_ini_file($f) ?: [];
+        $t = [];
+        foreach ($keys as $k) if (isset($ini[$k]) && $ini[$k] !== '') $t[$k] = $ini[$k];
+        if ($t) $out[] = ['name' => basename($f, '.cfg'), 'keys' => $t];
+    }
+    return $out;
+}
+
 /* cache-busted webGUI asset URL */
 function idx_asset($f) {
     return "/plugins/ugreen-idx6011-pro/$f?v=" .

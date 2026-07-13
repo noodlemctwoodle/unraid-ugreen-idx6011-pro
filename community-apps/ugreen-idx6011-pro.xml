@@ -26,7 +26,10 @@ running natively on Unraid - no UGOS required.
   container / VM cards), each with a choice of visual styles - bar, ring, gauge, history
   graph, area, blocks, split, trend or big number.
 - **Web Layout editor** with a live preview: add / rename / reorder / delete pages, pick
-  each module's style, and theme the font, sizes, colour palette, wallpaper and header logo.
+  each module's style, and theme the font, sizes and full colour palette. Point at any
+  image on the server for the **wallpaper / header logo** (hot-swaps live, no restart),
+  make cards translucent, hide the header / title / page-dots for a **full-screen image
+  page**, add spacer gaps, and save / load / share **theme presets**.
 - **Fan control**: drive all four chassis fans on temperature curves (Auto / Silent /
   Quiet / Turbo) or Max, with a never-stall floor - live RPM and an animated spinning-fan card.
 - **Smart front LEDs** (power / 2x LAN / 6x disk): configurable colours, SMART health
@@ -41,9 +44,13 @@ boot order. See the project README before installing.
 ###2026.07.13
 - Fully customisable dashboard with a module library and many visual styles; web Layout
   editor with a live preview; panel-driven four-fan curve control (Auto/Silent/Quiet/
-  Turbo/Max) with an animated Fans card; theming (font, sizes, palette, wallpaper, header
-  logo, network units); richer stats (docker container IPs + update flags, VMs, NPU,
-  fans); smarter configurable front LEDs; and a redesigned settings UI.
+  Turbo/Max) with an animated Fans card; theming (font, sizes, full palette incl. card-title
+  and dim colours, network units); richer stats (docker container IPs + update flags, VMs,
+  NPU, fans); smarter configurable front LEDs; and a redesigned settings UI.
+- Wallpapers and themes: point at any image on the server for the wallpaper / header logo
+  (hot-swapped live, no restart); translucent cards (global or per-page opacity), spacer
+  gaps, and per-page full-screen image pages (hide header / title / dots); plus theme
+  presets you can save, load and share as files.
 ###2026.07.12.1
 - New plugin icon.
 ###2026.07.12

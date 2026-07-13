@@ -29,8 +29,10 @@ running **Unraid** — the full front panel, working natively, no UGOS required 
   real panel: add / rename / reorder / delete pages, toggle them on or off, and pick
   each module's visualisation (and, for per-item cards, which disk/interface/etc.).
 - **Theme it**: choose the dashboard font, heading and text sizes, and every palette
-  colour with live colour pickers; upload a **wallpaper** and a **custom header
-  logo**; pick network-rate units (bits or bytes) and the primary interface.
+  colour (incl. card titles + dim text) with live colour pickers; point at any server
+  image for the **wallpaper** and **header logo** (hot-swapped live); make cards
+  translucent, hide the chrome for **full-screen image pages**, add spacer gaps, and
+  save / load / share **theme presets**; pick network-rate units and the primary interface.
 - **Fan control** from the panel: leave the fans to firmware (Auto), drive all four
   on **Silent / Quiet / Turbo** temperature curves (CPU fans by CPU temp, case fans by
   the hottest disk), or run them flat out (**Max**) — a floor keeps every fan spinning,
@@ -190,6 +192,83 @@ render of the real panel:
 The common knobs (brightness, rotate, LEDs, night mode, fan mode…) are also editable
 live from the panel's own touch **SETTINGS** page.
 
+## Wallpapers & themes
+
+Point the panel at **any image on the server** (Display ▸ Theme ▸ **Browse**) — it hot-swaps
+**live, no restart**. Make cards **translucent** (globally or per page) so the picture shows
+through, add **Spacer** modules to open up space, and hide any page's **header / title / page
+dots** for a clean **full-screen image**. Text keeps a subtle shadow over a wallpaper so it
+stays legible.
+
+<table>
+  <tr>
+    <td align="center" valign="top"><img src="images/showcase/01-anime-pink-overview.jpg" width="118" alt="Translucent cards over a wallpaper"><br><sub><b>Translucent cards</b></sub></td>
+    <td align="center" valign="top"><img src="images/showcase/05-animal-silhouette-fullbleed.jpg" width="118" alt="Full-screen image page"><br><sub><b>Full-screen page</b></sub></td>
+    <td align="center" valign="top"><img src="images/showcase/07-eye-detail-fans.jpg" width="118" alt="Animated fans over a wallpaper"><br><sub><b>Animated fans</b></sub></td>
+    <td align="center" valign="top"><img src="images/showcase/04-anime-judge-gauges.jpg" width="118" alt="Gauges over a wallpaper"><br><sub><b>Gauges</b></sub></td>
+  </tr>
+  <tr>
+    <td align="center" valign="top"><img src="images/showcase/02-garden-fox-hero.jpg" width="118" alt="Spacer + big value"><br><sub><b>Spacer + big value</b></sub></td>
+    <td align="center" valign="top"><img src="images/showcase/06-anime-nouveau-mixed.jpg" width="118" alt="Blocks, split, trend cards"><br><sub><b>Blocks / split / trend</b></sub></td>
+    <td align="center" valign="top"><img src="images/showcase/08-anime-princess-status.jpg" width="118" alt="Status cards over a wallpaper"><br><sub><b>Status cards</b></sub></td>
+    <td align="center" valign="top"><img src="images/showcase/13-anime-duality-fullbleed.jpg" width="118" alt="Full-bleed image page"><br><sub><b>Full-bleed</b></sub></td>
+  </tr>
+</table>
+
+The **card-opacity** slider (global, or a per-page override) blends the cards into the image:
+
+<table>
+  <tr>
+    <td align="center" valign="top"><img src="images/showcase/15-opacity-78.jpg" width="108" alt="Card opacity 78%"><br><sub>78%</sub></td>
+    <td align="center" valign="top"><img src="images/showcase/16-opacity-55.jpg" width="108" alt="Card opacity 55%"><br><sub>55%</sub></td>
+    <td align="center" valign="top"><img src="images/showcase/17-opacity-38.jpg" width="108" alt="Card opacity 38%"><br><sub>38%</sub></td>
+  </tr>
+</table>
+
+### Theme presets & sharing
+
+The **Theme** tab has built-in **presets** — Unraid, Sakura, Ember, Abyss, Aurora, Grape,
+Cyber, Mono — that recolour the whole dashboard in a click. **Save current…** writes your
+theme to a file:
+
+```
+/boot/config/plugins/ugreen-idx6011-pro/panel/themes/<name>.cfg
+```
+
+That folder is on the flash **`config`** share
+(`\\TOWER\flash\config\plugins\ugreen-idx6011-pro\panel\themes\`), so **sharing a theme is
+just copying its `.cfg`** — drop one in and it shows up in the **Load a theme…** dropdown. A
+theme is only the palette, font, sizes and card opacity; nothing device-specific.
+
+### Example wallpapers
+
+A set of **258×960 wallpapers** (cropped to the panel) lives in
+[`images/wallpapers/`](images/wallpapers) — drop them on a share and Browse to them. They are
+**not** shipped in the plugin.
+
+<table>
+  <tr>
+    <td><img src="images/wallpapers/anime-pink.jpg" width="66"></td>
+    <td><img src="images/wallpapers/garden-fox.jpg" width="66"></td>
+    <td><img src="images/wallpapers/fox-kit.jpg" width="66"></td>
+    <td><img src="images/wallpapers/canine.jpg" width="66"></td>
+    <td><img src="images/wallpapers/animal-silhouette.jpg" width="66"></td>
+    <td><img src="images/wallpapers/dragonfly.jpg" width="66"></td>
+    <td><img src="images/wallpapers/eye-detail.jpg" width="66"></td>
+  </tr>
+  <tr>
+    <td><img src="images/wallpapers/anime-judge.jpg" width="66"></td>
+    <td><img src="images/wallpapers/anime-princess.jpg" width="66"></td>
+    <td><img src="images/wallpapers/anime-nouveau.jpg" width="66"></td>
+    <td><img src="images/wallpapers/anime-duality.jpg" width="66"></td>
+    <td><img src="images/wallpapers/anime-girl.jpg" width="66"></td>
+    <td><img src="images/wallpapers/anime-intense-1.jpg" width="66"></td>
+    <td><img src="images/wallpapers/anime-intense-2.jpg" width="66"></td>
+  </tr>
+</table>
+
+<sub>Example wallpapers via <a href="https://stockcake.com">StockCake</a> (free for personal &amp; commercial use).</sub>
+
 ## Front-panel LEDs
 
 Colours and behaviour are configurable on the **Lighting** tab; the defaults:
@@ -243,9 +322,12 @@ underlying store is `/boot/config/plugins/ugreen-idx6011-pro/panel/settings.cfg`
 | `NET_UNITS` | `bits` | network-rate units: `bits` (Kbps/Mbps, matches Unraid) or `bytes` (KB/s) |
 | `PRIMARY_IFACE` | *(auto)* | interface whose rates the Overview/Home pages show; empty = auto-pick the default-route interface. Set e.g. `bond0` to match the Unraid dashboard. Falls back to auto-pick if the named interface is absent. |
 
-Theme (`FONT`, `HEAD_SCALE`, `TEXT_SCALE`, `COL_*`), the LED colours (`LED_*`) and the
-page layout (`N_PAGES`, `PAGE<n>_*`) are also stored here but are best edited from the
-web UI. The common knobs are editable live from the panel's own **SETTINGS** page too.
+Theme (`FONT`, `HEAD_SCALE`, `TEXT_SCALE`, `CARD_OPACITY`, and the `COL_*` palette
+incl. `COL_TITLE` / `COL_DIM`), the wallpaper/logo paths (`WALLPAPER`, `LOGO`), the LED
+colours (`LED_*`) and the page layout (`N_PAGES`, `PAGE<n>_NAME|LAYOUT|ON|HEADER|TITLE|
+DOTS|CARDOP`) are also stored here but are best edited from the web UI. Saved themes are
+separate files in `…/panel/themes/*.cfg`. The common knobs are editable live from the
+panel's own **SETTINGS** page too.
 
 - **Wallpaper / header logo**: point at any image on the server from **Display ▸ Theme**
   (a file browser) — stored as `WALLPAPER=` / `LOGO=` and hot-swapped on the panel **live,
@@ -303,7 +385,7 @@ src/                     shell scripts (LED + LCD + boot heal); src/panel/ = mod
 boot/                    kernel wake-probe patch + overlay build script
 prebuilt/                verified binaries: panel_dash, bzroot-wakefix (kernel-bound),
                          ugreen_leds_cli (klein0r/iDX6011), i2c-tools txz
-images/                  plugin icon (transparent PNG)
+images/                  plugin icon, README screenshots + example wallpapers (icon only is bundled)
 docs/SOLUTION.md         architecture + every hardware discovery, with evidence
 docs/front-panel-blueprint.md   numbered install runbook + hardware reference appendix
 docs/PLUGIN.md           Unraid plugin-schema conformance + release process
@@ -348,6 +430,8 @@ Built on the work of others — this would not exist without:
   official Unraid header mark embedded in the dashboard (Apache-2.0 icon set)
 - **Deivizzz** — the plugin icon: original line-art of the iDX6011 Pro, used in the
   Unraid plugin manager and the Community Applications listing
+- [StockCake](https://stockcake.com) — the example wallpapers in `images/wallpapers/`
+  (free for personal &amp; commercial use); not bundled in the plugin
 - [libdrm](https://gitlab.freedesktop.org/mesa/drm) — DRM dumb-buffer rendering the
   dashboard links against at runtime (MIT)
 

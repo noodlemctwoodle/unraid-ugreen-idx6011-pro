@@ -28,7 +28,7 @@ if ($items   === '') $items   = '{}';
 <input type="hidden" name="#file" value="ugreen-idx6011-pro/panel/settings.cfg">
 <input type="hidden" name="#command" value="plugins/ugreen-idx6011-pro/restart.sh">
 
-<div id="idxlayout" data-catalog="<?=htmlspecialchars($catalog)?>" data-layouts="<?=htmlspecialchars($layouts)?>" data-items="<?=htmlspecialchars($items)?>"></div>
+<div id="idxlayout" data-catalog="<?=htmlspecialchars($catalog)?>" data-layouts="<?=htmlspecialchars($layouts)?>" data-items="<?=htmlspecialchars($items)?>" data-themes="<?=htmlspecialchars(json_encode(idx_themes()))?>"></div>
 
 <div id="idxtheme" style="display:none">
   <div class="idxth-grid">

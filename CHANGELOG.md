@@ -31,6 +31,10 @@ and the plugin's in-app `<CHANGES>` list.
   through — globally or per page — add **Spacer** modules to push content down, and
   hide any page's **header bar / title card / page dots** for a clean **full-screen
   image page**. Text keeps a subtle drop shadow over a wallpaper so it stays legible.
+- **Theme presets & sharing.** Built-in presets (Unraid, Sakura, Ember, Abyss, Aurora,
+  Grape, Cyber, Mono) recolour the whole dashboard in a click; **Save current…** writes a
+  theme file to `…/panel/themes/`, and a **Load a theme…** dropdown lists your saved
+  themes — share one by copying its `.cfg`.
 - **Smarter front LEDs.** Configurable LAN and per-state disk-light colours, power
   light on/off, and an activity mode that blinks the disk/LAN LEDs on I/O and goes
   solid when idle.
