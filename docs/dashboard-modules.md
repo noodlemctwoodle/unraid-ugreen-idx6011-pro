@@ -61,10 +61,19 @@ Card helpers (each returns the advance = card height + `C_GAP`):
 
 | helper | card |
 |---|---|
-| `metric_card(y, title, pct, value, ring)` | title + big value + **bar** (ring=0) or **ring** (ring=1) |
-| `spark_card(y, title, value, hist, hcnt, hpos, col)` | title + value + 62px sparkline |
+| `metric_card(y, title, pct, value, style)` | title + big value + **bar**/​**ring**/​**big**/​**gauge** (style 0-3) |
+| `graph_card(y, title, value, hist, col, fill, maxv)` | title + value + history sparkline (line or filled area; `maxv<=0` auto-scales) |
+| `blocks_card(y, title, pct, value)` | title + value + a 10-segment "blocks" meter |
+| `split_card(y, title, usedpct, used, free)` | two-tone **used/free** bar with both values labelled |
+| `trend_card(y, title, value, hist, col)` | big value + mini area spark + `+/-` delta |
+| `big_value_card(y, title, value, col)` | title + one large centred value |
 | `value_card(y, h, title, value, col)` | title + one text line |
 | `bar_card(y, h, title, value, pct, col)` | title + right value + a bar |
+
+Metric modules pick a style from the variant **name** (via `g_item_key`), not an
+index — e.g. `mod_cpu` switches on `"ring"` / `"area"` / `"blocks"` / `"trend"`.
+History for a graph comes from the per-metric buffers in `ui.h` (`h_cpu`, `h_mem`,
+`h_net`, …), pushed each tick by `hist_push_all()`.
 
 Accents (call after the card helper, they draw onto the card you just made):
 `card_tag(y, s, col)` (small top-right tag), `card_sub(y, slot, s, col)`
