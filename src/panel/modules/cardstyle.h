@@ -282,10 +282,16 @@ static int bar_card(int y, int h, const char *title, const char *value,
 static void item_head(int y, uint32_t dot, const char *name, float name_sc,
                       const char *right, float right_sc, uint32_t right_col){
     rect(C_X0, y + gy(14), gy(11), gy(11), dot, 255);
+    int name_x = C_X0 + gy(18), maxw = 150;
+    if (right && right[0]){                          /* reserve room so name can't hit the value */
+        int avail = (C_R - text_w(right_sc, right)) - name_x - gy(8);
+        if (avail < maxw) maxw = avail;
+    }
+    if (maxw < gy(24)) maxw = gy(24);                /* never let the name vanish entirely */
     char nm[64]; snprintf(nm, sizeof nm, "%s", name);
-    while (nm[0] && htext_w(name_sc, nm) > 150) nm[strlen(nm) - 1] = 0;  /* fit (heading scale) */
-    htext(C_X0 + gy(18), y + gy(12), name_sc, UN_TEXT, nm);             /* item name = heading */
-    if (right) text(C_R - text_w(right_sc, right), y + gy(13), right_sc, right_col, right);
+    while (nm[0] && htext_w(name_sc, nm) > maxw) nm[strlen(nm) - 1] = 0;  /* fit (heading scale) */
+    htext(name_x, y + gy(12), name_sc, UN_TEXT, nm);                    /* item name = heading */
+    if (right && right[0]) text(C_R - text_w(right_sc, right), y + gy(13), right_sc, right_col, right);
 }
 
 #endif /* PANEL_CARDSTYLE_H */

@@ -179,14 +179,24 @@ static void read_ctr_updates(stats_t *st){
     for (int i = 0; i < st->n_ctrs; i++){
         ctr_t *c = &st->ctrs[i];
         if (!c->image[0]) continue;
-        char key[80]; snprintf(key, sizeof key, "\"%s", c->image);
-        char *tag = strchr(key + 1, ':'); if (tag) *tag = 0;    /* match image sans :tag */
-        char *k = strstr(updbuf, key);
-        if (!k) continue;
-        char *stp = strstr(k, "\"status\"");
-        if (stp && stp - k < 240){
+        char img[72]; snprintf(img, sizeof img, "%s", c->image);
+        char *slash = strrchr(img, '/');                        /* strip :tag, but only after */
+        char *tag = strrchr(slash ? slash : img, ':');          /* the final '/' so a registry */
+        if (tag) *tag = 0;                                      /* :port survives */
+        char key[74]; snprintf(key, sizeof key, "\"%s", img);
+        size_t klen = strlen(key);
+        char *k = updbuf, *hit = NULL;                          /* require a full key boundary */
+        while ((k = strstr(k, key))){
+            char after = k[klen];
+            if (after == '"' || after == ':'){ hit = k; break; }   /* exact key, or key + :tag */
+            k += klen;
+        }
+        if (!hit) continue;
+        char *end = strchr(hit, '}');                           /* this entry's object end */
+        char *stp = strstr(hit, "\"status\"");
+        if (stp && (!end || stp < end)){
             char *fv = strstr(stp, "false");
-            if (fv && fv - stp < 12) c->update = 1;
+            if (fv && (!end || fv < end) && fv - stp < 16) c->update = 1;
         }
     }
 }
