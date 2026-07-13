@@ -15,7 +15,8 @@ static int mod_storage(int y, stats_t *st, int variant){
     snprintf(v, sizeof v, "%.0f%%", st->disk_used_pct);
     int h = metric_card(y, "STORAGE", st->disk_used_pct, v, variant == 1);
     snprintf(v, sizeof v, "%.0f / %.0f GB", st->disk_used_gb, st->disk_tot_gb);
-    card_sub(y, 0, v, UN_DIM);
+    if (variant == 1) ring_detail(y, 74, v, UN_DIM);     /* right of the ring */
+    else              card_sub(y, 0, v, UN_DIM);          /* right-aligned (bar) */
     return h;
 }
 

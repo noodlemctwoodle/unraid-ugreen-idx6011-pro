@@ -31,6 +31,12 @@
 #define CH_METRIC 142              /* metric card (value + bar/ring)         */
 #define CH_SPARK  152              /* metric card with a sparkline           */
 
+/* ---- ring geometry (metric_card ring variant) ---- */
+#define RING_CX 60                 /* ring centre x                          */
+#define RING_RO 40                 /* ring outer radius                      */
+#define RING_DX (RING_CX + RING_RO + 8)  /* detail-text left edge (right of the ring) */
+#define RING_DSC 1.6f                     /* detail scale (fits the right-of-ring zone) */
+
 /* ---- semantic colours ----------------------------------------------------
  * Map a module's STATE to a palette colour in ONE place, so every card colours
  * the same way. A module must NEVER hardcode a colour decision (e.g. ternaries
@@ -61,14 +67,22 @@ static void card_sub(int y, int slot, const char *s, uint32_t col){
 static int metric_card(int y, const char *title, double pct, const char *value, int ring){
     card(y, CH_METRIC, title);
     if (ring){
-        int cx = 60, cy = y + 82, ro = 40, ri = 27;
-        ring_gauge(cx, cy, ro, ri, pct, level_col(pct));
-        text(cx - text_w(2.2f, value) / 2, cy - 9, 2.2f, UN_TEXT, value);
+        int cy = y + 82;
+        ring_gauge(RING_CX, cy, RING_RO, 27, pct, col_load(pct));
+        text(RING_CX - text_w(2.2f, value) / 2, cy - 9, 2.2f, UN_TEXT, value);
     } else {
         text(C_X0, y + 44, C_VAL, UN_TEXT, value);
-        bar(C_X0, y + 108, C_W, 18, pct, level_col(pct));
+        bar(C_X0, y + 108, C_W, 18, pct, col_load(pct));
     }
     return CH_METRIC + C_GAP;
+}
+
+/* detail line to the RIGHT of a ring (left-aligned + truncated, so long text
+ * such as "1.8 / 62.3 GB" can never overlap the ring). dy = y-offset in the card. */
+static void ring_detail(int y, int dy, const char *s, uint32_t col){
+    char v[64]; snprintf(v, sizeof v, "%s", s);
+    trunc_fit(v, RING_DSC, C_R - RING_DX);
+    text(RING_DX, y + dy, RING_DSC, col, v);
 }
 
 /* METRIC CARD WITH SPARKLINE: title + big value + a 62px history graph. */

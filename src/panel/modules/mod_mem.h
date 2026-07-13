@@ -17,7 +17,8 @@ static int mod_mem(int y, stats_t *st, int variant){
     snprintf(v, sizeof v, "%.0f%%", mp);
     int h = metric_card(y, "MEMORY", mp, v, variant == 1);
     snprintf(v, sizeof v, "%.1f / %.1f GB", st->mem_used_mb / 1024.0, st->mem_tot_mb / 1024.0);
-    card_sub(y, 0, v, UN_DIM);
+    if (variant == 1) ring_detail(y, 74, v, UN_DIM);     /* right of the ring */
+    else              card_sub(y, 0, v, UN_DIM);          /* right-aligned (bar) */
     return h;
 }
 
