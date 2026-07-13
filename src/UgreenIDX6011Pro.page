@@ -8,9 +8,10 @@ Markdown="true"
  * Writes /update.php -> the plugin's panel/settings.cfg on flash, then runs
  * restart.sh (installed under the webGUI docroot so update.php accepts it as
  * a #command) to re-apply the dashboard + LED colours live.
- * The picker CSS/JS live in external assets (idxcp.css / idxcp.js): an inline
- * <script> placed after a markdown="1" form is mangled by Unraid's MarkdownExtra
- * pass, whereas external <link>/<script src> one-liners are markdown-safe.
+ * Controls are native Unraid form elements (no custom CSS -> inherits the Unraid
+ * theme). idxcp.js is the only asset: an inline <script> placed after a markdown="1"
+ * form is mangled by Unraid's MarkdownExtra pass, so it's loaded as an external
+ * <script src> one-liner (markdown-safe).
  * Colours are stored as BARE 6-hex (no leading #) to match the daemon's writer
  * and to round-trip cleanly through parse_ini_file. */
 $plugin  = 'ugreen-idx6011-pro';
@@ -37,28 +38,22 @@ function opts($items, $cur) {
              ((string)$cur === (string)$v ? ' selected' : '') . '>' .
              htmlspecialchars($lbl) . '</option>';
 }
-/* emit a colour control: swatch chip (opens native picker) + # + hex field, a
- * preset-dot ribbon, and a rotating reset. $cls tags the section (idx-theme /
- * idx-led) for the per-section reset buttons. Stores/loads BARE 6-hex. */
+/* emit NATIVE Unraid colour controls (no custom styling, inherits the Unraid theme):
+ * a plain <input type=color> swatch + a text field for the hex, kept in sync by
+ * idxcp.js. The text field is the submitted value (BARE 6-hex); $cls tags the
+ * section (idx-theme / idx-led) for the per-section Restore-defaults buttons. */
 function colorField($cfg, $name, $default, $cls) {
     $def = strtolower(ltrim($default, '#'));
     $v   = isset($cfg[$name]) ? strtolower(ltrim(trim($cfg[$name]), '#')) : '';
     if (!preg_match('/^[0-9a-f]{6}$/', $v)) $v = $def;
     $n = htmlspecialchars($name);
-    echo '<span class="idxcp" data-label="'.$n.'">'
-       . '<span class="idxcp-field">'
-       .   '<button type="button" class="idxcp-chip" aria-label="'.$n.' '._('colour').'"></button>'
-       .   '<span class="idxcp-hash" aria-hidden="true">#</span>'
-       .   '<input class="idxcp-hex '.$cls.'" type="text" name="'.$n.'" value="'.$v.'" data-default="'.$def.'"'
-       .        ' maxlength="7" spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="'.$n.' hex">'
-       .   '<input class="idxcp-native" type="color" tabindex="-1" aria-hidden="true" value="#'.$v.'">'
-       . '</span>'
-       . '<span class="idxcp-presets" role="group" aria-label="'.$n.' '._('presets').'"></span>'
-       . '<button type="button" class="idxcp-reset" title="'._('Restore default').'" aria-label="'._('Restore default').'"></button>'
+    echo '<span class="idxcp">'
+       . '<input type="color" class="idxcp-chip" value="#'.$v.'" aria-label="'.$n.' '._('colour').'" title="'._('Pick colour').'"> '
+       . '<input type="text" class="idxcp-hex '.$cls.'" name="'.$n.'" value="'.$v.'" data-default="'.$def.'"'
+       .        ' size="8" maxlength="7" spellcheck="false" autocomplete="off" aria-label="'.$n.' hex">'
        . '</span>';
 }
 ?>
-<link rel="stylesheet" href="<?=$asset('idxcp.css')?>">
 <script src="<?=$asset('idxcp.js')?>"></script>
 
 <form markdown="1" name="idx_settings" method="POST" action="/update.php" target="progressFrame">

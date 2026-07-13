@@ -30,12 +30,12 @@ install -m0755 src/start.sh src/stop.sh src/monitor.sh src/calibrate.sh \
 # --- shared binaries ---------------------------------------------------------
 install -m0755 prebuilt/ugreen_leds_cli "$STAGE/"
 install -m0644 prebuilt/i2c-tools-*.txz "$STAGE/"
-# --- webGUI icon + settings page + colour-picker assets ----------------------
-# (the .plg install copies the page/CSS/JS/restart.sh into the webGUI plugin dir)
+# --- webGUI icon + settings page + colour-sync script ------------------------
+# (the .plg install copies the page/JS/restart.sh into the webGUI plugin dir)
 install -d "$STAGE/images"
 install -m0644 "images/$NAME.png" "$STAGE/images/"
 install -m0644 src/UgreenIDX6011Pro.page "$STAGE/"
-install -m0644 src/webgui/idxcp.css src/webgui/idxcp.js "$STAGE/"
+install -m0644 src/webgui/idxcp.js "$STAGE/"
 # --- dashboard binary + per-kernel touch modules + display overlay -----------
 install -d "$STAGE/panel/modules/$KVER" "$STAGE/panel/overlay/$KVER"
 # dashboard binary: prefer a freshly-built one (CI / src/panel/build.sh); the

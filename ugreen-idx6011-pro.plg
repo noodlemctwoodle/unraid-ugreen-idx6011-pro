@@ -71,7 +71,7 @@ sed -i '/# UGREEN iDX6011 Pro front-panel dashboard/,/^fi$/d' /boot/config/go 2>
 # realpath()s inside /usr/local/emhttp, so the config page points at plugins/&name;/restart.sh.
 mkdir -p /usr/local/emhttp/plugins/&name;/images
 [ -f "&plgdir;/images/&name;.png" ] &amp;&amp; cp "&plgdir;/images/&name;.png" /usr/local/emhttp/plugins/&name;/images/
-for f in UgreenIDX6011Pro.page idxcp.css idxcp.js restart.sh; do
+for f in UgreenIDX6011Pro.page idxcp.js restart.sh; do
   [ -f "&plgdir;/$f" ] &amp;&amp; cp "&plgdir;/$f" /usr/local/emhttp/plugins/&name;/
 done
 chmod +x /usr/local/emhttp/plugins/&name;/restart.sh 2>/dev/null
