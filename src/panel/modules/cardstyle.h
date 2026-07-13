@@ -53,13 +53,20 @@ static uint32_t col_dot(int up){ return up ? UN_OK : 0x555555; }        /* prese
 static uint32_t col_health(int h){                                      /* 0=ok 1=warn 2=bad  */
     return h == 2 ? UN_BAD : h == 1 ? UN_WARN : UN_OK; }
 
-/* small top-right tag (e.g. "16T", "1500 MHz") */
+/* small top-right tag (e.g. "16T", "1500 MHz") — truncates to the zone right of
+ * the title, so it can never run back over the title. */
 static void card_tag(int y, const char *s, uint32_t col){
-    text(C_R - text_w(C_TAG, s), y + 12, C_TAG, col, s);
+    char v[32]; snprintf(v, sizeof v, "%s", s);
+    trunc_fit(v, C_TAG, C_R - (C_X0 + 96));
+    text(C_R - text_w(C_TAG, v), y + 12, C_TAG, col, v);
 }
-/* right-aligned secondary value at a standard slot (0 = upper, 1 = lower) */
+/* right-aligned SHORT secondary value at a standard slot (0 = upper, 1 = lower),
+ * e.g. temp / power. Truncates to the right zone (leaves room for the value on
+ * the left). For a long used/total line use metric_detail() instead. */
 static void card_sub(int y, int slot, const char *s, uint32_t col){
-    text(C_R - text_w(C_SUB, s), y + (slot ? 80 : 50), C_SUB, col, s);
+    char v[32]; snprintf(v, sizeof v, "%s", s);
+    trunc_fit(v, C_SUB, C_R - (C_X0 + 70));
+    text(C_R - text_w(C_SUB, v), y + (slot ? 80 : 50), C_SUB, col, v);
 }
 
 /* STANDARD METRIC CARD: title + big value with a bar (ring=0) or ring (ring=1).
@@ -77,12 +84,16 @@ static int metric_card(int y, const char *title, double pct, const char *value, 
     return CH_METRIC + C_GAP;
 }
 
-/* detail line to the RIGHT of a ring (left-aligned + truncated, so long text
- * such as "1.8 / 62.3 GB" can never overlap the ring). dy = y-offset in the card. */
-static void ring_detail(int y, int dy, const char *s, uint32_t col){
+/* the used/total (or similar) detail line of a metric card, placed so it can
+ * NEVER collide with the value/ring, whatever the string length:
+ *   ring mode -> the zone to the RIGHT of the ring (left-aligned, small scale)
+ *   bar  mode -> its OWN ROW below the big value (full width, left-aligned)
+ * Always truncated to that zone. Use this for long metric details; use card_sub
+ * for short right-aligned values (temp/power). */
+static void metric_detail(int y, const char *s, uint32_t col, int ring){
     char v[64]; snprintf(v, sizeof v, "%s", s);
-    trunc_fit(v, RING_DSC, C_R - RING_DX);
-    text(RING_DX, y + dy, RING_DSC, col, v);
+    if (ring){ trunc_fit(v, RING_DSC, C_R - RING_DX); text(RING_DX, y + 74, RING_DSC, col, v); }
+    else     { trunc_fit(v, C_SUB,    C_W);           text(C_X0,    y + 82, C_SUB,    col, v); }
 }
 
 /* METRIC CARD WITH SPARKLINE: title + big value + a 62px history graph. */

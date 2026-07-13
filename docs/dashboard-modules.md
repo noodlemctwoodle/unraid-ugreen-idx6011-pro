@@ -65,8 +65,10 @@ Card helpers (each returns the advance = card height + `C_GAP`):
 
 Accents (call after the card helper, they draw onto the card you just made):
 `card_tag(y, s, col)` (small top-right tag), `card_sub(y, slot, s, col)`
-(right-aligned secondary value, slot 0 upper / 1 lower),
-`item_head(y, dot, name, name_sc, right, right_sc, col)` (list-item header row).
+(right-aligned **short** value — temp/power — slot 0 upper / 1 lower),
+`metric_detail(y, s, col, ring)` (a **long** used/total line, placed safely for the
+bar/ring variant — see below), `item_head(y, dot, name, name_sc, right, right_sc, col)`
+(list-item header row).
 
 Change any of these and **every** card updates — that's the point.
 
@@ -96,6 +98,37 @@ one place, so thresholds are identical everywhere:
 …` inline). Call a `col_*` helper, or add a new one here — then it's consistent and
 re-themeable everywhere. `metric_card`/`bar_card` already colour their bar/ring via
 `col_load`.
+
+## Layout & avoiding overlap
+
+The panel is only **258 px** wide, so text overlap is the easiest way to make a
+card look broken. The rule that keeps it from happening: **every text helper clips
+to a zone, so overlap is impossible if you compose helpers instead of calling
+`text()` by hand.** A metric card has these zones:
+
+```
+┌───────────────────────────────────────┐
+│ TITLE (left)               tag (right) │  card_tag clips right of the title
+│  BIG VALUE          card_sub (right)   │  bar mode: value left, subs right
+│  (or a RING, left)  metric_detail zone │  ring mode: ring left, detail right
+│  metric_detail row (bar mode)          │  bar mode: detail on its OWN row
+│  ▓▓▓▓▓▓▓ bar ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓   │
+└───────────────────────────────────────┘
+```
+
+Guarantees baked into the shim:
+- `card_tag` / `card_sub` **truncate** to their right-hand zone — they can't run
+  back over the title or the big value.
+- `metric_detail` places a *long* used/total line where it can never collide:
+  **right of the ring** (ring mode) or on **its own row** below the value (bar
+  mode), truncating either way. Use it for anything like `"1.8 / 62.3 GB"`; use
+  `card_sub` only for short values (`"39C"`, `"7.9 W"`).
+- `value_card`, `bar_card`, and the `item_head` name all `trunc_fit` too.
+
+So: **never call `text()` for content that could be wide** — reach for a helper
+that owns a zone (or add one that `trunc_fit`s). And **always `--shot` a layout
+change and eyeball it**, watching ring-variant details and long strings in
+particular (a right-aligned long string over a ring gauge was the classic trap).
 
 ## Registering a module
 
