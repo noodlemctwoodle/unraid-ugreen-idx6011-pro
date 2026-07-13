@@ -24,33 +24,35 @@ $ifaces = idx_ifaces();
 <input type="hidden" name="#file" value="ugreen-idx6011-pro/panel/settings.cfg">
 <input type="hidden" name="#command" value="plugins/ugreen-idx6011-pro/restart.sh">
 
-_(LCD brightness, %)_:
-: <input type="number" name="BRIGHTNESS" min="5" max="100" step="1" value="<?=htmlspecialchars(idx_val($cfg,'BRIGHTNESS','75'))?>">
+<div class="idxth-grid">
+  <label>_(LCD brightness, %)_</label>
+  <input type="number" name="BRIGHTNESS" min="5" max="100" step="1" value="<?=htmlspecialchars(idx_val($cfg,'BRIGHTNESS','75'))?>">
 
-_(Stats refresh, seconds)_:
-: <input type="number" name="INTERVAL" min="1" max="10" step="1" value="<?=htmlspecialchars(idx_val($cfg,'INTERVAL','1'))?>">
+  <label>_(Stats refresh, seconds)_</label>
+  <input type="number" name="INTERVAL" min="1" max="10" step="1" value="<?=htmlspecialchars(idx_val($cfg,'INTERVAL','1'))?>">
 
-_(Auto-rotate pages every)_:
-: <select name="ROTATE"><?php idx_opts([0=>'Off',10=>'10 seconds',20=>'20 seconds',30=>'30 seconds',60=>'60 seconds'], idx_val($cfg,'ROTATE','0')); ?></select>
+  <label>_(Auto-rotate pages every)_</label>
+  <select name="ROTATE"><?php idx_opts([0=>'Off',10=>'10 seconds',20=>'20 seconds',30=>'30 seconds',60=>'60 seconds'], idx_val($cfg,'ROTATE','0')); ?></select>
 
-_(Screen off after idle)_:
-: <select name="SCREEN_OFF_MIN"><?php idx_opts([0=>'Never',1=>'1 minute',5=>'5 minutes',15=>'15 minutes'], idx_val($cfg,'SCREEN_OFF_MIN','0')); ?></select>
+  <label>_(Screen off after idle)_</label>
+  <select name="SCREEN_OFF_MIN"><?php idx_opts([0=>'Never',1=>'1 minute',5=>'5 minutes',15=>'15 minutes'], idx_val($cfg,'SCREEN_OFF_MIN','0')); ?></select>
 
-_(Night mode &mdash; clamp brightness to 15%)_:
-: <select name="NIGHT"><?php idx_opts([0=>'Off',1=>'On'], idx_val($cfg,'NIGHT','0')); ?></select>
+  <label>_(Night mode &mdash; clamp brightness to 15%)_</label>
+  <select name="NIGHT"><?php idx_opts([0=>'Off',1=>'On'], idx_val($cfg,'NIGHT','0')); ?></select>
 
-_(Fan mode)_:
-: <select name="FAN_MODE"><?php idx_opts(['auto'=>'Auto (firmware controls the fans)','silent'=>'Silent','quiet'=>'Quiet','turbo'=>'Turbo','max'=>'Max (all fans 100%)'], idx_val($cfg,'FAN_MODE','auto')); ?></select>
-  <br><small>_(Silent/Quiet/Turbo drive **all four fans** on temperature curves &mdash; CPU fans by CPU temp, case fans by the hottest disk &mdash; never below 25% so they never stall, with a forced 100% at critical temps. **Max** runs every fan at 100% regardless of temperature. If the panel process stops, the fans hold their last speed until it restarts.)_</small>
+  <label>_(Fan mode)_</label>
+  <select name="FAN_MODE"><?php idx_opts(['auto'=>'Auto (firmware controls the fans)','silent'=>'Silent','quiet'=>'Quiet','turbo'=>'Turbo','max'=>'Max (all fans 100%)'], idx_val($cfg,'FAN_MODE','auto')); ?></select>
+  <div class="idxth-note">_(Silent/Quiet/Turbo drive <strong>all four fans</strong> on temperature curves &mdash; CPU fans by CPU temp, case fans by the hottest disk &mdash; never below 25% so they never stall, with a forced 100% at critical temps. <strong>Max</strong> runs every fan at 100% regardless of temperature. If the panel process stops, the fans hold their last speed until it restarts.)_</div>
 
-_(Network rate units)_:
-: <select name="NET_UNITS"><?php idx_opts(['bits'=>'Bits — Kbps / Mbps (matches Unraid)','bytes'=>'Bytes — KB/s / MB/s'], idx_val($cfg,'NET_UNITS','bits')); ?></select>
+  <label>_(Network rate units)_</label>
+  <select name="NET_UNITS"><?php idx_opts(['bits'=>'Bits — Kbps / Mbps (matches Unraid)','bytes'=>'Bytes — KB/s / MB/s'], idx_val($cfg,'NET_UNITS','bits')); ?></select>
 
-_(Primary network interface &mdash; shown on Overview &amp; Home)_:
-: <select name="PRIMARY_IFACE">
-  <option value=""<?=idx_val($cfg,'PRIMARY_IFACE','')===''?' selected':''?>>Auto (default route)</option>
-  <?php foreach ($ifaces as $n) echo '<option value="' . htmlspecialchars($n) . '"' . (idx_val($cfg,'PRIMARY_IFACE','') === $n ? ' selected' : '') . '>' . htmlspecialchars($n) . '</option>'; ?>
+  <label>_(Primary network interface &mdash; shown on Overview &amp; Home)_</label>
+  <select name="PRIMARY_IFACE">
+    <option value=""<?=idx_val($cfg,'PRIMARY_IFACE','')===''?' selected':''?>>Auto (default route)</option>
+    <?php foreach ($ifaces as $n) echo '<option value="' . htmlspecialchars($n) . '"' . (idx_val($cfg,'PRIMARY_IFACE','') === $n ? ' selected' : '') . '>' . htmlspecialchars($n) . '</option>'; ?>
   </select>
+</div>
 
 &nbsp;
 : <span class="buttons-spaced"><input type="submit" name="#apply" value="_(Apply)_" disabled><input type="button" value="_(Done)_" onclick="done()"></span>
