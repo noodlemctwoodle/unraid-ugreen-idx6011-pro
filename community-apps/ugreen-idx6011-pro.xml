@@ -51,6 +51,9 @@ boot order. See the project README before installing.
   (hot-swapped live, no restart); translucent cards (global or per-page opacity), spacer
   gaps, and per-page full-screen image pages (hide header / title / dots); plus theme
   presets you can save, load and share as files.
+- Power-save schedule: turn the screen and disk/LAN LEDs off between two local times
+  (quiet hours); a tap wakes everything and it re-sleeps 30s after the last touch. The
+  timezone comes from Unraid automatically.
 ###2026.07.12.1
 - New plugin icon.
 ###2026.07.12

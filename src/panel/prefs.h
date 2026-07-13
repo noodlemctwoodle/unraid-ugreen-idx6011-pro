@@ -33,6 +33,9 @@ static int cfg_brightness = 75;     /* 5..100 */
 static int cfg_interval   = 1;      /* stats seconds */
 static int cfg_rotate     = 0;      /* auto-rotate seconds: 0/10/20/60 */
 static int cfg_screen_off = 0;      /* minutes: 0(never)/1/5/15 */
+static int cfg_ps_on      = 0;      /* power-save schedule: blank screen + LEDs in a time window */
+static int cfg_ps_start   = -1;     /* window start, minutes-of-day (local); -1 = unset */
+static int cfg_ps_end     = -1;     /* window end,   minutes-of-day (local); -1 = unset */
 static int cfg_night      = 0;      /* 1 = clamp brightness to 15% */
 static int cfg_leds       = 1;      /* chassis LEDs on/off */
 static int cfg_fan_mode   = 0;      /* fan curve: 0 auto, 1 silent, 2 quiet, 3 turbo, 4 max */
@@ -68,6 +71,13 @@ static uint32_t parse_hexcol(const char *v, uint32_t def){
     return end != v ? (uint32_t)(c & 0xffffffu) : def;
 }
 
+/* "HH:MM" -> minutes-of-day (0..1439), or -1 if empty/invalid */
+static int hhmm_to_min(const char *s){
+    int h, m; if (!s || sscanf(s, "%d:%d", &h, &m) != 2) return -1;
+    if (h < 0 || h > 23 || m < 0 || m > 59) return -1;
+    return h * 60 + m;
+}
+
 static void settings_load(void){
     for (int i = 0; i < MAX_CPAGES; i++){            /* per-page chrome defaults ON, opacity inherits */
         g_cpage[i].header = g_cpage[i].title = g_cpage[i].dots = 1;
@@ -82,6 +92,9 @@ static void settings_load(void){
         else if (!strcmp(k, "INTERVAL"))       cfg_interval   = atoi(v);
         else if (!strcmp(k, "ROTATE"))         cfg_rotate     = atoi(v);
         else if (!strcmp(k, "SCREEN_OFF_MIN")) cfg_screen_off = atoi(v);
+        else if (!strcmp(k, "POWERSAVE"))       cfg_ps_on = atoi(v) != 0;
+        else if (!strcmp(k, "POWERSAVE_START")) cfg_ps_start = hhmm_to_min(v);
+        else if (!strcmp(k, "POWERSAVE_END"))   cfg_ps_end = hhmm_to_min(v);
         else if (!strcmp(k, "NIGHT"))          cfg_night      = atoi(v) != 0;
         else if (!strcmp(k, "LEDS"))           cfg_leds       = atoi(v) != 0;
         else if (!strcmp(k, "FAN_MODE"))       cfg_fan_mode = !strcmp(v, "silent") ? 1 : !strcmp(v, "quiet") ? 2 : !strcmp(v, "turbo") ? 3 : !strcmp(v, "max") ? 4 : 0;

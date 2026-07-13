@@ -37,6 +37,16 @@ $ifaces = idx_ifaces();
   <label>_(Screen off after idle)_</label>
   <select name="SCREEN_OFF_MIN"><?php idx_opts([0=>'Never',1=>'1 minute',5=>'5 minutes',15=>'15 minutes'], idx_val($cfg,'SCREEN_OFF_MIN','0')); ?></select>
 
+  <label>_(Power-save schedule)_</label>
+  <select name="POWERSAVE"><?php idx_opts([0=>'Off',1=>'On'], idx_val($cfg,'POWERSAVE','0')); ?></select>
+  <div class="idxth-note">_(Turns the screen and disk/LAN LEDs off between the times below, using the Unraid timezone. A tap wakes the screen for 30s; the power LED stays on.)_</div>
+
+  <label>_(Power-save from)_</label>
+  <input type="time" name="POWERSAVE_START" value="<?=htmlspecialchars(idx_val($cfg,'POWERSAVE_START','23:00'))?>">
+
+  <label>_(Power-save until)_</label>
+  <input type="time" name="POWERSAVE_END" value="<?=htmlspecialchars(idx_val($cfg,'POWERSAVE_END','07:00'))?>">
+
   <label>_(Night mode &mdash; clamp brightness to 15%)_</label>
   <select name="NIGHT"><?php idx_opts([0=>'Off',1=>'On'], idx_val($cfg,'NIGHT','0')); ?></select>
 

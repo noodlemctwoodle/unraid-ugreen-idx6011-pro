@@ -36,6 +36,9 @@ and the plugin's in-app `<CHANGES>` list.
   Grape, Cyber, Mono) recolour the whole dashboard in a click; **Save current…** writes a
   theme file to `…/panel/themes/`, and a **Load a theme…** dropdown lists your saved
   themes — share one by copying its `.cfg`.
+- **Power-save schedule.** Turn the screen and disk/LAN LEDs off between two local times
+  (quiet hours). A tap wakes everything and it re-sleeps 30 seconds after the last touch;
+  the timezone comes from Unraid automatically, and the power LED stays on.
 - **Smarter front LEDs.** Configurable LAN and per-state disk-light colours, power
   light on/off, and an activity mode that blinks the disk/LAN LEDs on I/O and goes
   solid when idle.

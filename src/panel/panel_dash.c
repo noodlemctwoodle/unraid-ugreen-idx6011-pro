@@ -137,6 +137,17 @@ static int reload_assets(void){                   /* returns 1 if the wallpaper/
     return changed;
 }
 
+/* scheduled power-save: is the current LOCAL time inside the [start,end) window?
+ * localtime_r reads /etc/localtime, which Unraid sets — so this is TZ-correct with
+ * no extra config. Handles windows that cross midnight (e.g. 23:00 -> 07:00). */
+static int powersave_now(void){
+    if (!cfg_ps_on || cfg_ps_start < 0 || cfg_ps_end < 0 || cfg_ps_start == cfg_ps_end) return 0;
+    time_t t = time(NULL); struct tm lt; localtime_r(&t, &lt);
+    int m = lt.tm_hour * 60 + lt.tm_min;
+    return (cfg_ps_start < cfg_ps_end) ? (m >= cfg_ps_start && m < cfg_ps_end)
+                                       : (m >= cfg_ps_start || m < cfg_ps_end);
+}
+
 /* ---------- main ---------- */
 int main(int argc, char **argv){
     g_argv = argv;
@@ -276,8 +287,8 @@ int main(int argc, char **argv){
     if (!no_touch) touch_init(touch_hint);
     scr_w = W; scr_h = H;
 
-    int first = 1, dim = 0, screen_off = 0;
-    long next_stats = 0, anim_next = 0, next_assets = 0;
+    int first = 1, dim = 0, screen_off = 0, sched_off = 0;
+    long next_stats = 0, anim_next = 0, next_assets = 0, ps_wake_until = 0;
     long last_touch = now_ms(), last_rotate = now_ms();
     while (!stop_flag){
         long nowms = now_ms();
@@ -298,6 +309,12 @@ int main(int argc, char **argv){
         touch_event_t ev;
         if (touch_poll(&ev)){
             last_touch = nowms; last_rotate = nowms;
+            if (powersave_now()){                     /* touch in the power-save window: wake
+                                                       * screen + LEDs, then re-sleep 30s after
+                                                       * the LAST touch (i.e. 30s of no activity) */
+                ps_wake_until = nowms + 30000L;
+                FILE *tf = fopen("/run/ugreen-idx-touch", "w"); if (tf) fclose(tf);   /* signal the LED daemon */
+            }
             if (screen_off){
                 /* the waking touch is CONSUMED, never routed to widgets */
                 screen_off = 0; dim = 0;
@@ -341,6 +358,18 @@ int main(int argc, char **argv){
             screen_off = 1;
             ec_write(0xA5, 198);                               /* EC backlight off */
             set_bl_power(0);                                   /* panel off */
+        }
+        /* scheduled power-save: blank the screen promptly on entering the window;
+         * a tap gives a 30s peek (ps_wake_until) before it re-sleeps; wake
+         * automatically when the window ends. */
+        if (powersave_now()){
+            if (!screen_off && nowms >= ps_wake_until){
+                screen_off = 1; sched_off = 1;
+                ec_write(0xA5, 198); set_bl_power(0);
+            }
+        } else if (sched_off){
+            sched_off = 0;
+            if (screen_off){ screen_off = 0; apply_brightness(); dirty = 1; }
         }
         if (rotate_ms > 0 && !screen_off &&
             nowms - last_touch >= rotate_ms && nowms - last_rotate >= rotate_ms){

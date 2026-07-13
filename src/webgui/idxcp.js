@@ -134,6 +134,15 @@
       '.idxth-sec{grid-column:1/-1;border:none;margin:13px 0 3px;padding:0;font-weight:600;opacity:.8;letter-spacing:.4px;text-transform:uppercase;font-size:.85em}';
     document.head.appendChild(s);
   }
-  function initAll(){ injectCss(); var cps=document.querySelectorAll('.idxcp'); for(var i=0;i<cps.length;i++) setup(cps[i]); setupImagePickers(); }
+  /* Unraid's Apply-enable listener ignores <input type=time> (like type=color), so
+   * wire them up ourselves — e.g. the Screen tab's power-save from/until times. */
+  function setupTimeInputs(){
+    var ts=document.querySelectorAll('input[type=time]');
+    for(var i=0;i<ts.length;i++){ (function(t){
+      var h=function(){ markChanged(t); };
+      t.addEventListener('input', h); t.addEventListener('change', h);
+    })(ts[i]); }
+  }
+  function initAll(){ injectCss(); var cps=document.querySelectorAll('.idxcp'); for(var i=0;i<cps.length;i++) setup(cps[i]); setupImagePickers(); setupTimeInputs(); }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',initAll); else initAll();
 })();

@@ -155,10 +155,37 @@ lan_led(){   # down -> off; up -> solid LAN colour; activity mode -> hardware-bl
   fi
 }
 
+# --- power-save schedule: blank the disk/LAN LEDs in a local-time window (the panel
+# screen is blanked by panel_dash on the same window). `date` uses the system TZ that
+# Unraid sets, so this is local time. Handles windows crossing midnight. ---
+ps_min(){ case "${1:-}" in *:*) echo $((10#${1%%:*}*60 + 10#${1##*:}));; *) echo -1;; esac; }
+PS_ON=$(cfg_get POWERSAVE); PS_ON=${PS_ON:-0}
+PS_S=$(ps_min "$(cfg_get POWERSAVE_START)"); PS_E=$(ps_min "$(cfg_get POWERSAVE_END)")
+PS_BLANK=0
+TOUCHF=/run/ugreen-idx-touch     # panel_dash touches this on a screen tap during power-save
+ps_now(){
+  [ "$PS_ON" = 1 ] && [ "$PS_S" -ge 0 ] && [ "$PS_E" -ge 0 ] && [ "$PS_S" != "$PS_E" ] || return 1
+  local n; n=$((10#$(date +%H)*60 + 10#$(date +%M)))
+  if [ "$PS_S" -lt "$PS_E" ]; then [ "$n" -ge "$PS_S" ] && [ "$n" -lt "$PS_E" ]
+  else [ "$n" -ge "$PS_S" ] || [ "$n" -lt "$PS_E" ]; fi
+}
+# rc 0 if the screen was tapped in the last 30s (a power-save "peek") -> keep LEDs lit
+ps_peek(){ [ -f "$TOUCHF" ] || return 1; local m; m=$(stat -c %Y "$TOUCHF" 2>/dev/null || echo 0); [ $(( now - m )) -lt 30 ]; }
+
 [ "$POWER_LED" = 0 ] || power_takeover   # once, from cold (skipped when power LED is off)
 
 while true; do
   now=$(date +%s 2>/dev/null || echo 0)
+  if ps_now && ! ps_peek; then           # in the window + no recent tap: blank disk/LAN LEDs
+    if [ "$PS_BLANK" != 1 ]; then
+      for b in 1 2 3 4 5 6; do LED "disk$b" -off; done
+      LED network_stat -off; LED network_stat2 -off
+      PS_BLANK=1; LAST_LED=()
+    fi
+    sleep "$REFRESH"; continue
+  elif [ "$PS_BLANK" = 1 ]; then          # window ended, or a tap woke it: re-light every LED
+    PS_BLANK=0; LAST_LED=()
+  fi
   load_map && LAST_LED=()      # calibration changed mapping.conf -> reload + re-evaluate all LEDs
   declare -A present=()
   while read -r bay dev; do present[$bay]="$dev"; done < <(present_bays)
