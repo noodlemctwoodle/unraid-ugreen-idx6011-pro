@@ -67,10 +67,12 @@
 #define STB_IMAGE_IMPLEMENTATION
 #define STBI_ONLY_PNG
 #define STBI_ONLY_JPEG
-#include "stb_image.h"
-#include "stb_easy_font.h"
+#include "vendor/stb_image.h"
+#include "vendor/stb_easy_font.h"
+#define STB_TRUETYPE_IMPLEMENTATION
+#include "vendor/stb_truetype.h"
 #define STB_IMAGE_WRITE_IMPLEMENTATION
-#include "stb_image_write.h"
+#include "vendor/stb_image_write.h"
 
 /* ---------- panel modules (order matters: declare-before-use) ---------- */
 #include "unraid_logo.h"
@@ -120,6 +122,7 @@ int main(int argc, char **argv){
     const char *shot_dir = NULL;
     int prev_page = -1; const char *prev_layout = NULL, *prev_out = NULL;
     int want_modules = 0;
+    const char *font_path = NULL;
 
     settings_load();                            /* flash cfg first, CLI overrides */
     for (int i = 1; i < argc; i++){
@@ -136,6 +139,7 @@ int main(int argc, char **argv){
         else if (!strcmp(argv[i], "--modules")) want_modules = 1;   /* print registry JSON */
         else if (!strcmp(argv[i], "--layouts")) want_modules = 2;   /* print current layouts JSON */
         else if (!strcmp(argv[i], "--rotate") && i + 1 < argc) cfg_rotate = atoi(argv[++i]);
+        else if (!strcmp(argv[i], "--font") && i + 1 < argc) font_path = argv[++i];
         else if (!strcmp(argv[i], "--cal") && i + 1 < argc){
             const char *c = argv[++i];
             cal_swap_xy = strchr(c, 's') != NULL;
@@ -143,6 +147,15 @@ int main(int argc, char **argv){
             cal_inv_y   = strchr(c, 'y') != NULL;
         }
     }
+    /* font: --font / PANEL_FONT override wins (used by the web live-preview);
+     * otherwise resolve the configured name to panel/fonts/<name>.ttf. */
+    char fontbuf[288];
+    const char *fp = font_path ? font_path : getenv("PANEL_FONT");
+    if (!fp && cfg_font[0]){
+        snprintf(fontbuf, sizeof fontbuf, "%s/fonts/%s.ttf", CFG_DIR2, cfg_font);
+        fp = fontbuf;
+    }
+    font_init(fp);                              /* real TTF; falls back to easy_font */
     if (want_modules == 1) return write_modules_json();   /* module catalog for the web editor */
     if (want_modules == 2) return write_layouts_json();   /* current layouts + toggles */
     if (prev_out) return write_preview(prev_page, prev_layout, prev_out);  /* one page, draft layout */

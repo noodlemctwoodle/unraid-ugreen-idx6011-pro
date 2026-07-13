@@ -48,6 +48,9 @@ echo "  panel_dash from: $DASH"
 install -m0755 "$DASH" "$STAGE/panel/panel_dash"
 install -m0644 "prebuilt/modules/$KVER"/*.ko "$STAGE/panel/modules/$KVER/"
 install -m0644 prebuilt/bzroot-wakefix "$STAGE/panel/overlay/$KVER/bzroot-wakefix"
+# --- dashboard fonts (selectable TTFs + their SIL OFL licences) --------------
+install -d "$STAGE/panel/fonts"
+install -m0644 src/panel/fonts/*.ttf src/panel/fonts/*-OFL.txt "$STAGE/panel/fonts/"
 
 # --- pack (deterministic-ish: sorted, xz) ------------------------------------
 install -d release

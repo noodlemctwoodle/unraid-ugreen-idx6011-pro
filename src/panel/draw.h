@@ -39,9 +39,16 @@ static void rect(int x, int y, int w, int h, uint32_t c, uint8_t a){
 }
 static void hline(int x, int y, int w, uint32_t c){ rect(x, y, w, 1, c, 255); }
 
-/* ---------- text via stb_easy_font (unchanged from v1) ---------- */
+/* ---------- text ----------
+ * Real anti-aliased type via stb_truetype when a TTF is loaded (font_init);
+ * falls back to the vendored stb_easy_font vector font if none. A real font
+ * gives full glyph coverage (em-dash, degree sign, arrows) and proper shapes.
+ * The `scale` API is preserved: it maps to a pixel height so the existing
+ * per-card y-offsets and text_w()-based alignment keep working unchanged. */
+
+/* stb_easy_font fallback (the original v1 renderer) */
 static char qbuf[64000];
-static void text(int x, int y, float scale, uint32_t c, const char *s){
+static void text_easy(int x, int y, float scale, uint32_t c, const char *s){
     int n = stb_easy_font_print(0, 0, (char*)s, NULL, qbuf, sizeof(qbuf));
     float *v = (float*)qbuf;                    /* 16B/vertex: x,y,z,color */
     for (int q = 0; q < n; q++){
@@ -57,8 +64,116 @@ static void text(int x, int y, float scale, uint32_t c, const char *s){
         rect(rx, ry, rw, rh, c, 255);
     }
 }
-static int text_w(float scale, const char *s){
+static int text_w_easy(float scale, const char *s){
     return (int)(stb_easy_font_width((char*)s) * scale);
+}
+
+/* ---- stb_truetype path ---- */
+static stbtt_fontinfo g_font;
+static int   g_font_ok = 0;
+static unsigned char *g_font_data = NULL;
+static float FONT_K = 9.0f;               /* scale unit -> pixel height (tunable) */
+static int   g_font_asc, g_font_desc, g_font_gap;
+
+/* load a TTF from disk; falls back silently (g_font_ok stays 0) on any error. */
+static int font_init(const char *path){
+    if (!path || !*path) return 0;
+    FILE *f = fopen(path, "rb"); if (!f) return 0;
+    fseek(f, 0, SEEK_END); long n = ftell(f); fseek(f, 0, SEEK_SET);
+    if (n <= 0){ fclose(f); return 0; }
+    g_font_data = (unsigned char*)malloc((size_t)n);
+    if (!g_font_data){ fclose(f); return 0; }
+    size_t rd = fread(g_font_data, 1, (size_t)n, f); fclose(f);
+    if (rd != (size_t)n){ free(g_font_data); g_font_data = NULL; return 0; }
+    int off = stbtt_GetFontOffsetForIndex(g_font_data, 0);
+    if (off < 0 || !stbtt_InitFont(&g_font, g_font_data, off)){
+        free(g_font_data); g_font_data = NULL; return 0;
+    }
+    stbtt_GetFontVMetrics(&g_font, &g_font_asc, &g_font_desc, &g_font_gap);
+    const char *k = getenv("PANEL_FONT_K"); if (k && *k) FONT_K = (float)atof(k);
+    g_font_ok = 1;
+    return 1;
+}
+
+/* minimal UTF-8 decode: returns next codepoint, advances *p past it */
+static unsigned utf8_next(const char **p){
+    const unsigned char *s = (const unsigned char*)*p;
+    unsigned c = s[0];
+    if (c < 0x80){ *p += 1; return c; }
+    if ((c >> 5) == 0x6  && s[1]){ *p += 2; return ((c & 0x1f) << 6) | (s[1] & 0x3f); }
+    if ((c >> 4) == 0xe  && s[1] && s[2]){ *p += 3;
+        return ((c & 0x0f) << 12) | ((s[1] & 0x3f) << 6) | (s[2] & 0x3f); }
+    if ((c >> 3) == 0x1e && s[1] && s[2] && s[3]){ *p += 4;
+        return ((c & 0x07) << 18) | ((s[1] & 0x3f) << 12) | ((s[2] & 0x3f) << 6) | (s[3] & 0x3f); }
+    *p += 1; return c;                        /* invalid lead byte: skip one */
+}
+
+/* glyph cache: rasterize each (codepoint, pixel-size) once and reuse. The panel
+ * redraws every interval; without this it re-rasterizes every glyph every frame
+ * (~5% of a core). The set of (glyph,size) pairs is small and bounded, so cached
+ * bitmaps are never freed. */
+typedef struct { unsigned cp; int px, used; int w, h, xoff, yoff; float adv; unsigned char *bmp; } glyph_t;
+#define GLYPH_CACHE 4096
+static glyph_t g_glyphs[GLYPH_CACHE];
+
+static glyph_t *glyph_get(unsigned cp, int px, float sc){
+    unsigned h = (cp * 131u + (unsigned)px * 2654435761u) & (GLYPH_CACHE - 1);
+    for (int probe = 0; probe < GLYPH_CACHE; probe++){
+        glyph_t *g = &g_glyphs[(h + probe) & (GLYPH_CACHE - 1)];
+        if (g->used){ if (g->cp == cp && g->px == px) return g; continue; }
+        int adv, lsb; stbtt_GetCodepointHMetrics(&g_font, (int)cp, &adv, &lsb);
+        g->bmp = stbtt_GetCodepointBitmap(&g_font, sc, sc, (int)cp, &g->w, &g->h, &g->xoff, &g->yoff);
+        g->adv = adv * sc; g->cp = cp; g->px = px; g->used = 1;
+        return g;
+    }
+    return NULL;                                   /* cache full (bounded set: never) */
+}
+static void px_scale(float scale, int *px, float *sc){
+    int p = (int)(scale * FONT_K + 0.5f); if (p < 1) p = 1;
+    *px = p; *sc = stbtt_ScaleForPixelHeight(&g_font, (float)p);
+}
+
+static int text_w_ttf(float scale, const char *s){
+    int px; float sc; px_scale(scale, &px, &sc);
+    float w = 0; const char *p = s; unsigned prev = 0;
+    while (*p){
+        unsigned cp = utf8_next(&p);
+        if (prev) w += stbtt_GetCodepointKernAdvance(&g_font, (int)prev, (int)cp) * sc;
+        glyph_t *g = glyph_get(cp, px, sc); if (g) w += g->adv; prev = cp;
+    }
+    return (int)(w + 0.5f);
+}
+static void text_ttf(int x, int y, float scale, uint32_t c, const char *s){
+    int px; float sc; px_scale(scale, &px, &sc);
+    int baseline = y + (int)(g_font_asc * sc + 0.5f);
+    float penx = (float)x; const char *p = s; unsigned prev = 0;
+    while (*p){
+        unsigned cp = utf8_next(&p);
+        if (prev) penx += stbtt_GetCodepointKernAdvance(&g_font, (int)prev, (int)cp) * sc;
+        glyph_t *g = glyph_get(cp, px, sc);
+        if (g && g->bmp){
+            int gx = (int)(penx + 0.5f) + g->xoff, gy = baseline + g->yoff;
+            for (int j = 0; j < g->h; j++){
+                int py = gy + j; if ((unsigned)py >= (unsigned)H) continue;
+                uint32_t *drow = fbmem + py * fbpitch;
+                const unsigned char *brow = g->bmp + j * g->w;
+                for (int i = 0; i < g->w; i++){
+                    int pxx = gx + i; if ((unsigned)pxx >= (unsigned)W) continue;
+                    uint8_t a = brow[i]; if (!a) continue;
+                    drow[pxx] = (a == 255) ? c : blend(drow[pxx], c, a);
+                }
+            }
+        }
+        if (g) penx += g->adv; prev = cp;
+    }
+}
+
+static void text(int x, int y, float scale, uint32_t c, const char *s){
+    if (g_font_ok) text_ttf(x, y, scale, c, s);
+    else           text_easy(x, y, scale, c, s);
+}
+static int text_w(float scale, const char *s){
+    return g_font_ok ? text_w_ttf(scale, s) : text_w_easy(scale, s);
 }
 static void text_c(int y, float scale, uint32_t c, const char *s){ /* centered */
     text((W - text_w(scale, s)) / 2, y, scale, c, s);

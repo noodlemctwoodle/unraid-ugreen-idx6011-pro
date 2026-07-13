@@ -23,6 +23,7 @@ static int cfg_night      = 0;      /* 1 = clamp brightness to 15% */
 static int cfg_leds       = 1;      /* chassis LEDs on/off */
 static char cfg_primary_if[32] = "";/* Overview/Home "primary" iface; empty = default-route auto-pick */
 static int  cfg_net_bits  = 1;      /* 1 = net rates in bits (Kbps), 0 = bytes (KB/s) */
+static char cfg_font[32]  = "RobotoCondensed"; /* fonts/<name>.ttf; empty = built-in easy_font */
 /* per-page module layout: ordered "id[:variant],..." list drawn by render_modules().
  * Default matches the original hardcoded Overview (all default/bar variants). */
 static char cfg_layout_overview[256] = "host,cpu,mem,net,storage,uptime";
@@ -58,6 +59,7 @@ static void settings_load(void){
         else if (!strcmp(k, "LEDS"))           cfg_leds       = atoi(v) != 0;
         else if (!strcmp(k, "PRIMARY_IFACE"))  snprintf(cfg_primary_if, sizeof cfg_primary_if, "%s", v);
         else if (!strcmp(k, "NET_UNITS"))      cfg_net_bits = strcmp(v, "bytes") != 0;
+        else if (!strcmp(k, "FONT"))           snprintf(cfg_font, sizeof cfg_font, "%s", v);
         else if (!strcmp(k, "LAYOUT_OVERVIEW")) snprintf(cfg_layout_overview, sizeof cfg_layout_overview, "%s", v);
         else if (!strcmp(k, "LAYOUT_HARDWARE")) snprintf(cfg_layout_hardware, sizeof cfg_layout_hardware, "%s", v);
         else if (!strcmp(k, "LAYOUT_NETWORK"))  snprintf(cfg_layout_network,  sizeof cfg_layout_network,  "%s", v);
@@ -92,7 +94,7 @@ static void settings_load(void){
 static int is_managed_key(const char *k){
     static const char *m[] = {
         "BRIGHTNESS","INTERVAL","ROTATE","SCREEN_OFF_MIN","NIGHT","LEDS",
-        "PRIMARY_IFACE","NET_UNITS","COL_ACCENT","COL_GRAD_A","COL_GRAD_B",
+        "PRIMARY_IFACE","NET_UNITS","FONT","COL_ACCENT","COL_GRAD_A","COL_GRAD_B",
         "COL_BG","COL_CARD","COL_TEXT","COL_DIM","COL_OK","COL_WARN","COL_BAD", 0 };
     for (int i = 0; m[i]; i++) if (!strcmp(k, m[i])) return 1;
     return 0;
@@ -121,13 +123,13 @@ static void settings_save(void){
     snprintf(tmp, sizeof tmp, "%s.tmp", CFG_PATH);
     FILE *f = fopen(tmp, "w"); if (!f) return;
     fprintf(f, "BRIGHTNESS=%d\nINTERVAL=%d\nROTATE=%d\n"
-               "SCREEN_OFF_MIN=%d\nNIGHT=%d\nLEDS=%d\nPRIMARY_IFACE=%s\nNET_UNITS=%s\n"
+               "SCREEN_OFF_MIN=%d\nNIGHT=%d\nLEDS=%d\nPRIMARY_IFACE=%s\nNET_UNITS=%s\nFONT=%s\n"
                "COL_ACCENT=%06x\nCOL_GRAD_A=%06x\nCOL_GRAD_B=%06x\nCOL_BG=%06x\n"
                "COL_CARD=%06x\nCOL_TEXT=%06x\nCOL_DIM=%06x\n"
                "COL_OK=%06x\nCOL_WARN=%06x\nCOL_BAD=%06x\n",
             cfg_brightness, cfg_interval, cfg_rotate,
             cfg_screen_off, cfg_night, cfg_leds, cfg_primary_if,
-            cfg_net_bits ? "bits" : "bytes",
+            cfg_net_bits ? "bits" : "bytes", cfg_font,
             (unsigned)UN_ORANGE_M, (unsigned)UN_RED, (unsigned)UN_ORANGE, (unsigned)UN_BLACK,
             (unsigned)UN_GREY_80, (unsigned)UN_TEXT, (unsigned)UN_DIM,
             (unsigned)UN_OK, (unsigned)UN_WARN, (unsigned)UN_BAD);

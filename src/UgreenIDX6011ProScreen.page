@@ -36,6 +36,9 @@ _(Night mode &mdash; clamp brightness to 15%)_:
 _(Network rate units)_:
 : <select name="NET_UNITS"><?php idx_opts(['bits'=>'Bits — Kbps / Mbps (matches Unraid)','bytes'=>'Bytes — KB/s / MB/s'], idx_val($cfg,'NET_UNITS','bits')); ?></select>
 
+_(Dashboard font)_:
+: <select name="FONT"><?php idx_opts(['RobotoCondensed'=>'Roboto Condensed (default)','Inter'=>'Inter','JetBrainsMono'=>'JetBrains Mono','BarlowSemiCond'=>'Barlow Semi Condensed','Montserrat'=>'Montserrat'], idx_val($cfg,'FONT','RobotoCondensed')); ?></select>
+
 _(Primary network interface &mdash; shown on Overview &amp; Home)_:
 : <select name="PRIMARY_IFACE">
   <option value=""<?=idx_val($cfg,'PRIMARY_IFACE','')===''?' selected':''?>>Auto (default route)</option>

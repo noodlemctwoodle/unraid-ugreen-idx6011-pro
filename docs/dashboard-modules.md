@@ -102,6 +102,24 @@ one place, so thresholds are identical everywhere:
 re-themeable everywhere. `metric_card`/`bar_card` already colour their bar/ring via
 `col_load`.
 
+## Text & fonts
+
+`text(x, y, scale, colour, str)` and `text_w(scale, str)` (in `draw.h`) render
+with a real TrueType font via `vendor/stb_truetype.h`. The user picks the face
+on the Screen settings page (`FONT` key → `panel/fonts/<name>.ttf`, default
+**Roboto Condensed**); if no TTF loads it falls back to the built-in
+`stb_easy_font` vector font. Notes for module authors:
+
+- `scale` is unchanged from the old renderer — it maps to a pixel height, so the
+  existing per-card y-offsets keep working across fonts.
+- Because it's a real font, **full glyph coverage is available** — you can use
+  `°`, `–`, `→`, `×`, etc. directly in UTF-8 string literals (the old vector
+  font only knew ASCII 32–126, which is why placeholders use plain ASCII).
+- `text_w()` is font-accurate, so right-aligned/centered text and `trunc_fit`
+  work for every face — don't hardcode pixel widths for strings.
+- Glyphs are cached per (codepoint, size); nothing to manage. To add a
+  selectable font see `src/panel/fonts/README.md`.
+
 ## Layout & avoiding overlap
 
 The panel is only **258 px** wide, so text overlap is the easiest way to make a
