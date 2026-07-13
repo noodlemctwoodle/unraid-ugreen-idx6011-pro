@@ -42,10 +42,15 @@ static int mod_containers(int y, stats_t *st, int variant){  /* summary + all co
     return y - y0;
 }
 
-static int mod_container(int y, stats_t *st, int variant){   /* one container by index */
-    if (variant < 0 || variant >= st->n_ctrs)
-        return value_card(y, 64, "CONTAINER", "not present", UN_DIM);
-    return ctr_card(y, &st->ctrs[variant]);
+static int mod_container(int y, stats_t *st, int variant){   /* one container, picked by name */
+    (void)variant;
+    int i = -1;
+    if (g_item_key[0]){
+        for (int k = 0; k < st->n_ctrs; k++) if (!strcmp(st->ctrs[k].name, g_item_key)){ i = k; break; }
+        if (i < 0 && g_item_key[0] >= '0' && g_item_key[0] <= '9'){ int n = atoi(g_item_key); if (n >= 0 && n < st->n_ctrs) i = n; }
+    } else if (st->n_ctrs > 0) i = 0;
+    if (i < 0) return value_card(y, 64, "CONTAINER", "not present", UN_DIM);
+    return ctr_card(y, &st->ctrs[i]);
 }
 
 #endif /* PANEL_MOD_CONTAINERS_H */

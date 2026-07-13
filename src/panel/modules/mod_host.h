@@ -10,8 +10,15 @@
 #define PANEL_MOD_HOST_H
 
 static int mod_host(int y, stats_t *st, int variant){
-    (void)variant;
     char b[128];
+    const char *host = st->host[0] ? st->host : "unraid";
+    const char *ip   = st->ip[0]   ? st->ip   : "no ip";
+    if (variant == 1){                                   /* compact — name + ip only */
+        card(y, gy(76), NULL);
+        text_bold((W - text_w(2.4f, host)) / 2 - 1, y + gy(12), 2.4f, UN_TEXT, host);
+        text_c(y + gy(44), 1.7f, UN_DIM, ip);
+        return gy(76) + gy(C_GAP);
+    }
     card(y, gy(112), NULL);
     text_bold((W - text_w(2.9f, st->host[0] ? st->host : "unraid")) / 2 - 1,
               y + gy(14), 2.9f, UN_TEXT, st->host[0] ? st->host : "unraid");

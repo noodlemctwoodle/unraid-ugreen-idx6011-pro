@@ -133,6 +133,7 @@ int main(int argc, char **argv){
         }
         else if (!strcmp(argv[i], "--modules")) want_modules = 1;   /* print registry JSON */
         else if (!strcmp(argv[i], "--layouts")) want_modules = 2;   /* print current layouts JSON */
+        else if (!strcmp(argv[i], "--items"))   want_modules = 3;   /* print live item names JSON */
         else if (!strcmp(argv[i], "--rotate") && i + 1 < argc) cfg_rotate = atoi(argv[++i]);
         else if (!strcmp(argv[i], "--font") && i + 1 < argc) font_path = argv[++i];
         else if (!strcmp(argv[i], "--cal") && i + 1 < argc){
@@ -157,6 +158,7 @@ int main(int argc, char **argv){
     font_init(fp);                              /* real TTF; falls back to easy_font */
     if (want_modules == 1) return write_modules_json();   /* module catalog for the web editor */
     if (want_modules == 2) return write_layouts_json();   /* current layouts + toggles */
+    if (want_modules == 3) return write_items_json();     /* live interface/disk/container names */
     if (prev_out) return write_preview(prev_page, prev_layout, prev_out);  /* one page, draft layout */
     if (shot_dir) return write_shots(shot_dir, bgpath);   /* offscreen PNG render, then exit */
     if (cfg_interval < 1) cfg_interval = 1;

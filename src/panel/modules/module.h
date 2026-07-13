@@ -20,14 +20,23 @@
 
 typedef int (*modfn)(int y, stats_t *st, int variant);
 
+/* the raw variant token of the module currently rendering (e.g. "eth0" for
+ * "iface:eth0"), set by render_modules(). Indexed modules read it to pick their
+ * instance by NAME (a numeric value is treated as a legacy index; empty = first). */
+static const char *g_item_key = "";
+
 typedef struct {
     const char *id;          /* stable config id, e.g. "cpu"                 */
     const char *label;       /* human label for the web layout editor        */
     modfn       fn;          /* draw function (returns height consumed)       */
     int         nvariants;   /* number of display styles (>= 1)              */
     const char *variants[6]; /* style ids, e.g. {"bar","ring","graph"}       */
-    int         indexed;     /* 1 = per-item: variant is a numeric instance   */
-                             /*   index (e.g. disk:0, iface:1, container:2)   */
+    int         indexed;     /* 1 = per-item: the variant selects one instance */
+                             /*   by NAME (e.g. iface:eth0, disk:cache), with  */
+                             /*   a numeric index as a legacy fallback         */
+    const char *itemsrc;     /* for indexed modules: which --items list to     */
+                             /*   populate the editor dropdown from            */
+                             /*   ("ifaces" / "disks" / "containers")          */
 } modinfo_t;
 
 #endif /* PANEL_MODULE_H */

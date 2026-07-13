@@ -20,7 +20,8 @@
   var MAXP = 12;                        /* must match MAX_CPAGES in prefs.h */
   var COLQ = { COL_ACCENT:'accent', COL_GRAD_A:'grada', COL_GRAD_B:'gradb', COL_BG:'bg',
                COL_CARD:'card', COL_TEXT:'ctext', COL_OK:'ok', COL_WARN:'warn', COL_BAD:'bad' };
-  var CAT = [], pages = [], active = 'theme', root = null, form = null, timer = null, themeEl = null;
+  var CAT = [], ITEMS = {}, pages = [], active = 'theme', root = null, form = null, timer = null, themeEl = null;
+  var previewScroll = 0, SCROLL_STEP = 220;
 
   function catMod(id){ for(var i=0;i<CAT.length;i++) if(CAT[i].id===id) return CAT[i]; return null; }
   function parse(s){ var o=[]; (s||'').split(',').forEach(function(t){ t=t.trim(); if(!t)return;
@@ -66,7 +67,7 @@
     timer = setTimeout(function(){
       img.onload = function(){ if(note) note.textContent=''; };
       img.onerror = function(){ if(note) note.textContent='preview failed'; };
-      img.src = BASE+'?page='+pidx+'&layout='+encodeURIComponent(layout)+(th?('&'+th):'')+'&_='+Date.now();
+      img.src = BASE+'?page='+pidx+'&layout='+encodeURIComponent(layout)+(th?('&'+th):'')+'&scroll='+previewScroll+'&_='+Date.now();
     }, 350);
   }
 
@@ -91,13 +92,25 @@
     var cm = catMod(m.id);
     var row = el('div','idxl-row');
     row.appendChild(el('span','idxl-name', (cm||{label:m.id}).label));
-    if(cm && cm.indexed){                                /* per-item: which #? (1-based) */
-      var num = el('input','idxl-var'); num.type='number'; num.min='1';
-      num.value = String((parseInt(m.variant,10)||0) + 1);
-      num.title = (cm.label||m.id) + ' number';
-      num.onchange = function(){ var n=Math.max(1, parseInt(num.value,10)||1);
-        num.value=String(n); m.variant=String(n-1); changed(); };
-      row.appendChild(num);
+    if(cm && cm.indexed){                                /* per-item: pick which one by NAME */
+      var items = ITEMS[cm.itemsrc] || [];
+      if(items.length){
+        var isel = el('select','idxl-var idxl-item');
+        var cur = m.variant;                             /* resolve legacy numeric index -> name */
+        if(cur && items.indexOf(cur)<0 && /^\d+$/.test(cur)) cur = items[parseInt(cur,10)] || '';
+        if(!cur) cur = items[0];
+        if(cur !== m.variant){ m.variant = cur; syncAll(); }   /* normalise to a name */
+        items.forEach(function(nm){ var o=el('option',null,nm); o.value=nm; if(nm===cur) o.selected=true; isel.appendChild(o); });
+        isel.onchange=function(){ m.variant=isel.value; changed(); };
+        row.appendChild(isel);
+      } else {                                           /* no live list — fall back to a number */
+        var num = el('input','idxl-var'); num.type='number'; num.min='1';
+        num.value = String((parseInt(m.variant,10)||0) + 1);
+        num.title = (cm.label||m.id) + ' number';
+        num.onchange = function(){ var n=Math.max(1, parseInt(num.value,10)||1);
+          num.value=String(n); m.variant=String(n-1); changed(); };
+        row.appendChild(num);
+      }
     } else if(cm && cm.variants && cm.variants.length>1){
       var sel = el('select','idxl-var');
       cm.variants.forEach(function(v){ var o=el('option',null,v); o.value=v;
@@ -149,6 +162,7 @@
     add.appendChild(asel); pane.appendChild(add);
   }
   function render(){
+    previewScroll = 0;                                   /* reset preview scroll on view change */
     renderTabs();
     var isTheme = active==='theme';
     var pane = document.getElementById('idxlayout-pane');
@@ -164,6 +178,7 @@
     root = document.getElementById('idxlayout'); if(!root) return;
     form = root.closest('form');
     try { CAT = JSON.parse(root.getAttribute('data-catalog') || '[]'); } catch(e){ CAT=[]; }
+    try { ITEMS = JSON.parse(root.getAttribute('data-items') || '{}'); } catch(e){ ITEMS={}; }
     var ST = {}; try { ST = JSON.parse(root.getAttribute('data-layouts') || '{}'); } catch(e){}
     (ST.pages || []).forEach(function(p){ pages.push({ name:cleanName(p.name)||'Page', mods:parse(p.layout), on:p.on?true:false }); });
     if(pages.length===0) pages.push({ name:'Overview', mods:parse('host,cpu,mem,net,storage,uptime'), on:true });
@@ -192,6 +207,8 @@
       '#idxprev-wrap{flex:0 0 auto;text-align:center}'+
       '#idxprev-img{width:170px;height:auto;border:1px solid rgba(128,128,128,.5);border-radius:6px;background:#111;display:block}'+
       '#idxprev-note{font-size:.8em;opacity:.7;height:1.2em;margin-top:4px}'+
+      '#idxprev-scroll{display:flex;gap:6px;justify-content:center;margin-top:6px}'+
+      '#idxprev-scroll button{width:56px;height:26px;border:1px solid #888;border-radius:5px;background:transparent;color:inherit;cursor:pointer;font:inherit}'+
       '.idxl-prevlabel{font-size:.8em;opacity:.6;margin-bottom:5px;letter-spacing:.5px;text-transform:uppercase}';
     document.head.appendChild(css);
 
@@ -199,7 +216,11 @@
       '<div id="idxlayout-tabs"></div>'+
       '<div id="idxlayout-body"><div id="idxlayout-pane"></div>'+
       '<div id="idxprev-wrap"><div class="idxl-prevlabel">Live preview</div>'+
-      '<img id="idxprev-img" alt="preview"><div id="idxprev-note"></div></div></div>';
+      '<img id="idxprev-img" alt="preview"><div id="idxprev-note"></div>'+
+      '<div id="idxprev-scroll"><button type="button" id="idxprev-up">▲</button>'+
+      '<button type="button" id="idxprev-down">▼</button></div></div></div>';
+    document.getElementById('idxprev-up').onclick = function(){ previewScroll = Math.max(0, previewScroll - SCROLL_STEP); refreshPreview(); };
+    document.getElementById('idxprev-down').onclick = function(){ previewScroll += SCROLL_STEP; refreshPreview(); };
 
     themeEl = document.getElementById('idxtheme');
     if(themeEl){

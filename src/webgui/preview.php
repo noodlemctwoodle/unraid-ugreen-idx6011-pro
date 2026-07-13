@@ -33,6 +33,7 @@ if (isset($_GET['font'])) {
 foreach (['head'=>'PANEL_HEAD','text'=>'PANEL_TEXT'] as $q => $e) {
     if (isset($_GET[$q])) { $n = max(70, min(150, (int)$_GET[$q])); $env .= $e . '=' . (int)$n . ' '; }
 }
+if (isset($_GET['scroll'])) { $s = max(0, min(20000, (int)$_GET['scroll'])); $env .= 'PANEL_SCROLL=' . (int)$s . ' '; }
 
 $bin = '/usr/local/bin/panel_dash';
 $tmp = sys_get_temp_dir() . '/idxprev_' . getmypid() . '_' . mt_rand() . '.png';

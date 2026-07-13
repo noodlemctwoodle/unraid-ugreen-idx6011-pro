@@ -11,9 +11,12 @@
 #define PANEL_MOD_POWER_H
 
 static int mod_power(int y, stats_t *st, int variant){
-    (void)variant;
     if (st->pwr_pkg_w < 0) return value_card(y, 76, "POWER", "n/a", UN_DIM);
     char v[48];
+    if (variant == 1){                                   /* big — total watts, large */
+        snprintf(v, sizeof v, "%.1f W", st->pwr_sys_w > st->pwr_pkg_w ? st->pwr_sys_w : st->pwr_pkg_w);
+        return big_value_card(y, "POWER", v, UN_TEXT);
+    }
     if (st->pwr_sys_w > st->pwr_pkg_w)
         snprintf(v, sizeof v, "%.1f W  (cpu %.1f W)", st->pwr_sys_w, st->pwr_pkg_w);
     else

@@ -58,10 +58,15 @@ static int mod_disks(int y, stats_t *st, int variant){       /* all disks */
     return y - y0;
 }
 
-static int mod_disk(int y, stats_t *st, int variant){        /* one disk by index */
-    if (variant < 0 || variant >= st->n_disks)
-        return value_card(y, 76, "DISK", "not present", UN_DIM);
-    return disk_card(y, &st->disks[variant]);
+static int mod_disk(int y, stats_t *st, int variant){        /* one disk, picked by name */
+    (void)variant;
+    int i = -1;
+    if (g_item_key[0]){
+        for (int k = 0; k < st->n_disks; k++) if (!strcmp(st->disks[k].name, g_item_key)){ i = k; break; }
+        if (i < 0 && g_item_key[0] >= '0' && g_item_key[0] <= '9'){ int n = atoi(g_item_key); if (n >= 0 && n < st->n_disks) i = n; }
+    } else if (st->n_disks > 0) i = 0;
+    if (i < 0) return value_card(y, 76, "DISK", "not present", UN_DIM);
+    return disk_card(y, &st->disks[i]);
 }
 
 #endif /* PANEL_MOD_DISKS_H */

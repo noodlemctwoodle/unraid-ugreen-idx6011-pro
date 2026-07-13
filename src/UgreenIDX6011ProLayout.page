@@ -14,8 +14,10 @@ require_once '/usr/local/emhttp/plugins/ugreen-idx6011-pro/idxcp-inc.php';
 $cfg     = idx_cfg();
 $catalog = trim(@shell_exec('/usr/local/bin/panel_dash --modules 2>/dev/null'));
 $layouts = trim(@shell_exec('/usr/local/bin/panel_dash --layouts 2>/dev/null'));
+$items   = trim(@shell_exec('/usr/local/bin/panel_dash --items 2>/dev/null'));
 if ($catalog === '') $catalog = '[]';
 if ($layouts === '') $layouts = '{}';
+if ($items   === '') $items   = '{}';
 ?>
 <script src="<?=idx_asset('idxcp.js')?>"></script>
 <script src="<?=idx_asset('idxlayout.js')?>"></script>
@@ -24,7 +26,7 @@ if ($layouts === '') $layouts = '{}';
 <input type="hidden" name="#file" value="ugreen-idx6011-pro/panel/settings.cfg">
 <input type="hidden" name="#command" value="plugins/ugreen-idx6011-pro/restart.sh">
 
-<div id="idxlayout" data-catalog="<?=htmlspecialchars($catalog)?>" data-layouts="<?=htmlspecialchars($layouts)?>"></div>
+<div id="idxlayout" data-catalog="<?=htmlspecialchars($catalog)?>" data-layouts="<?=htmlspecialchars($layouts)?>" data-items="<?=htmlspecialchars($items)?>"></div>
 
 <div id="idxtheme" style="display:none">
   <div class="idxth-grid">
@@ -48,6 +50,13 @@ if ($layouts === '') $layouts = '{}';
     <label>_(Critical)_</label><?php idx_colorField($cfg,'COL_BAD','e22828','idx-theme'); ?>
   </div>
   <p><input type="button" value="_(Restore theme defaults)_" onclick="idxReset('idx-theme')"></p>
+  <div class="idxth-uploads">
+    <p><strong>_(Wallpaper &amp; header logo)_</strong></p>
+    <p>_(Wallpaper &mdash; scaled to the 258&times;960 screen)_<br>
+      <span class="idxup" data-kind="wallpaper"><input type="file" accept="image/png,image/jpeg,image/gif,image/webp"> <input type="button" value="_(Upload)_"> <input type="button" value="_(Clear)_"> <span class="idxup-note"></span></span></p>
+    <p>_(Header logo &mdash; replaces the Unraid mark)_<br>
+      <span class="idxup" data-kind="logo"><input type="file" accept="image/png,image/jpeg,image/gif,image/webp"> <input type="button" value="_(Upload)_"> <input type="button" value="_(Clear)_"> <span class="idxup-note"></span></span></p>
+  </div>
 </div>
 
 &nbsp;

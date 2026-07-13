@@ -147,6 +147,16 @@ static int value_card(int y, int h, const char *title, const char *value, uint32
     return gy(h) + gy(C_GAP);
 }
 
+/* BIG VALUE CARD: title + one large centred value (no bar/ring). For the "big"
+ * variant of informational modules (power / uptime / …). */
+static int big_value_card(int y, const char *title, const char *value, uint32_t col){
+    int h = 120;
+    card(y, gy(h), title);
+    char v[64]; snprintf(v, sizeof v, "%s", value); trunc_fit(v, 4.2f, C_W);
+    text_c(y + gy(58), 4.2f, col, v);
+    return gy(h) + gy(C_GAP);
+}
+
 /* BAR CARD: title + right value + a bar, base content height `h`. */
 static int bar_card(int y, int h, const char *title, const char *value,
                     double pct, uint32_t barcol){

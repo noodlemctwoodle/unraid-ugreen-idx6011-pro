@@ -76,10 +76,15 @@ static int mod_ifaces(int y, stats_t *st, int variant){      /* all interfaces *
     return y - y0;
 }
 
-static int mod_iface(int y, stats_t *st, int variant){       /* one interface by index (full) */
-    if (variant < 0 || variant >= st->n_ifaces)
-        return value_card(y, 76, "INTERFACE", "not present", UN_DIM);
-    return iface_card(y, &st->ifc[variant], !strcmp(st->ifc[variant].name, st->prim_if), 0);
+static int mod_iface(int y, stats_t *st, int variant){       /* one interface, picked by name */
+    (void)variant;
+    int i = -1;
+    if (g_item_key[0]){
+        for (int k = 0; k < st->n_ifaces; k++) if (!strcmp(st->ifc[k].name, g_item_key)){ i = k; break; }
+        if (i < 0 && g_item_key[0] >= '0' && g_item_key[0] <= '9'){ int n = atoi(g_item_key); if (n >= 0 && n < st->n_ifaces) i = n; }
+    } else if (st->n_ifaces > 0) i = 0;
+    if (i < 0) return value_card(y, 76, "INTERFACE", "not present", UN_DIM);
+    return iface_card(y, &st->ifc[i], !strcmp(st->ifc[i].name, st->prim_if), 0);
 }
 
 #endif /* PANEL_MOD_IFACES_H */

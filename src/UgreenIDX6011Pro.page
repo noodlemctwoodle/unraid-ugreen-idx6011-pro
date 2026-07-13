@@ -49,19 +49,10 @@ _(Primary network interface &mdash; shown on Overview &amp; Home)_:
   </select>
 
 &nbsp;
-: **_(Wallpaper &amp; header logo)_**
-
-_(Wallpaper image &mdash; scaled to the 258&times;960 screen)_:
-: <span class="idxup" data-kind="wallpaper"><input type="file" accept="image/png,image/jpeg,image/gif,image/webp"> <input type="button" value="_(Upload)_"> <input type="button" value="_(Clear)_"> <span class="idxup-note"></span></span>
-
-_(Header logo &mdash; replaces the Unraid mark)_:
-: <span class="idxup" data-kind="logo"><input type="file" accept="image/png,image/jpeg,image/gif,image/webp"> <input type="button" value="_(Upload)_"> <input type="button" value="_(Clear)_"> <span class="idxup-note"></span></span>
-
-&nbsp;
 : <span class="buttons-spaced"><input type="submit" name="#apply" value="_(Apply)_" disabled><input type="button" value="_(Done)_" onclick="done()"></span>
 </form>
 
-> Behaviour and images for the LCD. **Colours, font and text sizes live on the
-> **Layout** tab's **Theme** sub-tab (with a live preview).** Changes here write to the
-> plugin's `settings.cfg` and restart the dashboard; the same settings are editable
-> live from the panel's own **SETTINGS** page.
+> Behaviour settings for the LCD. **Colours, font, text sizes, wallpaper and header
+> logo live on the **Layout** tab's **Theme** sub-tab (with a live preview).** Changes
+> here write to the plugin's `settings.cfg` and restart the dashboard; the same
+> settings are editable live from the panel's own **SETTINGS** page.

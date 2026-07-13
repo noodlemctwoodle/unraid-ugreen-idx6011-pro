@@ -15,23 +15,23 @@
 #define PANEL_MODULE_REGISTRY_H
 
 static const modinfo_t MODULES[] = {
-    { "host",    "Host",     mod_host,    1, { "card" } },
-    { "cpu",     "CPU",      mod_cpu,     5, { "bar", "ring", "graph", "big", "gauge" } },
-    { "mem",     "Memory",   mod_mem,     4, { "bar", "ring", "big", "gauge" } },
-    { "net",     "Network",  mod_net,     1, { "rows" } },
-    { "storage", "Storage",  mod_storage, 4, { "bar", "ring", "big", "gauge" } },
-    { "uptime",  "Uptime",   mod_uptime,  1, { "card" } },
-    { "gpu",     "GPU",        mod_gpu,        4, { "bar", "graph", "big", "gauge" } },
-    { "cputemp", "CPU Temp",   mod_cputemp,    1, { "bar" } },
-    { "npu",     "NPU",        mod_npu,        1, { "card" } },
-    { "power",   "Power",      mod_power,      1, { "card" } },
-    { "ifaces",  "Interfaces", mod_ifaces,     4, { "full", "compact", "mini", "big" } },
-    { "iface",   "Interface",  mod_iface,      1, { "card" }, 1 },
-    { "disks",   "Disks",      mod_disks,      1, { "list" } },
-    { "disk",    "Disk",       mod_disk,       1, { "card" }, 1 },
-    { "containers","Containers",mod_containers,1, { "list" } },
-    { "container","Container", mod_container,  1, { "card" }, 1 },
-    { "vms",     "VMs",        mod_vms,        1, { "card" } },
+    { "host",    "Host / array",       mod_host,     2, { "card", "compact" } },
+    { "cpu",     "CPU",                mod_cpu,      5, { "bar", "ring", "graph", "big", "gauge" } },
+    { "mem",     "Memory",             mod_mem,      4, { "bar", "ring", "big", "gauge" } },
+    { "net",     "Network (primary)",  mod_net,      3, { "rows", "compact", "big" } },
+    { "storage", "Storage",            mod_storage,  4, { "bar", "ring", "big", "gauge" } },
+    { "uptime",  "Uptime",             mod_uptime,   2, { "card", "big" } },
+    { "gpu",     "GPU",                mod_gpu,      4, { "bar", "graph", "big", "gauge" } },
+    { "cputemp", "CPU temperature",    mod_cputemp,  1, { "bar" } },
+    { "npu",     "NPU",                mod_npu,      1, { "card" } },
+    { "power",   "Power draw",         mod_power,    2, { "card", "big" } },
+    { "ifaces",  "Interfaces (all in one card)", mod_ifaces, 4, { "full", "compact", "mini", "big" } },
+    { "iface",   "Interface (pick one)",         mod_iface,  1, { "card" }, 1, "ifaces" },
+    { "disks",   "Disks (all in one card)",      mod_disks,  1, { "list" } },
+    { "disk",    "Disk (pick one)",              mod_disk,   1, { "card" }, 1, "disks" },
+    { "containers","Containers (all in one card)",mod_containers,1, { "list" } },
+    { "container","Container (pick one)",        mod_container,  1, { "card" }, 1, "containers" },
+    { "vms",     "VMs",                mod_vms,      1, { "card" } },
 };
 static const int N_MODULES = (int)(sizeof MODULES / sizeof MODULES[0]);
 
@@ -66,7 +66,7 @@ static void render_modules(const char *layout, stats_t *st){
         char *var = NULL;
         if (colon){ *colon = 0; var = colon + 1; }
         const modinfo_t *m = mod_find(tok);
-        if (m) y += m->fn(y, st, mod_variant_idx(m, var));
+        if (m){ g_item_key = var ? var : ""; y += m->fn(y, st, mod_variant_idx(m, var)); }
     }
     page_end = y;
 }
@@ -77,8 +77,9 @@ static void render_modules(const char *layout, stats_t *st){
 static int write_modules_json(void){
     printf("[");
     for (int i = 0; i < N_MODULES; i++){
-        printf("%s{\"id\":\"%s\",\"label\":\"%s\",\"indexed\":%d,\"variants\":[",
-               i ? "," : "", MODULES[i].id, MODULES[i].label, MODULES[i].indexed);
+        printf("%s{\"id\":\"%s\",\"label\":\"%s\",\"indexed\":%d,\"itemsrc\":\"%s\",\"variants\":[",
+               i ? "," : "", MODULES[i].id, MODULES[i].label, MODULES[i].indexed,
+               MODULES[i].itemsrc ? MODULES[i].itemsrc : "");
         for (int v = 0; v < MODULES[i].nvariants; v++)
             printf("%s\"%s\"", v ? "," : "", MODULES[i].variants[v]);
         printf("]}");
@@ -108,6 +109,21 @@ static int write_layouts_json(void){
         json_str(g_cpage[i].layout);
         printf(",\"on\":%d}", g_cpage[i].on);
     }
+    printf("]}\n");
+    return 0;
+}
+
+/* print the live item names for the indexed modules, so the web editor can offer
+ * a NAME dropdown (interfaces / disks / containers) instead of a raw index. */
+static int write_items_json(void){
+    stats_t st; memset(&st, 0, sizeof st);
+    read_net(&st); read_disks(&st); read_docker(&st);
+    printf("{\"ifaces\":[");
+    for (int i = 0; i < st.n_ifaces; i++){ if (i) putchar(','); json_str(st.ifc[i].name); }
+    printf("],\"disks\":[");
+    for (int i = 0; i < st.n_disks; i++){ if (i) putchar(','); json_str(st.disks[i].name); }
+    printf("],\"containers\":[");
+    for (int i = 0; i < st.n_ctrs; i++){ if (i) putchar(','); json_str(st.ctrs[i].name); }
     printf("]}\n");
     return 0;
 }
