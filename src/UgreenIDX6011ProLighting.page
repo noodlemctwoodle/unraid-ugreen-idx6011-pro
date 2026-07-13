@@ -1,0 +1,55 @@
+Menu="UgreenIDX6011Pro:2"
+Title="Lighting"
+Icon="lightbulb-o"
+Markdown="true"
+---
+<?php
+/* UGREEN iDX6011 Pro - Lighting tab: front-panel LED behaviour + colours.
+ * Writes the plugin's panel/settings.cfg (update.php preserves the Screen tab's
+ * keys) and runs restart.sh, which restarts the LED monitor. Controls are native
+ * Unraid form elements; idxcp.js only syncs swatch<->hex + enables Apply. */
+require_once '/usr/local/emhttp/plugins/ugreen-idx6011-pro/idxcp-inc.php';
+$cfg = idx_cfg();
+?>
+<script src="<?=idx_asset('idxcp.js')?>"></script>
+
+<form markdown="1" name="idx_lighting" method="POST" action="/update.php" target="progressFrame">
+<input type="hidden" name="#file" value="ugreen-idx6011-pro/panel/settings.cfg">
+<input type="hidden" name="#command" value="plugins/ugreen-idx6011-pro/restart.sh">
+
+_(Front-panel LEDs)_:
+: <select name="LEDS" class="idx-led" data-default="1"><?php idx_opts([1=>'On',0=>'Off'], idx_val($cfg,'LEDS','1')); ?></select>
+
+_(Power light)_:
+: <select name="LED_POWER" class="idx-led" data-default="1"><?php idx_opts([1=>'On',0=>'Off'], idx_val($cfg,'LED_POWER','1')); ?></select>
+
+_(Activity mode &mdash; blink disk/LAN LEDs on I/O, solid when idle)_:
+: <select name="LED_ACTIVITY" class="idx-led" data-default="0"><?php idx_opts([0=>'Off — always solid',1=>'On — blink on I/O'], idx_val($cfg,'LED_ACTIVITY','0')); ?></select>
+
+&nbsp;
+: **_(LED colours)_**
+
+_(Network / LAN light)_:
+: <?php idx_colorField($cfg,'LED_LAN','0064ff','idx-led'); ?>
+
+_(Disk light &mdash; healthy)_:
+: <?php idx_colorField($cfg,'LED_DISK_OK','00ff00','idx-led'); ?>
+
+_(Disk light &mdash; warning)_:
+: <?php idx_colorField($cfg,'LED_DISK_WARN','ff7800','idx-led'); ?>
+
+_(Disk light &mdash; critical)_:
+: <?php idx_colorField($cfg,'LED_DISK_BAD','ff0000','idx-led'); ?>
+
+_(Disk light &mdash; spun down / asleep)_:
+: <?php idx_colorField($cfg,'LED_DISK_STANDBY','ffffff','idx-led'); ?>
+
+&nbsp;
+: <input type="button" value="_(Restore LED defaults)_" onclick="idxReset('idx-led')">
+
+&nbsp;
+: <span class="buttons-spaced"><input type="submit" name="#apply" value="_(Apply)_" disabled><input type="button" value="_(Done)_" onclick="done()"></span>
+</form>
+
+> Changes are written to the plugin's `settings.cfg` and the LED monitor restarts to
+> apply them. The same settings are editable live from the panel's own **SETTINGS** page.
