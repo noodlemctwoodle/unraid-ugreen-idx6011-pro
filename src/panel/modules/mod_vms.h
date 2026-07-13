@@ -21,6 +21,8 @@ static int mod_vms(int y, stats_t *st, int variant){         /* summary + all VM
     (void)variant;
     if (!st->vm_enabled) return value_card(y, 76, "VMS", "disabled", UN_DIM);
     char b[32]; snprintf(b, sizeof b, "%d / %d running", st->vm_count, st->n_vms);
+    if (!strcmp(g_item_key, "compact"))                      /* summary only, no per-VM cards */
+        return value_card(y, 60, "VMS", b, UN_TEXT);
     int y0 = y;
     y += value_card(y, 76, "VMS", b, UN_TEXT);
     for (int i = 0; i < st->n_vms; i++) y += vm_card(y, &st->vms[i]);

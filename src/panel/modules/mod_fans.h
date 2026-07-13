@@ -30,6 +30,10 @@ static const char *fan_name(int n, int i){
     return g;
 }
 
+/* full-speed RPM ceiling per fan role, for the gauge/bars/ring % variants
+ * (measured on the iDX6011 Pro: CPU fans ~4200, case fans ~2000). */
+static int fan_ceiling(int n, int i){ return (n == 4 && i < 2) ? 4200 : 2000; }
+
 /* per-glyph spin angle, advanced by real elapsed time so the spin is smooth and
  * frame-rate independent. Slots 0..3 = the four fans, slot 4 = the hero glyph. */
 static double g_fan_ang[5] = { 0, 0, 0, 0, 0 };
@@ -69,6 +73,59 @@ static int mod_fans(int y, stats_t *st, int variant){
         if (mx > 0) snprintf(b, sizeof b, "%d/%d  %d rpm", on, n, mx);
         else        snprintf(b, sizeof b, "%d/%d  stopped", on, n);
         return value_card(y, 60, "FANS", b, any ? UN_TEXT : UN_DIM);
+    }
+
+    /* ---- gauge: a grid of RPM arc dials (static, % of full speed) ---- */
+    if (variant == 4){
+        int cols = n > 1 ? 2 : 1, rows = (n + cols - 1) / cols;
+        int cellw = C_W / cols, top = 44, cellh = 100, h0 = top + rows * cellh + 4;
+        card(y, gy(h0), "FANS");
+        card_tag(y, fanmode_tag[mode], tagcol);
+        for (int i = 0; i < n; i++){
+            int rp = st->fan_rpm[i], c = i % cols, rw = i / cols;
+            int cxs = C_X0 + c * cellw + cellw / 2, cys = y + gy(top) + rw * gy(cellh);
+            int ceil = fan_ceiling(n, i); double pct = ceil ? 100.0 * rp / ceil : 0;
+            arc_gauge(cxs, cys + gy(30), gy(28), gy(17), pct, rp > 0 ? UN_ORANGE_M : 0x3a3a3a);
+            snprintf(b, sizeof b, "%d", rp);
+            text(cxs - text_w(1.7f, b) / 2, cys + gy(22), 1.7f, rp > 0 ? UN_TEXT : UN_DIM, b);
+            text(cxs - text_w(1.4f, fan_name(n, i)) / 2, cys + gy(66), 1.4f, UN_DIM, fan_name(n, i));
+        }
+        return gy(h0) + gy(C_GAP);
+    }
+
+    /* ---- bars: a horizontal RPM meter per fan ---- */
+    if (variant == 5){
+        int top = 42, rowh = 46, h0 = top + n * rowh + 2;
+        card(y, gy(h0), "FANS");
+        card_tag(y, fanmode_tag[mode], tagcol);
+        for (int i = 0; i < n; i++){
+            int rp = st->fan_rpm[i], ry = y + gy(top + i * rowh);
+            text(C_X0, ry, 1.7f, UN_DIM, fan_name(n, i));
+            if (rp > 0) snprintf(b, sizeof b, "%d rpm", rp); else snprintf(b, sizeof b, "stopped");
+            text(C_R - text_w(1.7f, b), ry, 1.7f, rp > 0 ? UN_TEXT : UN_DIM, b);
+            int ceil = fan_ceiling(n, i); double pct = ceil ? 100.0 * rp / ceil : 0;
+            bar(C_X0, ry + gy(24), C_W, gy(12), pct, rp > 0 ? UN_ORANGE_M : 0x3a3a3a);
+        }
+        return gy(h0) + gy(C_GAP);
+    }
+
+    /* ---- ring: one combined ring gauge (avg % of full speed) ---- */
+    if (variant == 6){
+        int h0 = 200, R = gy(60);
+        card(y, gy(h0), "FANS");
+        card_tag(y, fanmode_tag[mode], tagcol);
+        double spct = 0; int cnt = 0;
+        for (int i = 0; i < n; i++){ int ceil = fan_ceiling(n, i);
+            if (st->fan_rpm[i] > 0 && ceil){ spct += 100.0 * st->fan_rpm[i] / ceil; cnt++; } }
+        int cx = W / 2, cy = y + gy(34) + R;
+        ring_gauge(cx, cy, R, gy(38), cnt ? spct / cnt : 0, any ? UN_ORANGE_M : 0x3a3a3a);
+        int avg = on ? sum / on : 0;
+        snprintf(b, sizeof b, "%d", avg);
+        text(cx - text_w(3.2f, b) / 2, cy - gy(18), 3.2f, any ? UN_TEXT : UN_DIM, b);
+        text_c(cy + gy(8), 1.4f, UN_DIM, "rpm avg");
+        snprintf(b, sizeof b, "%d/%d spinning", on, n);
+        text_c(y + gy(h0) - gy(20), 1.4f, UN_DIM, b);
+        return gy(h0) + gy(C_GAP);
     }
 
     /* ---- hero: one large spinning fan + aggregate rpm ---- */

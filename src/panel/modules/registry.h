@@ -15,17 +15,17 @@
 #define PANEL_MODULE_REGISTRY_H
 
 static const modinfo_t MODULES[] = {
-    { "host",    "Host / array",       mod_host,     2, { "card", "compact" } },
-    { "array",   "Array status",       mod_array,    2, { "card", "compact" } },
+    { "host",    "Host / array",       mod_host,     3, { "card", "compact", "hero" } },
+    { "array",   "Array status",       mod_array,    4, { "card", "compact", "badge", "hero" } },
     { "update",  "Updates (OS + plugins)", mod_update, 4, { "card", "badge", "hero", "compact" } },
     { "cpu",     "CPU",                mod_cpu,      8, { "bar", "ring", "graph", "area", "blocks", "trend", "big", "gauge" } },
     { "mem",     "Memory",             mod_mem,      9, { "bar", "ring", "graph", "area", "blocks", "split", "trend", "big", "gauge" } },
     { "net",     "Network (primary)",  mod_net,      5, { "rows", "compact", "big", "graph", "area" } },
     { "storage", "Storage",            mod_storage,  9, { "bar", "ring", "graph", "area", "blocks", "split", "trend", "big", "gauge" } },
-    { "uptime",  "Uptime",             mod_uptime,   2, { "card", "big" } },
+    { "uptime",  "Uptime",             mod_uptime,   3, { "card", "big", "hero" } },
     { "gpu",     "GPU",                mod_gpu,      7, { "bar", "graph", "area", "blocks", "trend", "big", "gauge" } },
     { "cputemp", "CPU temperature",    mod_cputemp,  4, { "bar", "graph", "area", "gauge" } },
-    { "fans",    "Fans (spinning RPM)", mod_fans,    4, { "dials", "list", "hero", "compact" } },
+    { "fans",    "Fans (spinning RPM)", mod_fans,    7, { "dials", "list", "hero", "compact", "gauge", "bars", "ring" } },
     { "npu",     "NPU",                mod_npu,      8, { "bar", "ring", "graph", "area", "blocks", "trend", "big", "gauge" } },
     { "power",   "Power draw",         mod_power,    4, { "card", "big", "graph", "area" } },
     { "ifaces",  "Interfaces (all in one card)", mod_ifaces, 4, { "full", "compact", "mini", "big" } },
@@ -34,7 +34,7 @@ static const modinfo_t MODULES[] = {
     { "disk",    "Disk (pick one)",              mod_disk,   1, { "card" }, 1, "disks" },
     { "containers","Containers (all in one card)",mod_containers,1, { "list" } },
     { "container","Container (pick one)",        mod_container,  1, { "card" }, 1, "containers" },
-    { "vms",     "VMs (all in one card)",        mod_vms,        1, { "card" } },
+    { "vms",     "VMs (all in one card)",        mod_vms,        2, { "card", "compact" } },
     { "vm",      "VM (pick one)",                mod_vm,         1, { "card" }, 1, "vms" },
 };
 static const int N_MODULES = (int)(sizeof MODULES / sizeof MODULES[0]);
