@@ -45,6 +45,10 @@ if ($items   === '') $items   = '{}';
     <select name="CARD_OPACITY" class="idx-theme" data-default="90"><?php idx_opts([100=>'100% (solid)',90=>'90% (default)',75=>'75%',60=>'60%',45=>'45%',30=>'30%',20=>'20%',10=>'10%'], idx_val($cfg,'CARD_OPACITY','90')); ?></select>
     <div class="idxth-note">_(Lower opacity lets the wallpaper show through cards.)_</div>
 
+    <label>_(Wallpaper dim)_</label>
+    <select name="BG_DIM" class="idx-theme" data-default="0"><?php idx_opts([0=>'Off',15=>'15%',25=>'25%',40=>'40%',55=>'55%',70=>'70%'], idx_val($cfg,'BG_DIM','0')); ?></select>
+    <div class="idxth-note">_(Darkens the wallpaper so text and cards stay readable over busy images.)_</div>
+
     <label>_(Accent)_</label><?php idx_colorField($cfg,'COL_ACCENT','f15a2c','idx-theme'); ?>
     <label>_(Gradient start)_</label><?php idx_colorField($cfg,'COL_GRAD_A','e22828','idx-theme'); ?>
     <label>_(Gradient end)_</label><?php idx_colorField($cfg,'COL_GRAD_B','ff8c2f','idx-theme'); ?>

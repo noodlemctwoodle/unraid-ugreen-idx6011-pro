@@ -52,7 +52,7 @@
     var q=[];
     for(var name in COLQ){ var e=themeEl.querySelector('[name="'+name+'"]');
       if(e && e.value) q.push(COLQ[name]+'='+encodeURIComponent(e.value)); }
-    ['FONT:font','HEAD_SCALE:head','TEXT_SCALE:text'].forEach(function(pair){
+    ['FONT:font','HEAD_SCALE:head','TEXT_SCALE:text','BG_DIM:bgdim'].forEach(function(pair){
       var kv=pair.split(':'), e=themeEl.querySelector('[name="'+kv[0]+'"]');
       if(e && e.value) q.push(kv[1]+'='+encodeURIComponent(e.value)); });
     return q.join('&');
@@ -228,7 +228,7 @@
    * A theme is just the Theme-tab keys. Export serialises them to a short code
    * (idx1:<base64>) users can share; import/presets set the controls (firing the
    * usual events so the swatches sync, the preview updates and Apply enables). */
-  var THEME_KEYS = ['FONT','HEAD_SCALE','TEXT_SCALE','CARD_OPACITY','COL_ACCENT','COL_GRAD_A',
+  var THEME_KEYS = ['FONT','HEAD_SCALE','TEXT_SCALE','CARD_OPACITY','BG_DIM','COL_ACCENT','COL_GRAD_A',
     'COL_GRAD_B','COL_BG','COL_CARD','COL_TEXT','COL_TITLE','COL_DIM','COL_OK','COL_WARN','COL_BAD'];
   var PRESETS = {
     'Unraid (default)':{COL_ACCENT:'f15a2c',COL_GRAD_A:'e22828',COL_GRAD_B:'ff8c2f',COL_BG:'1b1b1b',COL_CARD:'262626',COL_TEXT:'f2f2f2',COL_TITLE:'999999',COL_DIM:'999999',COL_OK:'3fb950',COL_WARN:'f0a020',COL_BAD:'e22828'},

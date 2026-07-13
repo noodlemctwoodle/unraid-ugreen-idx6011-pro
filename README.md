@@ -195,33 +195,24 @@ live from the panel's own touch **SETTINGS** page.
 ## Wallpapers & themes
 
 Point the panel at **any image on the server** (Display ▸ Theme ▸ **Browse**) — it hot-swaps
-**live, no restart**. Make cards **translucent** (globally or per page) so the picture shows
-through, add **Spacer** modules to open up space, and hide any page's **header / title / page
-dots** for a clean **full-screen image**. Text keeps a subtle shadow over a wallpaper so it
-stays legible.
+**live, no restart**. Make cards **translucent** (globally or per page), add **Spacer** modules
+to open up space, and hide any page's **header / title / page dots** for a clean **full-screen
+image**. A **card-opacity** slider and a **wallpaper-dim** scrim, plus a text drop shadow and a
+themeable **card-title** colour, keep everything crisp over even busy images — each example
+below is a different view, opacity and matched palette:
 
 <table>
   <tr>
-    <td align="center" valign="top"><img src="images/showcase/01-anime-pink-overview.jpg" width="118" alt="Translucent cards over a wallpaper"><br><sub><b>Translucent cards</b></sub></td>
-    <td align="center" valign="top"><img src="images/showcase/05-animal-silhouette-fullbleed.jpg" width="118" alt="Full-screen image page"><br><sub><b>Full-screen page</b></sub></td>
-    <td align="center" valign="top"><img src="images/showcase/07-eye-detail-fans.jpg" width="118" alt="Animated fans over a wallpaper"><br><sub><b>Animated fans</b></sub></td>
-    <td align="center" valign="top"><img src="images/showcase/04-anime-judge-gauges.jpg" width="118" alt="Gauges over a wallpaper"><br><sub><b>Gauges</b></sub></td>
+    <td align="center" valign="top"><img src="images/showcase/overview.jpg" width="128" alt="Translucent rings over a wallpaper"><br><sub><b>Rings</b></sub></td>
+    <td align="center" valign="top"><img src="images/showcase/graphs.jpg" width="128" alt="History graphs over a wallpaper"><br><sub><b>History graphs</b></sub></td>
+    <td align="center" valign="top"><img src="images/showcase/gauges.jpg" width="128" alt="Arc gauges over a wallpaper"><br><sub><b>Arc gauges</b></sub></td>
+    <td align="center" valign="top"><img src="images/showcase/fans.jpg" width="128" alt="Animated fans over a wallpaper"><br><sub><b>Animated fans</b></sub></td>
   </tr>
   <tr>
-    <td align="center" valign="top"><img src="images/showcase/02-garden-fox-hero.jpg" width="118" alt="Spacer + big value"><br><sub><b>Spacer + big value</b></sub></td>
-    <td align="center" valign="top"><img src="images/showcase/06-anime-nouveau-mixed.jpg" width="118" alt="Blocks, split, trend cards"><br><sub><b>Blocks / split / trend</b></sub></td>
-    <td align="center" valign="top"><img src="images/showcase/08-anime-princess-status.jpg" width="118" alt="Status cards over a wallpaper"><br><sub><b>Status cards</b></sub></td>
-    <td align="center" valign="top"><img src="images/showcase/13-anime-duality-fullbleed.jpg" width="118" alt="Full-bleed image page"><br><sub><b>Full-bleed</b></sub></td>
-  </tr>
-</table>
-
-The **card-opacity** slider (global, or a per-page override) blends the cards into the image:
-
-<table>
-  <tr>
-    <td align="center" valign="top"><img src="images/showcase/15-opacity-78.jpg" width="108" alt="Card opacity 78%"><br><sub>78%</sub></td>
-    <td align="center" valign="top"><img src="images/showcase/16-opacity-55.jpg" width="108" alt="Card opacity 55%"><br><sub>55%</sub></td>
-    <td align="center" valign="top"><img src="images/showcase/17-opacity-38.jpg" width="108" alt="Card opacity 38%"><br><sub>38%</sub></td>
+    <td align="center" valign="top"><img src="images/showcase/status.jpg" width="128" alt="Status cards over a wallpaper"><br><sub><b>Status cards</b></sub></td>
+    <td align="center" valign="top"><img src="images/showcase/mixed.jpg" width="128" alt="Blocks, split and trend cards"><br><sub><b>Blocks / split / trend</b></sub></td>
+    <td align="center" valign="top"><img src="images/showcase/home.jpg" width="128" alt="Full-screen hero over a wallpaper"><br><sub><b>Full-screen hero</b></sub></td>
+    <td align="center" valign="top"><img src="images/showcase/fullscreen.jpg" width="128" alt="Full-bleed image page"><br><sub><b>Full-bleed image</b></sub></td>
   </tr>
 </table>
 

@@ -350,6 +350,7 @@ static int draw_custom_logo(int x, int y){
 }
 
 /* ---------- background (v1 image path; brand-dark fallback) ---------- */
+static int cfg_bg_dim = 0;   /* darken a wallpaper 0..80% (a readability scrim); set from settings.cfg BG_DIM */
 /* build a fresh W*H background buffer from an image path (scaled to the panel),
  * or the brand gradient if the path is empty/unreadable. Caller owns the buffer. */
 static uint32_t *build_bg(const char *path){
@@ -358,10 +359,11 @@ static uint32_t *build_bg(const char *path){
     if (path && *path) img = stbi_load(path, &iw, &ih, &comp, 3);
     g_has_wallpaper = (img != NULL);                  /* drives the text drop shadow */
     if (img){
+        int k = 100 - (cfg_bg_dim < 0 ? 0 : cfg_bg_dim > 80 ? 80 : cfg_bg_dim);   /* darken scrim */
         for (int y = 0; y < H; y++) for (int x = 0; x < W; x++){
             int sx = x * iw / W, sy = y * ih / H;
             unsigned char *p = img + (sy * iw + sx) * 3;
-            b[y * W + x] = (uint32_t)p[0] << 16 | (uint32_t)p[1] << 8 | p[2];
+            b[y * W + x] = (uint32_t)(p[0]*k/100) << 16 | (uint32_t)(p[1]*k/100) << 8 | (uint32_t)(p[2]*k/100);
         }
         stbi_image_free(img);
         fprintf(stderr, "background: %s (%dx%d)\n", path, iw, ih);

@@ -93,6 +93,7 @@ static void settings_load(void){
         else if (!strcmp(k, "HEAD_SCALE"))     cfg_head_pct = atoi(v);
         else if (!strcmp(k, "TEXT_SCALE"))     cfg_text_pct = atoi(v);
         else if (!strcmp(k, "CARD_OPACITY"))   cfg_card_opacity = atoi(v);
+        else if (!strcmp(k, "BG_DIM"))         cfg_bg_dim = atoi(v);
         else if (!strcmp(k, "LAYOUT_OVERVIEW")) snprintf(cfg_layout_overview, sizeof cfg_layout_overview, "%s", v);
         else if (!strcmp(k, "LAYOUT_HARDWARE")) snprintf(cfg_layout_hardware, sizeof cfg_layout_hardware, "%s", v);
         else if (!strcmp(k, "LAYOUT_NETWORK"))  snprintf(cfg_layout_network,  sizeof cfg_layout_network,  "%s", v);
@@ -194,6 +195,8 @@ static void settings_env_overrides(void){
     g_geom_scale = g_head_scale > g_text_scale ? g_head_scale : g_text_scale;
     if ((v = getenv("PANEL_CARD_OPACITY")) && *v){ cfg_card_opacity = atoi(v);
         if (cfg_card_opacity < 10) cfg_card_opacity = 10; if (cfg_card_opacity > 100) cfg_card_opacity = 100; }
+    if ((v = getenv("PANEL_BG_DIM")) && *v){ cfg_bg_dim = atoi(v);
+        if (cfg_bg_dim < 0) cfg_bg_dim = 0; if (cfg_bg_dim > 80) cfg_bg_dim = 80; }
     if ((v = getenv("PANEL_COL_ACCENT")) && *v) UN_ORANGE_M = parse_hexcol(v, UN_ORANGE_M);
     if ((v = getenv("PANEL_COL_GRAD_A")) && *v) UN_RED      = parse_hexcol(v, UN_RED);
     if ((v = getenv("PANEL_COL_GRAD_B")) && *v) UN_ORANGE   = parse_hexcol(v, UN_ORANGE);

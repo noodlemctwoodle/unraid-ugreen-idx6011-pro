@@ -35,6 +35,7 @@ foreach (['head'=>'PANEL_HEAD','text'=>'PANEL_TEXT'] as $q => $e) {
 }
 if (isset($_GET['scroll'])) { $s = max(0, min(20000, (int)$_GET['scroll'])); $env .= 'PANEL_SCROLL=' . (int)$s . ' '; }
 if (isset($_GET['cardop'])) { $o = max(10, min(100, (int)$_GET['cardop'])); $env .= 'PANEL_CARD_OPACITY=' . (int)$o . ' '; }
+if (isset($_GET['bgdim']))  { $d = max(0,  min(80,  (int)$_GET['bgdim']));  $env .= 'PANEL_BG_DIM=' . (int)$d . ' '; }
 /* draft per-page chrome toggles (header bar / title card / page dots) */
 foreach (['header'=>'PANEL_PAGE_HEADER','title'=>'PANEL_PAGE_TITLE','dots'=>'PANEL_PAGE_DOTS'] as $q => $e) {
     if (isset($_GET[$q])) $env .= $e . '=' . ((int)$_GET[$q] ? 1 : 0) . ' ';

@@ -30,7 +30,8 @@ and the plugin's in-app `<CHANGES>` list.
 - **Wallpapers & full-screen pages.** Make cards translucent so a wallpaper shows
   through — globally or per page — add **Spacer** modules to push content down, and
   hide any page's **header bar / title card / page dots** for a clean **full-screen
-  image page**. Text keeps a subtle drop shadow over a wallpaper so it stays legible.
+  image page**. A text drop shadow, a themeable **card-title** colour and a
+  **wallpaper-dim** scrim keep everything readable over even busy images.
 - **Theme presets & sharing.** Built-in presets (Unraid, Sakura, Ember, Abyss, Aurora,
   Grape, Cyber, Mono) recolour the whole dashboard in a click; **Save current…** writes a
   theme file to `…/panel/themes/`, and a **Load a theme…** dropdown lists your saved
