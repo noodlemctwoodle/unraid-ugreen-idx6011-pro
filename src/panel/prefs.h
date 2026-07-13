@@ -273,7 +273,7 @@ static void settings_save(void){
         char line[256];
         while (fgets(line, sizeof line, r)){
             char key[64]; int i = 0;
-            while (line[i] && line[i] != '=' && i < 63){ key[i] = line[i]; i++; }
+            while (i < 63 && line[i] && line[i] != '='){ key[i] = line[i]; i++; }
             key[i] = 0;
             if (line[i] == '=' && !is_managed_key(key)){
                 size_t n = strlen(line);

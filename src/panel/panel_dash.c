@@ -313,7 +313,8 @@ int main(int argc, char **argv){
                                                        * screen + LEDs, then re-sleep 30s after
                                                        * the LAST touch (i.e. 30s of no activity) */
                 ps_wake_until = nowms + 30000L;
-                FILE *tf = fopen("/run/ugreen-idx-touch", "w"); if (tf) fclose(tf);   /* signal the LED daemon */
+                int tfd = open("/run/ugreen-idx-touch", O_WRONLY | O_CREAT | O_TRUNC, 0644);   /* signal the LED daemon */
+                if (tfd >= 0) close(tfd);
             }
             if (screen_off){
                 /* the waking touch is CONSUMED, never routed to widgets */
