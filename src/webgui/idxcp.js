@@ -80,7 +80,7 @@
       /* label | control grid; the label column auto-sizes to the widest label so
        * rows line up. Cells stretch to fill their track + row height, and each
        * carries a bottom border, so the two cells form ONE full-width row line. */
-      '.idxth-grid{display:grid;grid-template-columns:auto 1fr;column-gap:16px;row-gap:0;width:100%;max-width:1000px}'+
+      '.idxth-grid{display:grid;grid-template-columns:auto 1fr;column-gap:16px;row-gap:0;width:100%;max-width:680px}'+
       '.idxth-grid > label,.idxth-grid > select,.idxth-grid > input,.idxth-grid > .idxcp{border-bottom:1px solid rgba(128,128,128,.22);padding:9px 0;box-sizing:border-box;justify-self:stretch}'+
       '.idxth-grid > label,.idxth-grid > .idxcp{display:flex;align-items:center}'+
       '.idxth-note{grid-column:1/-1;margin:1px 0 7px;padding:0;opacity:.7;font-size:.85em;line-height:1.4}'+
