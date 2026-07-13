@@ -92,6 +92,7 @@
     var cm = catMod(m.id);
     var row = el('div','idxl-row');
     row.appendChild(el('span','idxl-name', (cm||{label:m.id}).label));
+    var ctl = el('div','idxl-controls');                 /* selects + reorder buttons sit right after the name */
     if(cm && cm.indexed){                                /* per-item: pick WHICH (name) + how (style) */
       var items = ITEMS[cm.itemsrc] || [];
       var hasStyles = cm.variants && cm.variants.length>1;
@@ -107,34 +108,35 @@
         var nsel = el('select','idxl-var idxl-item');
         items.forEach(function(nm){ var o=el('option',null,nm); o.value=nm; if(nm===curName) o.selected=true; nsel.appendChild(o); });
         nsel.onchange=function(){ curName=nsel.value; encode(); changed(); };
-        row.appendChild(nsel);
+        ctl.appendChild(nsel);
       } else {                                           /* no live list — fall back to a number */
         var num = el('input','idxl-var'); num.type='number'; num.min='1';
         num.value = String((parseInt(curName,10)||0) + 1);
         num.onchange = function(){ var n=Math.max(1, parseInt(num.value,10)||1);
           num.value=String(n); curName=String(n-1); encode(); changed(); };
-        row.appendChild(num);
+        ctl.appendChild(num);
       }
       if(hasStyles){                                     /* visualisation style */
         var ssel = el('select','idxl-var');
         cm.variants.forEach(function(v){ var o=el('option',null,v); o.value=v; if(v===curStyle) o.selected=true; ssel.appendChild(o); });
         ssel.onchange=function(){ curStyle=ssel.value; encode(); changed(); };
-        row.appendChild(ssel);
+        ctl.appendChild(ssel);
       }
     } else if(cm && cm.variants && cm.variants.length>1){
       var sel = el('select','idxl-var');
       cm.variants.forEach(function(v){ var o=el('option',null,v); o.value=v;
         if((m.variant||cm.variants[0])===v) o.selected=true; sel.appendChild(o); });
       sel.onchange=function(){ m.variant = (sel.value===cm.variants[0]?'':sel.value); changed(); };
-      row.appendChild(sel);
-    } else { row.appendChild(el('span','idxl-var-none','')); }
+      ctl.appendChild(sel);
+    } else { ctl.appendChild(el('span','idxl-var-none','')); }
     var up=el('button','idxl-btn','▲'); up.type='button'; up.title='Move up'; up.disabled=i===0;
     up.onclick=function(){ mods.splice(i-1,0,mods.splice(i,1)[0]); changed(); };
     var dn=el('button','idxl-btn','▼'); dn.type='button'; dn.title='Move down'; dn.disabled=i===mods.length-1;
     dn.onclick=function(){ mods.splice(i+1,0,mods.splice(i,1)[0]); changed(); };
     var rm=el('button','idxl-btn idxl-rm','×'); rm.type='button'; rm.title='Remove';
     rm.onclick=function(){ mods.splice(i,1); changed(); };
-    row.appendChild(up); row.appendChild(dn); row.appendChild(rm);
+    ctl.appendChild(up); ctl.appendChild(dn); ctl.appendChild(rm);
+    row.appendChild(ctl);
     return row;
   }
   function renderEditor(){
@@ -212,8 +214,9 @@
       '.idxl-list{display:flex;flex-direction:column;gap:0;margin-bottom:12px}'+
       /* compact line rows to match the theme tab (no boxes, one faint grey line);
        * the label grows so the (width-capped) style/name selects + buttons sit right */
-      '.idxl-row{display:flex;align-items:center;gap:8px;padding:9px 2px;border-bottom:1px solid rgba(128,128,128,.22)}'+
-      '.idxl-name{flex:1;min-width:80px;font-weight:600;opacity:.9}'+
+      '.idxl-row{display:grid;grid-template-columns:auto 1fr;align-items:center;column-gap:16px;padding:9px 2px;border-bottom:1px solid rgba(128,128,128,.22)}'+
+      '.idxl-name{min-width:80px;font-weight:600;opacity:.9}'+
+      '.idxl-controls{display:flex;align-items:center;gap:8px}'+
       '.idxl-var{flex:0 1 auto;min-width:90px;max-width:200px;width:auto !important;border:0 !important;background-color:transparent}'+
       '.idxl-var-none{width:76px}'+
       '.idxl-btn{min-width:28px;height:28px;border:1px solid #888;border-radius:5px;background:transparent;color:inherit;cursor:pointer;font:inherit;line-height:1}'+
