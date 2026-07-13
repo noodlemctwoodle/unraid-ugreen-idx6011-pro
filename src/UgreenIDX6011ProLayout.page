@@ -1,0 +1,32 @@
+Menu="UgreenIDX6011Pro:3"
+Title="Layout"
+Icon="th-large"
+Markdown="true"
+---
+<?php
+/* UGREEN iDX6011 Pro - Layout tab: reorder / add / remove / retype the dashboard
+ * modules per page + page on/off toggles, with a LIVE preview rendered by the real
+ * dashboard (preview.php -> panel_dash --preview). The catalog + current layouts
+ * arrive via data-attributes on #idxlayout (an inline <script> would be mangled by
+ * the markdown pass); idxlayout.js reads them and writes the LAYOUT_ and PAGE_ fields. */
+require_once '/usr/local/emhttp/plugins/ugreen-idx6011-pro/idxcp-inc.php';
+$catalog = trim(@shell_exec('/usr/local/bin/panel_dash --modules 2>/dev/null'));
+$layouts = trim(@shell_exec('/usr/local/bin/panel_dash --layouts 2>/dev/null'));
+if ($catalog === '') $catalog = '[]';
+if ($layouts === '') $layouts = '{}';
+?>
+<script src="<?=idx_asset('idxlayout.js')?>"></script>
+
+<form markdown="1" name="idx_layout" method="POST" action="/update.php" target="progressFrame">
+<input type="hidden" name="#file" value="ugreen-idx6011-pro/panel/settings.cfg">
+<input type="hidden" name="#command" value="plugins/ugreen-idx6011-pro/restart.sh">
+
+<div id="idxlayout" data-catalog="<?=htmlspecialchars($catalog)?>" data-layouts="<?=htmlspecialchars($layouts)?>"></div>
+
+&nbsp;
+: <span class="buttons-spaced"><input type="submit" name="#apply" value="_(Apply)_" disabled><input type="button" value="_(Done)_" onclick="done()"></span>
+</form>
+
+> Pick a page tab, then reorder / add / remove / restyle its modules, or toggle the
+> page off. The **live preview** is rendered by the actual dashboard. **Apply** writes
+> the layout and restarts the panel; the same layout also drives the physical screen.

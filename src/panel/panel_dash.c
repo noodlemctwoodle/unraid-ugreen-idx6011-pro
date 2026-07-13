@@ -134,6 +134,7 @@ int main(int argc, char **argv){
             prev_page = atoi(argv[++i]); prev_layout = argv[++i]; prev_out = argv[++i];
         }
         else if (!strcmp(argv[i], "--modules")) want_modules = 1;   /* print registry JSON */
+        else if (!strcmp(argv[i], "--layouts")) want_modules = 2;   /* print current layouts JSON */
         else if (!strcmp(argv[i], "--rotate") && i + 1 < argc) cfg_rotate = atoi(argv[++i]);
         else if (!strcmp(argv[i], "--cal") && i + 1 < argc){
             const char *c = argv[++i];
@@ -142,7 +143,8 @@ int main(int argc, char **argv){
             cal_inv_y   = strchr(c, 'y') != NULL;
         }
     }
-    if (want_modules) return write_modules_json();        /* module catalog for the web editor */
+    if (want_modules == 1) return write_modules_json();   /* module catalog for the web editor */
+    if (want_modules == 2) return write_layouts_json();   /* current layouts + toggles */
     if (prev_out) return write_preview(prev_page, prev_layout, prev_out);  /* one page, draft layout */
     if (shot_dir) return write_shots(shot_dir, bgpath);   /* offscreen PNG render, then exit */
     if (cfg_interval < 1) cfg_interval = 1;

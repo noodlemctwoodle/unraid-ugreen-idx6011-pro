@@ -83,4 +83,18 @@ static int write_modules_json(void){
     return 0;
 }
 
+/* print the current effective per-page layouts + enable toggles as JSON (for the
+ * web layout editor to load real state without duplicating the defaults). Layout
+ * strings are [a-z0-9,:] so need no JSON escaping. */
+static int write_layouts_json(void){
+    printf("{\"home\":\"%s\",\"overview\":\"%s\",\"hardware\":\"%s\","
+           "\"network\":\"%s\",\"disks\":\"%s\",\"docker\":\"%s\","
+           "\"on\":[%d,%d,%d,%d,%d,%d]}\n",
+           cfg_layout_home, cfg_layout_overview, cfg_layout_hardware,
+           cfg_layout_network, cfg_layout_disks, cfg_layout_docker,
+           cfg_page_on[0], cfg_page_on[1], cfg_page_on[2],
+           cfg_page_on[3], cfg_page_on[4], cfg_page_on[5]);
+    return 0;
+}
+
 #endif /* PANEL_MODULE_REGISTRY_H */
