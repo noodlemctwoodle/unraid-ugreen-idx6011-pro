@@ -204,7 +204,7 @@
       /* hug a fixed control column so the live preview sits right beside it and the
        * wallpaper/header lines trim to the same width (not full-bleed) */
       '#idxtheme{flex:0 1 680px;min-width:290px}'+
-      '.idxth-uploads{max-width:680px}'+
+      '.idxth-uploads{max-width:680px;margin-top:30px}'+
       /* .idxth-grid styling is shared from idxcp.js (used by the Lighting tab too) */
       '.idxl-pagehdr{display:flex;align-items:center;gap:6px;margin-bottom:12px}'+
       '.idxl-pagename{flex:1;min-width:120px;padding:5px 8px;font:inherit}'+
