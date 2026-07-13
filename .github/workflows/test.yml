@@ -1,0 +1,26 @@
+name: test
+
+# Build panel_dash and run the module-catalog / editor-picker regression test on
+# every push and pull request, so a "pick one" card can never lose its style
+# picker and the catalog stays well-formed.
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request: {}
+
+jobs:
+  catalog:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Install libdrm
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq libdrm-dev
+
+      - name: Build panel_dash from source
+        run: bash src/panel/build.sh
+
+      - name: Module catalog / picker regression test
+        run: node test/catalog.test.mjs

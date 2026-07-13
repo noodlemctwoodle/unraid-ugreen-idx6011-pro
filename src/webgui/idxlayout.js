@@ -128,9 +128,9 @@
       sel.onchange=function(){ m.variant = (sel.value===cm.variants[0]?'':sel.value); changed(); };
       row.appendChild(sel);
     } else { row.appendChild(el('span','idxl-var-none','')); }
-    var up=el('button','idxl-btn','↑'); up.type='button'; up.title='Move up'; up.disabled=i===0;
+    var up=el('button','idxl-btn','▲'); up.type='button'; up.title='Move up'; up.disabled=i===0;
     up.onclick=function(){ mods.splice(i-1,0,mods.splice(i,1)[0]); changed(); };
-    var dn=el('button','idxl-btn','↓'); dn.type='button'; dn.title='Move down'; dn.disabled=i===mods.length-1;
+    var dn=el('button','idxl-btn','▼'); dn.type='button'; dn.title='Move down'; dn.disabled=i===mods.length-1;
     dn.onclick=function(){ mods.splice(i+1,0,mods.splice(i,1)[0]); changed(); };
     var rm=el('button','idxl-btn idxl-rm','×'); rm.type='button'; rm.title='Remove';
     rm.onclick=function(){ mods.splice(i,1); changed(); };
