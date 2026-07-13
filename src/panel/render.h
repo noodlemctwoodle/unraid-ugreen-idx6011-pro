@@ -23,10 +23,12 @@ static void render(stats_t *st){
     if (scrolly[cur_page] < 0)    scrolly[cur_page] = 0;
     body_top = base - scrolly[cur_page];
     page_end = body_top;
+    g_clip_top = base; g_clip_bot = FOOTER_Y - 4;           /* clip the body to the content band */
     if (g_preview_layout)                                    /* web preview: force content render */
         render_modules(g_preview_layout, st);
     else if (is_settings_page(cur_page)) page_settings(st);  /* built-in interactive page */
     else render_modules(g_cpage[cur_page].layout, st);       /* user content page */
+    g_clip_top = 0; g_clip_bot = 1 << 20;                   /* header/footer draw unclipped */
     content_h[cur_page] = page_end - body_top;
     draw_header(st);
     if (st->notif_count > 0) draw_banner(st);
@@ -100,6 +102,8 @@ static int write_preview(int page, const char *layout, const char *outfile){
     g_preview_layout = (layout && *layout) ? layout : NULL;
     cur_page = page; scrolly[page] = 0;
     render(&st);
+    const char *sc = getenv("PANEL_SCROLL");                 /* debug: preview a scrolled frame */
+    if (sc && *sc){ scrolly[page] = atoi(sc); render(&st); }
     g_preview_layout = NULL;
 
     unsigned char *rgba = malloc((size_t)W * H * 4);

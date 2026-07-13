@@ -19,8 +19,15 @@ static volatile sig_atomic_t stop_flag;
 
 static void on_sig(int s){ (void)s; stop_flag = 1; }
 
+/* vertical draw clip [g_clip_top, g_clip_bot). The scrolling page body is clipped
+ * to the content region so it never writes into the header/footer bands — without
+ * this, a single-buffered scanout mid-frame shows body content behind the header
+ * (a flash) while scrolling. Defaults are wide-open (no clip). */
+static int g_clip_top = 0;
+static int g_clip_bot = 1 << 20;
+
 static inline void px(int x, int y, uint32_t c){
-    if ((unsigned)x < (unsigned)W && (unsigned)y < (unsigned)H)
+    if ((unsigned)x < (unsigned)W && (unsigned)y < (unsigned)H && y >= g_clip_top && y < g_clip_bot)
         fbmem[y * fbpitch + x] = c;
 }
 static inline uint32_t blend(uint32_t dst, uint32_t src, uint8_t a){
@@ -30,7 +37,10 @@ static inline uint32_t blend(uint32_t dst, uint32_t src, uint8_t a){
 }
 static void rect(int x, int y, int w, int h, uint32_t c, uint8_t a){
     if (x < 0){ w += x; x = 0; } if (y < 0){ h += y; y = 0; }
+    if (y < g_clip_top){ h -= (g_clip_top - y); y = g_clip_top; }   /* vertical clip */
+    if (y + h > g_clip_bot) h = g_clip_bot - y;
     if (x + w > W) w = W - x; if (y + h > H) h = H - y;
+    if (w <= 0 || h <= 0) return;
     for (int j = 0; j < h; j++){
         uint32_t *row = fbmem + (y + j) * fbpitch + x;
         if (a == 255) for (int i = 0; i < w; i++) row[i] = c;
@@ -154,7 +164,8 @@ static void text_ttf(int x, int y, float scale, uint32_t c, const char *s){
         if (g && g->bmp){
             int gx = (int)(penx + 0.5f) + g->xoff, gy = baseline + g->yoff;
             for (int j = 0; j < g->h; j++){
-                int py = gy + j; if ((unsigned)py >= (unsigned)H) continue;
+                int py = gy + j;
+                if ((unsigned)py >= (unsigned)H || py < g_clip_top || py >= g_clip_bot) continue;
                 uint32_t *drow = fbmem + py * fbpitch;
                 const unsigned char *brow = g->bmp + j * g->w;
                 for (int i = 0; i < g->w; i++){
