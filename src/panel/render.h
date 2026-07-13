@@ -48,7 +48,7 @@ static int write_shots(const char *dir, const char *bgpath){
     usleep(400 * 1000);                              /* let deltas settle */
     read_cpu(&st);  read_mem(&st);  read_net(&st);  read_disk(&st);
     read_temp(&st); read_misc(&st); read_disks(&st); read_gpu(&st);
-    read_npu(&st);  read_fans(&st); read_zones(&st); read_docker(&st);
+    read_npu(&st);  read_fans(&st); read_fan_rpm(&st); read_zones(&st); read_docker(&st);
     read_power(&st); read_about(&st); read_notif(&st); read_updates(&st);
     hist_seed_demo(&st);                            /* representative graph history for shots */
 
@@ -91,7 +91,7 @@ static int write_preview(int page, const char *layout, const char *outfile){
     usleep(400 * 1000);
     read_cpu(&st);  read_mem(&st);  read_net(&st);  read_disk(&st);
     read_temp(&st); read_misc(&st); read_disks(&st); read_gpu(&st);
-    read_npu(&st);  read_fans(&st); read_zones(&st); read_docker(&st);
+    read_npu(&st);  read_fans(&st); read_fan_rpm(&st); read_zones(&st); read_docker(&st);
     read_power(&st); read_about(&st); read_notif(&st); read_updates(&st);
     hist_seed_demo(&st);
 

@@ -99,6 +99,7 @@
 #include "modules/mod_uptime.h"
 #include "modules/mod_gpu.h"
 #include "modules/mod_cpu_temp.h"
+#include "modules/mod_fans.h"
 #include "modules/mod_npu.h"
 #include "modules/mod_power.h"
 #include "modules/mod_ifaces.h"
@@ -246,7 +247,7 @@ int main(int argc, char **argv){
             read_cpu(&st); read_mem(&st); read_net(&st);
             read_disk(&st); read_temp(&st); read_misc(&st);
             read_disks(&st); read_gpu(&st); read_npu(&st);
-            read_fans(&st); read_zones(&st); read_docker(&st); read_power(&st);
+            read_fans(&st); read_fan_rpm(&st); read_zones(&st); read_docker(&st); read_power(&st);
             read_about(&st);
             read_notif(&st);
             read_updates(&st);

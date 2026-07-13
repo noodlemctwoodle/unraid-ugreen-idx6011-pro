@@ -59,6 +59,7 @@ typedef struct {
     int npu_avail; double npu_busy; int npu_freq, npu_max_freq;
     unsigned long long npu_mem;
     int fans_total, fans_on;
+    int n_fan_rpm; int fan_rpm[4];   /* EC tachometers (RPM), read-only */
     int docker;                      /* running count, -1 = n/a */
     int docker_total;                /* total containers, -1 = n/a */
     int n_ctrs; ctr_t ctrs[MAX_CTRS];

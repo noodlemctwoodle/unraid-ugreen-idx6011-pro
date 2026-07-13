@@ -25,6 +25,7 @@ static const modinfo_t MODULES[] = {
     { "uptime",  "Uptime",             mod_uptime,   2, { "card", "big" } },
     { "gpu",     "GPU",                mod_gpu,      7, { "bar", "graph", "area", "blocks", "trend", "big", "gauge" } },
     { "cputemp", "CPU temperature",    mod_cputemp,  4, { "bar", "graph", "area", "gauge" } },
+    { "fans",    "Fans (RPM)",         mod_fans,     2, { "list", "compact" } },
     { "npu",     "NPU",                mod_npu,      1, { "card" } },
     { "power",   "Power draw",         mod_power,    2, { "card", "big" } },
     { "ifaces",  "Interfaces (all in one card)", mod_ifaces, 4, { "full", "compact", "mini", "big" } },
