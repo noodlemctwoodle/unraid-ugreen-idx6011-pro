@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name    "ugreen-idx6011-pro">
 <!ENTITY author  "noodlemctwoodle">
-<!ENTITY version "2026.07.13.beta.2">
+<!ENTITY version "2026.07.13.beta.3">
 <!ENTITY plgdir  "/boot/config/plugins/&name;">
 ]>
 
@@ -45,6 +45,9 @@
   Grape, Cyber, Mono) recolour the dashboard in a click; Save current writes a theme
   file to panel/themes/, and a Load-a-theme dropdown lists your saved themes - share
   one by copying its .cfg.
+- Power-save schedule. Turn the screen and disk/LAN LEDs off between two local times
+  (quiet hours). A tap wakes everything and it re-sleeps 30s after the last touch; the
+  timezone comes from Unraid automatically, and the power LED stays on.
 - Smarter front LEDs. Configurable LAN and per-state disk-light colours, power
   light on/off, and an activity mode that blinks the disk/LAN LEDs on I/O and goes
   solid when idle.
@@ -82,7 +85,7 @@
 -->
 <FILE Name="&plgdir;/&name;-&version;.txz">
 <URL>https://github.com/noodlemctwoodle/unraid-ugreen-idx6011-pro/releases/download/&version;/&name;-&version;.txz</URL>
-<SHA256>b1e09c9039f5483f621dc993337588192cac98a59a0145c4b6c175f2b8866827</SHA256>
+<SHA256>c372b8d3c0257c3414217176c7d5a732a520088e825c44d86a05fe1087ab6148</SHA256>
 </FILE>
 
 <FILE Run="/bin/bash">
