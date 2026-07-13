@@ -19,17 +19,33 @@ function idx_val($cfg, $k, $def = '') { return isset($cfg[$k]) ? $cfg[$k] : $def
 
 /* saved theme files (panel/themes/*.cfg) -> [{name, keys:{K:V,...}}, ...] for the
  * Load-theme dropdown. A theme is just the Theme-tab keys; share one by copying its
- * .cfg (the themes folder is on the flash `config` share). */
+ * .cfg (the themes folder is on the flash `config` share).
+ *
+ * Hardened: a theme file can arrive by any means (SMB-copied in), so every value is
+ * validated here at the read boundary — colours must be 6-hex, numerics must be in
+ * range, FONT must be a known name, and the file name itself must be tame. Anything
+ * else is dropped, so a rogue .cfg can only ever surface safe values (the panel also
+ * clamps everything again on load). */
 function idx_themes() {
-    $dir  = '/boot/config/plugins/ugreen-idx6011-pro/panel/themes';
-    $keys = ['FONT','HEAD_SCALE','TEXT_SCALE','CARD_OPACITY','COL_ACCENT','COL_GRAD_A',
-             'COL_GRAD_B','COL_BG','COL_CARD','COL_TEXT','COL_TITLE','COL_DIM','COL_OK','COL_WARN','COL_BAD'];
+    $dir   = '/boot/config/plugins/ugreen-idx6011-pro/panel/themes';
+    $cols  = ['COL_ACCENT','COL_GRAD_A','COL_GRAD_B','COL_BG','COL_CARD','COL_TEXT',
+              'COL_TITLE','COL_DIM','COL_OK','COL_WARN','COL_BAD'];
+    $nums  = ['HEAD_SCALE'=>[70,200],'TEXT_SCALE'=>[70,200],'CARD_OPACITY'=>[10,100],'BG_DIM'=>[0,80]];
+    $fonts = ['RobotoCondensed','Inter','JetBrainsMono','BarlowSemiCond','Montserrat'];
     $out = [];
     foreach (glob("$dir/*.cfg") ?: [] as $f) {
+        $name = basename($f, '.cfg');
+        if (!preg_match('/^[A-Za-z0-9 _-]{1,40}$/', $name)) continue;   /* skip odd file names */
         $ini = @parse_ini_file($f) ?: [];
         $t = [];
-        foreach ($keys as $k) if (isset($ini[$k]) && $ini[$k] !== '') $t[$k] = $ini[$k];
-        if ($t) $out[] = ['name' => basename($f, '.cfg'), 'keys' => $t];
+        foreach ($cols as $k)
+            if (isset($ini[$k]) && preg_match('/^#?[0-9a-fA-F]{6}$/', (string)$ini[$k]))
+                $t[$k] = strtolower(ltrim((string)$ini[$k], '#'));
+        foreach ($nums as $k => $r)
+            if (isset($ini[$k]) && is_numeric($ini[$k]) && (int)$ini[$k] >= $r[0] && (int)$ini[$k] <= $r[1])
+                $t[$k] = (string)(int)$ini[$k];
+        if (isset($ini['FONT']) && in_array($ini['FONT'], $fonts, true)) $t['FONT'] = $ini['FONT'];
+        if ($t) $out[] = ['name' => $name, 'keys' => $t];
     }
     return $out;
 }
