@@ -148,13 +148,16 @@ int main(int argc, char **argv){
         }
     }
     /* font: --font / PANEL_FONT override wins (used by the web live-preview);
-     * otherwise resolve the configured name to panel/fonts/<name>.ttf. */
+     * otherwise the configured name. A bare name (no '/') resolves to
+     * panel/fonts/<name>.ttf; a path is used as-is. */
     char fontbuf[288];
     const char *fp = font_path ? font_path : getenv("PANEL_FONT");
-    if (!fp && cfg_font[0]){
-        snprintf(fontbuf, sizeof fontbuf, "%s/fonts/%s.ttf", CFG_DIR2, cfg_font);
+    if (!fp && cfg_font[0]) fp = cfg_font;
+    if (fp && !strchr(fp, '/')){
+        snprintf(fontbuf, sizeof fontbuf, "%s/fonts/%s.ttf", CFG_DIR2, fp);
         fp = fontbuf;
     }
+    settings_env_overrides();                   /* draft theme/size for the web preview */
     font_init(fp);                              /* real TTF; falls back to easy_font */
     if (want_modules == 1) return write_modules_json();   /* module catalog for the web editor */
     if (want_modules == 2) return write_layouts_json();   /* current layouts + toggles */

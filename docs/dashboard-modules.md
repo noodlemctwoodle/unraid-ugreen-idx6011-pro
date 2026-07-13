@@ -112,6 +112,11 @@ on the Screen settings page (`FONT` key → `panel/fonts/<name>.ttf`, default
 
 - `scale` is unchanged from the old renderer — it maps to a pixel height, so the
   existing per-card y-offsets keep working across fonts.
+- **Two user size knobs** (Theme tab): `text()`/`text_w()` are multiplied by the
+  body Text Size; `htext()`/`htext_w()`/`htext_c()` by the Heading Size. Use
+  `htext*` for a *section title* only (the shim's `card`/`item_head`/`tile`
+  already do); use `text*` for everything else. `text_raw()`/`text_w_raw()`
+  bypass both — reserved for fixed header chrome (clock/date).
 - Because it's a real font, **full glyph coverage is available** — you can use
   `°`, `–`, `→`, `×`, etc. directly in UTF-8 string literals (the old vector
   font only knew ASCII 32–126, which is why placeholders use plain ASCII).

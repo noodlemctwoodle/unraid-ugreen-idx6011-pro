@@ -74,7 +74,7 @@ static void card(int y, int h, const char *title){
     rect(10, y, W - 20, h, UN_GREY_80, 230);
     rect(10, y, W - 20, 1, UN_GREY_70, 255);
     rect(10, y, 3, h, UN_ORANGE_M, 255);          /* webGUI-style orange spine */
-    if (title) text(22, y + 10, TITLE_SCALE, UN_DIM, title);
+    if (title) htext(22, y + 10, TITLE_SCALE, UN_DIM, title);   /* section heading */
 }
 
 /* ring gauge — filled annulus, clockwise from 12 o'clock; no libs */
@@ -117,7 +117,7 @@ static void spark(int x, int y, int w, int h, const float *vals, int cnt, int po
 static void tile(int x, int y, int w, int h, const char *label){
     rect(x, y, w, h, UN_GREY_80, 230);
     rect(x, y, w, 1, UN_GREY_70, 255);
-    text(x + 10, y + 8, TITLE_SCALE, UN_DIM, label);
+    htext(x + 10, y + 8, TITLE_SCALE, UN_DIM, label);   /* tile heading */
 }
 
 

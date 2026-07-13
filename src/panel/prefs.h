@@ -24,6 +24,8 @@ static int cfg_leds       = 1;      /* chassis LEDs on/off */
 static char cfg_primary_if[32] = "";/* Overview/Home "primary" iface; empty = default-route auto-pick */
 static int  cfg_net_bits  = 1;      /* 1 = net rates in bits (Kbps), 0 = bytes (KB/s) */
 static char cfg_font[32]  = "RobotoCondensed"; /* fonts/<name>.ttf; empty = built-in easy_font */
+static int  cfg_head_pct  = 100;    /* heading size %  (section titles)  */
+static int  cfg_text_pct  = 100;    /* body text size % (values, labels) */
 /* per-page module layout: ordered "id[:variant],..." list drawn by render_modules().
  * Default matches the original hardcoded Overview (all default/bar variants). */
 static char cfg_layout_overview[256] = "host,cpu,mem,net,storage,uptime";
@@ -60,6 +62,8 @@ static void settings_load(void){
         else if (!strcmp(k, "PRIMARY_IFACE"))  snprintf(cfg_primary_if, sizeof cfg_primary_if, "%s", v);
         else if (!strcmp(k, "NET_UNITS"))      cfg_net_bits = strcmp(v, "bytes") != 0;
         else if (!strcmp(k, "FONT"))           snprintf(cfg_font, sizeof cfg_font, "%s", v);
+        else if (!strcmp(k, "HEAD_SCALE"))     cfg_head_pct = atoi(v);
+        else if (!strcmp(k, "TEXT_SCALE"))     cfg_text_pct = atoi(v);
         else if (!strcmp(k, "LAYOUT_OVERVIEW")) snprintf(cfg_layout_overview, sizeof cfg_layout_overview, "%s", v);
         else if (!strcmp(k, "LAYOUT_HARDWARE")) snprintf(cfg_layout_hardware, sizeof cfg_layout_hardware, "%s", v);
         else if (!strcmp(k, "LAYOUT_NETWORK"))  snprintf(cfg_layout_network,  sizeof cfg_layout_network,  "%s", v);
@@ -87,6 +91,33 @@ static void settings_load(void){
     if (cfg_brightness < 5)   cfg_brightness = 5;
     if (cfg_brightness > 100) cfg_brightness = 100;
     if (cfg_interval < 1)     cfg_interval = 1;
+    if (cfg_head_pct < 70) cfg_head_pct = 70; if (cfg_head_pct > 150) cfg_head_pct = 150;
+    if (cfg_text_pct < 70) cfg_text_pct = 70; if (cfg_text_pct > 150) cfg_text_pct = 150;
+    g_head_scale = cfg_head_pct / 100.0f;
+    g_text_scale = cfg_text_pct / 100.0f;
+}
+
+/* env overrides applied AFTER settings_load — used ONLY by the web live-preview
+ * (preview.php) so the Theme tab can preview draft colour / size choices without
+ * saving them. Not set for the live panel, so it has no effect there. */
+static void settings_env_overrides(void){
+    const char *v;
+    if ((v = getenv("PANEL_HEAD")) && *v){ cfg_head_pct = atoi(v);
+        if (cfg_head_pct < 70) cfg_head_pct = 70; if (cfg_head_pct > 150) cfg_head_pct = 150;
+        g_head_scale = cfg_head_pct / 100.0f; }
+    if ((v = getenv("PANEL_TEXT")) && *v){ cfg_text_pct = atoi(v);
+        if (cfg_text_pct < 70) cfg_text_pct = 70; if (cfg_text_pct > 150) cfg_text_pct = 150;
+        g_text_scale = cfg_text_pct / 100.0f; }
+    if ((v = getenv("PANEL_COL_ACCENT")) && *v) UN_ORANGE_M = parse_hexcol(v, UN_ORANGE_M);
+    if ((v = getenv("PANEL_COL_GRAD_A")) && *v) UN_RED      = parse_hexcol(v, UN_RED);
+    if ((v = getenv("PANEL_COL_GRAD_B")) && *v) UN_ORANGE   = parse_hexcol(v, UN_ORANGE);
+    if ((v = getenv("PANEL_COL_BG"))     && *v) UN_BLACK    = parse_hexcol(v, UN_BLACK);
+    if ((v = getenv("PANEL_COL_CARD"))   && *v) UN_GREY_80  = parse_hexcol(v, UN_GREY_80);
+    if ((v = getenv("PANEL_COL_TEXT"))   && *v) UN_TEXT     = parse_hexcol(v, UN_TEXT);
+    if ((v = getenv("PANEL_COL_DIM"))    && *v) UN_DIM      = parse_hexcol(v, UN_DIM);
+    if ((v = getenv("PANEL_COL_OK"))     && *v) UN_OK       = parse_hexcol(v, UN_OK);
+    if ((v = getenv("PANEL_COL_WARN"))   && *v) UN_WARN     = parse_hexcol(v, UN_WARN);
+    if ((v = getenv("PANEL_COL_BAD"))    && *v) UN_BAD      = parse_hexcol(v, UN_BAD);
 }
 
 /* keys the dashboard owns; anything else in settings.cfg (LED_* for monitor.sh,
@@ -94,7 +125,8 @@ static void settings_load(void){
 static int is_managed_key(const char *k){
     static const char *m[] = {
         "BRIGHTNESS","INTERVAL","ROTATE","SCREEN_OFF_MIN","NIGHT","LEDS",
-        "PRIMARY_IFACE","NET_UNITS","FONT","COL_ACCENT","COL_GRAD_A","COL_GRAD_B",
+        "PRIMARY_IFACE","NET_UNITS","FONT","HEAD_SCALE","TEXT_SCALE",
+        "COL_ACCENT","COL_GRAD_A","COL_GRAD_B",
         "COL_BG","COL_CARD","COL_TEXT","COL_DIM","COL_OK","COL_WARN","COL_BAD", 0 };
     for (int i = 0; m[i]; i++) if (!strcmp(k, m[i])) return 1;
     return 0;
@@ -124,12 +156,14 @@ static void settings_save(void){
     FILE *f = fopen(tmp, "w"); if (!f) return;
     fprintf(f, "BRIGHTNESS=%d\nINTERVAL=%d\nROTATE=%d\n"
                "SCREEN_OFF_MIN=%d\nNIGHT=%d\nLEDS=%d\nPRIMARY_IFACE=%s\nNET_UNITS=%s\nFONT=%s\n"
+               "HEAD_SCALE=%d\nTEXT_SCALE=%d\n"
                "COL_ACCENT=%06x\nCOL_GRAD_A=%06x\nCOL_GRAD_B=%06x\nCOL_BG=%06x\n"
                "COL_CARD=%06x\nCOL_TEXT=%06x\nCOL_DIM=%06x\n"
                "COL_OK=%06x\nCOL_WARN=%06x\nCOL_BAD=%06x\n",
             cfg_brightness, cfg_interval, cfg_rotate,
             cfg_screen_off, cfg_night, cfg_leds, cfg_primary_if,
             cfg_net_bits ? "bits" : "bytes", cfg_font,
+            cfg_head_pct, cfg_text_pct,
             (unsigned)UN_ORANGE_M, (unsigned)UN_RED, (unsigned)UN_ORANGE, (unsigned)UN_BLACK,
             (unsigned)UN_GREY_80, (unsigned)UN_TEXT, (unsigned)UN_DIM,
             (unsigned)UN_OK, (unsigned)UN_WARN, (unsigned)UN_BAD);

@@ -3,12 +3,14 @@
  *
  * Created by noodlemctwoodle on 13/07/2026.
  *
- * The dashboard LAYOUT EDITOR. For each content page: an enable toggle, an
- * editable module list (reorder / add / remove / variant), and a LIVE PREVIEW
- * image rendered by the real dashboard via preview.php (panel_dash --preview).
- * Maintains hidden LAYOUT_<PAGE> / PAGE_<PAGE> form fields so Apply writes them.
- * Catalog + current layouts arrive as data-attributes on #idxlayout (an inline
- * <script> would be mangled by the markdown pass). Vanilla JS; layout-only CSS.
+ * The dashboard LAYOUT EDITOR. A "Theme" tab (colours + font + text sizes, from
+ * the server-rendered #idxtheme block) followed by one tab per content page: an
+ * enable toggle and an editable module list (reorder / add / remove / variant).
+ * A LIVE PREVIEW on the right is rendered by the real dashboard via preview.php
+ * (panel_dash --preview) and reflects the DRAFT theme too, so colour / font /
+ * size changes preview before Apply. Catalog + current layouts arrive as
+ * data-attributes on #idxlayout (an inline <script> would be mangled by markdown).
+ * Vanilla JS; layout-only CSS.
  */
 (function(){
   "use strict";
@@ -21,7 +23,10 @@
     { key:'disks', KEY:'DISKS', title:'Disks', idx:4 },
     { key:'docker', KEY:'DOCKER', title:'Docker', idx:5 }
   ];
-  var CAT = [], state = {}, active = 'home', root = null, form = null, timer = null;
+  /* which cfg colour keys map to which preview.php query params */
+  var COLQ = { COL_ACCENT:'accent', COL_GRAD_A:'grada', COL_GRAD_B:'gradb', COL_BG:'bg',
+               COL_CARD:'card', COL_TEXT:'ctext', COL_OK:'ok', COL_WARN:'warn', COL_BAD:'bad' };
+  var CAT = [], state = {}, active = 'theme', root = null, form = null, timer = null, themeEl = null;
 
   function catMod(id){ for(var i=0;i<CAT.length;i++) if(CAT[i].id===id) return CAT[i]; return null; }
   function parse(s){ var o=[]; (s||'').split(',').forEach(function(t){ t=t.trim(); if(!t)return;
@@ -39,22 +44,39 @@
   function syncAll(){ PAGES.forEach(function(p){ var s=state[p.key];
     hidden('LAYOUT_'+p.KEY, build(s.mods)); hidden('PAGE_'+p.KEY, s.on?'1':'0'); }); }
 
+  /* draft theme -> preview.php query params (so previews reflect unsaved theme) */
+  function themeParams(){
+    if(!themeEl) return '';
+    var q=[];
+    for(var name in COLQ){ var e=themeEl.querySelector('[name="'+name+'"]');
+      if(e && e.value) q.push(COLQ[name]+'='+encodeURIComponent(e.value)); }
+    ['FONT:font','HEAD_SCALE:head','TEXT_SCALE:text'].forEach(function(pair){
+      var kv=pair.split(':'), e=themeEl.querySelector('[name="'+kv[0]+'"]');
+      if(e && e.value) q.push(kv[1]+'='+encodeURIComponent(e.value)); });
+    return q.join('&');
+  }
+
   function refreshPreview(){
-    var p = PAGES.filter(function(x){return x.key===active;})[0];
     var img = document.getElementById('idxprev-img'), note = document.getElementById('idxprev-note');
     if(!img) return;
-    var layout = build(state[active].mods);
+    var pidx, layout;
+    if(active==='theme'){ pidx=1; layout=build(state.overview.mods); }   /* Overview shows theme well */
+    else { var p=PAGES.filter(function(x){return x.key===active;})[0]; pidx=p.idx; layout=build(state[active].mods); }
+    var th = themeParams();
     if(note) note.textContent='rendering…';
     clearTimeout(timer);
     timer = setTimeout(function(){
       img.onload = function(){ if(note) note.textContent=''; };
       img.onerror = function(){ if(note) note.textContent='preview failed'; };
-      img.src = BASE+'?page='+p.idx+'&layout='+encodeURIComponent(layout)+'&_='+Date.now();
+      img.src = BASE+'?page='+pidx+'&layout='+encodeURIComponent(layout)+(th?('&'+th):'')+'&_='+Date.now();
     }, 350);
   }
 
   function renderTabs(){
     var bar = document.getElementById('idxlayout-tabs'); bar.innerHTML='';
+    var th = el('button','idxl-tab'+(active==='theme'?' on':''), 'Theme'); th.type='button';
+    th.onclick=function(){ active='theme'; render(); };
+    bar.appendChild(th);
     PAGES.forEach(function(p){
       var b = el('button','idxl-tab'+(p.key===active?' on':''), p.title); b.type='button';
       if(!state[p.key].on) b.classList.add('off');
@@ -106,8 +128,17 @@
     asel.onchange=function(){ if(!asel.value) return; s.mods.push({id:asel.value, variant:''}); asel.value=''; changed(); };
     add.appendChild(asel); pane.appendChild(add);
   }
-  function render(){ renderTabs(); renderEditor(); refreshPreview(); }
+  function render(){
+    renderTabs();
+    var isTheme = active==='theme';
+    var pane = document.getElementById('idxlayout-pane');
+    if(pane) pane.style.display = isTheme ? 'none' : '';
+    if(themeEl) themeEl.style.display = isTheme ? '' : 'none';
+    if(!isTheme) renderEditor();
+    refreshPreview();
+  }
   function changed(){ syncAll(); markChanged(); renderEditor(); refreshPreview(); }
+  function onTheme(){ markChanged(); refreshPreview(); }
 
   function init(){
     root = document.getElementById('idxlayout'); if(!root) return;
@@ -123,6 +154,9 @@
       '.idxl-tab.off{opacity:.5;font-style:italic}'+
       '#idxlayout-body{display:flex;gap:22px;align-items:flex-start;flex-wrap:wrap}'+
       '#idxlayout-pane{flex:1 1 320px;min-width:290px}'+
+      '#idxtheme{flex:1 1 320px;min-width:290px}'+
+      '.idxth-grid{display:grid;grid-template-columns:auto 1fr;gap:9px 12px;align-items:center}'+
+      '.idxth-grid label{opacity:.85}'+
       '.idxl-toggle{display:flex;align-items:center;gap:8px;margin:2px 0 14px;cursor:pointer}'+
       '.idxl-list{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}'+
       '.idxl-row{display:flex;align-items:center;gap:8px;padding:6px 8px;border:1px solid rgba(128,128,128,.35);border-radius:6px}'+
@@ -142,6 +176,17 @@
       '<div id="idxlayout-body"><div id="idxlayout-pane"></div>'+
       '<div id="idxprev-wrap"><div class="idxl-prevlabel">Live preview</div>'+
       '<img id="idxprev-img" alt="preview"><div id="idxprev-note"></div></div></div>';
+
+    /* relocate the server-rendered theme controls into the editor body (between the
+     * module pane and the preview) so they sit under the Theme tab, and update the
+     * preview when they change. They stay inside the form, so Apply still saves them. */
+    themeEl = document.getElementById('idxtheme');
+    if(themeEl){
+      var body = document.getElementById('idxlayout-body');
+      body.insertBefore(themeEl, document.getElementById('idxprev-wrap'));
+      themeEl.addEventListener('input', onTheme);
+      themeEl.addEventListener('change', onTheme);
+    }
     syncAll(); render();
   }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', init); else init();

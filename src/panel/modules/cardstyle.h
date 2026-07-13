@@ -155,8 +155,8 @@ static void item_head(int y, uint32_t dot, const char *name, float name_sc,
                       const char *right, float right_sc, uint32_t right_col){
     rect(C_X0, y + 14, 11, 11, dot, 255);
     char nm[64]; snprintf(nm, sizeof nm, "%s", name);
-    trunc_fit(nm, name_sc, 150);
-    text(C_X0 + 18, y + 12, name_sc, UN_TEXT, nm);
+    while (nm[0] && htext_w(name_sc, nm) > 150) nm[strlen(nm) - 1] = 0;  /* fit (heading scale) */
+    htext(C_X0 + 18, y + 12, name_sc, UN_TEXT, nm);                     /* item name = heading */
     if (right) text(C_R - text_w(right_sc, right), y + 13, right_sc, right_col, right);
 }
 

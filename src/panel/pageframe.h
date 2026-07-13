@@ -66,20 +66,21 @@ static void draw_header(stats_t *st){
     if (st->notif_count > 0){
         char nb[16];
         snprintf(nb, sizeof nb, "%d", st->notif_count > 99 ? 99 : st->notif_count);
-        int tw = text_w(1.5f, nb);
+        int tw = text_w_raw(1.5f, nb);
         uint32_t bc = st->notif_imp == 2 ? UN_BAD : st->notif_imp == 1 ? UN_WARN : UN_ORANGE;
         rect(76, 12, tw + 12, 17, bc, 255);
-        text(82, 16, 1.5f, 0x1b1b1b, nb);
+        text_raw(82, 16, 1.5f, 0x1b1b1b, nb);
     }
+    /* header chrome (clock/date/position) stays a fixed size — not user-scaled */
     char b[64]; time_t t = time(NULL); struct tm tm; localtime_r(&t, &tm);
     strftime(b, sizeof b, "%H:%M", &tm);
-    text(W - 16 - text_w(3.2f, b), 18, 3.2f, UN_TEXT, b);
+    text_raw(W - 16 - text_w_raw(3.2f, b), 18, 3.2f, UN_TEXT, b);
     strftime(b, sizeof b, "%a %d %b", &tm);
-    text(W - 16 - text_w(1.5f, b), 52, 1.5f, UN_DIM, b);
+    text_raw(W - 16 - text_w_raw(1.5f, b), 52, 1.5f, UN_DIM, b);
     hgrad(0, HEADER_H, W, 3, UN_RED, UN_ORANGE);          /* signature rule */
-    text_c(HEADER_H + 18, 2.2f, UN_DIM, pages[cur_page].title);
+    htext_c(HEADER_H + 18, 2.2f, UN_DIM, pages[cur_page].title);   /* page heading */
     snprintf(b, sizeof b, "%d/%d", page_pos(cur_page), n_pages_on());
-    text(W - 16 - text_w(1.4f, b), HEADER_H + 22, 1.4f, 0x555555, b);
+    text_raw(W - 16 - text_w_raw(1.4f, b), HEADER_H + 22, 1.4f, 0x555555, b);
 }
 
 static void draw_banner(stats_t *st){

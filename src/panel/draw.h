@@ -168,15 +168,30 @@ static void text_ttf(int x, int y, float scale, uint32_t c, const char *s){
     }
 }
 
-static void text(int x, int y, float scale, uint32_t c, const char *s){
+/* raw renderer (no user size multiplier) — used for fixed header chrome */
+static void text_raw(int x, int y, float scale, uint32_t c, const char *s){
     if (g_font_ok) text_ttf(x, y, scale, c, s);
     else           text_easy(x, y, scale, c, s);
 }
-static int text_w(float scale, const char *s){
+static int text_w_raw(float scale, const char *s){
     return g_font_ok ? text_w_ttf(scale, s) : text_w_easy(scale, s);
 }
-static void text_c(int y, float scale, uint32_t c, const char *s){ /* centered */
+
+/* user-tunable size multipliers (Theme settings): body vs section headings.
+ * text()/text_w() scale body content; htext()/htext_w() scale titles. */
+static float g_text_scale = 1.0f;
+static float g_head_scale = 1.0f;
+
+static void text(int x, int y, float scale, uint32_t c, const char *s){ text_raw(x, y, scale * g_text_scale, c, s); }
+static int  text_w(float scale, const char *s){ return text_w_raw(scale * g_text_scale, s); }
+static void htext(int x, int y, float scale, uint32_t c, const char *s){ text_raw(x, y, scale * g_head_scale, c, s); }
+static int  htext_w(float scale, const char *s){ return text_w_raw(scale * g_head_scale, s); }
+
+static void text_c(int y, float scale, uint32_t c, const char *s){ /* centered body */
     text((W - text_w(scale, s)) / 2, y, scale, c, s);
+}
+static void htext_c(int y, float scale, uint32_t c, const char *s){ /* centered heading */
+    htext((W - htext_w(scale, s)) / 2, y, scale, c, s);
 }
 static void text_bold(int x, int y, float s, uint32_t c, const char *str){
     text(x, y, s, c, str);

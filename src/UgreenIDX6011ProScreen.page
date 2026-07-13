@@ -36,9 +36,6 @@ _(Night mode &mdash; clamp brightness to 15%)_:
 _(Network rate units)_:
 : <select name="NET_UNITS"><?php idx_opts(['bits'=>'Bits — Kbps / Mbps (matches Unraid)','bytes'=>'Bytes — KB/s / MB/s'], idx_val($cfg,'NET_UNITS','bits')); ?></select>
 
-_(Dashboard font)_:
-: <select name="FONT"><?php idx_opts(['RobotoCondensed'=>'Roboto Condensed (default)','Inter'=>'Inter','JetBrainsMono'=>'JetBrains Mono','BarlowSemiCond'=>'Barlow Semi Condensed','Montserrat'=>'Montserrat'], idx_val($cfg,'FONT','RobotoCondensed')); ?></select>
-
 _(Primary network interface &mdash; shown on Overview &amp; Home)_:
 : <select name="PRIMARY_IFACE">
   <option value=""<?=idx_val($cfg,'PRIMARY_IFACE','')===''?' selected':''?>>Auto (default route)</option>
@@ -55,41 +52,10 @@ _(Header logo &mdash; replaces the Unraid mark)_:
 : <span class="idxup" data-kind="logo"><input type="file" accept="image/png,image/jpeg,image/gif,image/webp"> <input type="button" value="_(Upload)_"> <input type="button" value="_(Clear)_"> <span class="idxup-note"></span></span>
 
 &nbsp;
-: **_(Theme colours &mdash; leave default for the Unraid look)_**
-
-_(Accent &mdash; spines, gauges, dots)_:
-: <?php idx_colorField($cfg,'COL_ACCENT','f15a2c','idx-theme'); ?>
-
-_(Gradient start)_:
-: <?php idx_colorField($cfg,'COL_GRAD_A','e22828','idx-theme'); ?>
-
-_(Gradient end)_:
-: <?php idx_colorField($cfg,'COL_GRAD_B','ff8c2f','idx-theme'); ?>
-
-_(Background)_:
-: <?php idx_colorField($cfg,'COL_BG','1b1b1b','idx-theme'); ?>
-
-_(Card fill)_:
-: <?php idx_colorField($cfg,'COL_CARD','262626','idx-theme'); ?>
-
-_(Text)_:
-: <?php idx_colorField($cfg,'COL_TEXT','f2f2f2','idx-theme'); ?>
-
-_(Healthy / OK)_:
-: <?php idx_colorField($cfg,'COL_OK','3fb950','idx-theme'); ?>
-
-_(Warning)_:
-: <?php idx_colorField($cfg,'COL_WARN','f0a020','idx-theme'); ?>
-
-_(Critical)_:
-: <?php idx_colorField($cfg,'COL_BAD','e22828','idx-theme'); ?>
-
-&nbsp;
-: <input type="button" value="_(Restore theme defaults)_" onclick="idxReset('idx-theme')">
-
-&nbsp;
 : <span class="buttons-spaced"><input type="submit" name="#apply" value="_(Apply)_" disabled><input type="button" value="_(Done)_" onclick="done()"></span>
 </form>
 
-> Changes are written to the plugin's `settings.cfg` and the dashboard restarts to
-> apply them. The same settings are editable live from the panel's own **SETTINGS** page.
+> Behaviour and images for the LCD. **Colours, font and text sizes now live on the
+> **Layout** tab's **Theme** sub-tab (with a live preview).** Changes here write to the
+> plugin's `settings.cfg` and restart the dashboard; the same settings are editable
+> live from the panel's own **SETTINGS** page.
