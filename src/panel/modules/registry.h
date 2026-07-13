@@ -30,12 +30,12 @@ static const modinfo_t MODULES[] = {
     { "power",   "Power draw",         mod_power,    4, { "card", "big", "graph", "area" } },
     { "ifaces",  "Interfaces (all in one card)", mod_ifaces, 4, { "full", "compact", "mini", "big" } },
     { "iface",   "Interface (pick one)",         mod_iface,  4, { "full", "compact", "mini", "big" }, 1, "ifaces" },
-    { "disks",   "Disks (all in one card)",      mod_disks,  1, { "list" } },
-    { "disk",    "Disk (pick one)",              mod_disk,   1, { "card" }, 1, "disks" },
-    { "containers","Containers (all in one card)",mod_containers,1, { "list" } },
-    { "container","Container (pick one)",        mod_container,  1, { "card" }, 1, "containers" },
+    { "disks",   "Disks (all in one card)",      mod_disks,  3, { "full", "compact", "bar" } },
+    { "disk",    "Disk (pick one)",              mod_disk,   3, { "full", "compact", "bar" }, 1, "disks" },
+    { "containers","Containers (all in one card)",mod_containers,2, { "card", "compact" } },
+    { "container","Container (pick one)",        mod_container,  2, { "card", "compact" }, 1, "containers" },
     { "vms",     "VMs (all in one card)",        mod_vms,        2, { "card", "compact" } },
-    { "vm",      "VM (pick one)",                mod_vm,         1, { "card" }, 1, "vms" },
+    { "vm",      "VM (pick one)",                mod_vm,         2, { "card", "compact" }, 1, "vms" },
 };
 static const int N_MODULES = (int)(sizeof MODULES / sizeof MODULES[0]);
 

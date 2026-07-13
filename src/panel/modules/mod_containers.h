@@ -16,8 +16,18 @@ static uint32_t col_ctr(const char *state){
     if (!strcmp(state, "restarting") || !strcmp(state, "paused")) return UN_WARN;
     return 0x777777;
 }
-static int ctr_card(int y, ctr_t *c){
+/* one container card. style: 0=card (name + ip + status + update), 1=compact
+ * (a single row: dot + name + ip / UPDATE). Returns the advance (height + gap). */
+static int ctr_card(int y, ctr_t *c, int style){
     char b[128];
+    if (style == 1){                                     /* compact — one row */
+        int ch = 44;
+        card(y, gy(ch), NULL);
+        const char *right = c->update ? "UPDATE" : (c->ip[0] ? c->ip : NULL);
+        uint32_t rcol = c->update ? UN_WARN : UN_DIM;
+        item_head(y, col_ctr(c->state), c->name, 1.9f, right, 1.5f, rcol);
+        return gy(ch) + gy(C_GAP);
+    }
     card(y, gy(64), NULL);
     /* header row: state dot + name (left), IP (right) */
     item_head(y, col_ctr(c->state), c->name, 2.1f, c->ip[0] ? c->ip : NULL, 1.6f, UN_DIM);
@@ -29,8 +39,7 @@ static int ctr_card(int y, ctr_t *c){
     return gy(64) + gy(C_GAP);
 }
 
-static int mod_containers(int y, stats_t *st, int variant){  /* summary + all containers */
-    (void)variant;
+static int mod_containers(int y, stats_t *st, int variant){  /* summary + all containers, styled */
     char b[128];
     int y0 = y;
     if (st->docker >= 0){
@@ -42,21 +51,24 @@ static int mod_containers(int y, stats_t *st, int variant){  /* summary + all co
     } else {
         y += value_card(y, 76, "DOCKER", "docker n/a", UN_DIM);
     }
-    for (int i = 0; i < st->n_ctrs; i++) y += ctr_card(y, &st->ctrs[i]);
+    for (int i = 0; i < st->n_ctrs; i++) y += ctr_card(y, &st->ctrs[i], variant);
     if (st->docker >= 0 && st->n_ctrs == 0)
         y += value_card(y, 56, "DOCKER", "no containers", UN_DIM);
     return y - y0;
 }
 
-static int mod_container(int y, stats_t *st, int variant){   /* one container, picked by name */
+static int mod_container(int y, stats_t *st, int variant){   /* one container, "name" or "name:style" */
     (void)variant;
+    char key[64]; snprintf(key, sizeof key, "%s", g_item_key);
+    char *style = strchr(key, ':'); if (style) *style++ = 0;
+    int sidx = (style && !strcmp(style, "compact")) ? 1 : 0;
     int i = -1;
-    if (g_item_key[0]){
-        for (int k = 0; k < st->n_ctrs; k++) if (!strcmp(st->ctrs[k].name, g_item_key)){ i = k; break; }
-        if (i < 0 && g_item_key[0] >= '0' && g_item_key[0] <= '9'){ int n = atoi(g_item_key); if (n >= 0 && n < st->n_ctrs) i = n; }
+    if (key[0]){
+        for (int k = 0; k < st->n_ctrs; k++) if (!strcmp(st->ctrs[k].name, key)){ i = k; break; }
+        if (i < 0 && key[0] >= '0' && key[0] <= '9'){ int n = atoi(key); if (n >= 0 && n < st->n_ctrs) i = n; }
     } else if (st->n_ctrs > 0) i = 0;
     if (i < 0) return value_card(y, 64, "CONTAINER", "not present", UN_DIM);
-    return ctr_card(y, &st->ctrs[i]);
+    return ctr_card(y, &st->ctrs[i], sidx);
 }
 
 #endif /* PANEL_MOD_CONTAINERS_H */
