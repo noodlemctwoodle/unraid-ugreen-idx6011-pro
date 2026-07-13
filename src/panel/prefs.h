@@ -26,6 +26,7 @@ static int  cfg_net_bits  = 1;      /* 1 = net rates in bits (Kbps), 0 = bytes (
 /* per-page module layout: ordered "id[:variant],..." list drawn by render_modules().
  * Default matches the original hardcoded Overview (all default/bar variants). */
 static char cfg_layout_overview[256] = "host,cpu,mem,net,storage,uptime";
+static char cfg_layout_hardware[256] = "cpu:graph,cputemp,mem,gpu:graph,npu,power";
 
 /* parse a "#rrggbb" / "rrggbb" hex colour; returns def on empty/invalid */
 static uint32_t parse_hexcol(const char *v, uint32_t def){
@@ -50,6 +51,7 @@ static void settings_load(void){
         else if (!strcmp(k, "PRIMARY_IFACE"))  snprintf(cfg_primary_if, sizeof cfg_primary_if, "%s", v);
         else if (!strcmp(k, "NET_UNITS"))      cfg_net_bits = strcmp(v, "bytes") != 0;
         else if (!strcmp(k, "LAYOUT_OVERVIEW")) snprintf(cfg_layout_overview, sizeof cfg_layout_overview, "%s", v);
+        else if (!strcmp(k, "LAYOUT_HARDWARE")) snprintf(cfg_layout_hardware, sizeof cfg_layout_hardware, "%s", v);
         else if (!strcmp(k, "COL_ACCENT"))     UN_ORANGE_M = parse_hexcol(v, UN_ORANGE_M);
         else if (!strcmp(k, "COL_GRAD_A"))     UN_RED      = parse_hexcol(v, UN_RED);
         else if (!strcmp(k, "COL_GRAD_B"))     UN_ORANGE   = parse_hexcol(v, UN_ORANGE);

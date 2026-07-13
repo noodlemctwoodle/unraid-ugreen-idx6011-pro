@@ -15,12 +15,16 @@
 #define PANEL_MODULE_REGISTRY_H
 
 static const modinfo_t MODULES[] = {
-    { "host",    "Host",    mod_host,    1, { "card" } },
-    { "cpu",     "CPU",     mod_cpu,     2, { "bar", "ring" } },
-    { "mem",     "Memory",  mod_mem,     2, { "bar", "ring" } },
-    { "net",     "Network", mod_net,     1, { "rows" } },
-    { "storage", "Storage", mod_storage, 2, { "bar", "ring" } },
-    { "uptime",  "Uptime",  mod_uptime,  1, { "card" } },
+    { "host",    "Host",     mod_host,    1, { "card" } },
+    { "cpu",     "CPU",      mod_cpu,     3, { "bar", "ring", "graph" } },
+    { "mem",     "Memory",   mod_mem,     2, { "bar", "ring" } },
+    { "net",     "Network",  mod_net,     1, { "rows" } },
+    { "storage", "Storage",  mod_storage, 2, { "bar", "ring" } },
+    { "uptime",  "Uptime",   mod_uptime,  1, { "card" } },
+    { "gpu",     "GPU",      mod_gpu,     2, { "bar", "graph" } },
+    { "cputemp", "CPU Temp", mod_cputemp, 1, { "bar" } },
+    { "npu",     "NPU",      mod_npu,     1, { "card" } },
+    { "power",   "Power",    mod_power,   1, { "card" } },
 };
 static const int N_MODULES = (int)(sizeof MODULES / sizeof MODULES[0]);
 

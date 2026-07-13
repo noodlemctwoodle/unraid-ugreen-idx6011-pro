@@ -64,10 +64,12 @@ static int spark_card(int y, const char *title, const char *value,
     return CH_SPARK + C_GAP;
 }
 
-/* SMALL VALUE CARD: title + one value line, content height `h`. */
+/* SMALL VALUE CARD: title + one value line (truncated to fit), height `h`. */
 static int value_card(int y, int h, const char *title, const char *value, uint32_t col){
     card(y, h, title);
-    text(C_X0, y + (h >= 96 ? 44 : 30), C_BODY, col, value);
+    char v[128]; snprintf(v, sizeof v, "%s", value);
+    trunc_fit(v, C_BODY, C_W);
+    text(C_X0, y + (h >= 96 ? 44 : 30), C_BODY, col, v);
     return h + C_GAP;
 }
 
