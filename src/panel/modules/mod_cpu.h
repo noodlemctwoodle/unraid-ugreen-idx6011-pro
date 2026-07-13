@@ -24,7 +24,7 @@ static int mod_cpu(int y, stats_t *st, int variant){
     int h = metric_card(y, "CPU", st->cpu, v, variant == 1);
     if (st->temp_c > 0){
         snprintf(v, sizeof v, "%dC", st->temp_c);
-        card_sub(y, 0, v, st->temp_c > 85 ? UN_BAD : UN_DIM);
+        card_sub(y, 0, v, col_temp(st->temp_c));
     }
     /* psys RAPL is miscalibrated on this board (reads ~0); package matches webUI */
     double pw = st->pwr_pkg_w;

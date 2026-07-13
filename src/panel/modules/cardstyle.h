@@ -31,6 +31,22 @@
 #define CH_METRIC 142              /* metric card (value + bar/ring)         */
 #define CH_SPARK  152              /* metric card with a sparkline           */
 
+/* ---- semantic colours ----------------------------------------------------
+ * Map a module's STATE to a palette colour in ONE place, so every card colours
+ * the same way. A module must NEVER hardcode a colour decision (e.g. ternaries
+ * on a threshold) — call one of these, or add a new one here. The palette
+ * itself (UN_TEXT/DIM/OK/WARN/BAD/ORANGE/…) lives in draw.h and is themeable at
+ * runtime from Settings > Screen (the theme colours). */
+static uint32_t col_load(double pct){ return level_col(pct); }          /* usage / load %     */
+static uint32_t col_temp(int c){                                        /* CPU / board temp   */
+    return c <= 0 ? UN_DIM : c > 85 ? UN_BAD : c > 70 ? UN_WARN : UN_OK; }
+static uint32_t col_disktemp(int c){                                    /* disk temp          */
+    return c < 0 ? UN_DIM : c > 55 ? UN_BAD : c > 45 ? UN_WARN : UN_DIM; }
+static uint32_t col_state(int up){ return up ? UN_OK : UN_DIM; }        /* link/service text  */
+static uint32_t col_dot(int up){ return up ? UN_OK : 0x555555; }        /* presence dot       */
+static uint32_t col_health(int h){                                      /* 0=ok 1=warn 2=bad  */
+    return h == 2 ? UN_BAD : h == 1 ? UN_WARN : UN_OK; }
+
 /* small top-right tag (e.g. "16T", "1500 MHz") */
 static void card_tag(int y, const char *s, uint32_t col){
     text(C_R - text_w(C_TAG, s), y + 12, C_TAG, col, s);

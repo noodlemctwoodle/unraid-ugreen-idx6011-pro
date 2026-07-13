@@ -14,8 +14,7 @@ static int mod_cputemp(int y, stats_t *st, int variant){
     (void)variant;
     if (st->temp_c <= 0) return value_card(y, 84, "CPU TEMP", "n/a", UN_DIM);
     char v[16]; snprintf(v, sizeof v, "%dC", st->temp_c);
-    uint32_t bc = st->temp_c > 85 ? UN_BAD : st->temp_c > 70 ? UN_WARN : UN_ORANGE_M;
-    return bar_card(y, 84, "CPU TEMP", v, st->temp_c, bc);
+    return bar_card(y, 84, "CPU TEMP", v, st->temp_c, col_temp(st->temp_c));
 }
 
 #endif /* PANEL_MOD_CPU_TEMP_H */

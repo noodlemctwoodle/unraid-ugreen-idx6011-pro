@@ -70,6 +70,33 @@ Accents (call after the card helper, they draw onto the card you just made):
 
 Change any of these and **every** card updates — that's the point.
 
+## Colours
+
+Colour is part of the shim too, so a new module is coloured like every other one
+**for free**. Two layers:
+
+**Palette** (`draw.h`) — the named theme colours, themeable at runtime from
+Settings ▸ Screen: `UN_TEXT`, `UN_DIM` (labels), `UN_OK` / `UN_WARN` / `UN_BAD`
+(status), `UN_ORANGE` / `UN_ORANGE_M` (accents), `UN_RED`, `UN_GREY_*`. Use these
+for plain text/labels; never a literal hex.
+
+**Semantic colour helpers** (`cardstyle.h`) — map a *state* to a palette colour in
+one place, so thresholds are identical everywhere:
+
+| helper | maps |
+|---|---|
+| `col_load(pct)` | usage/load % → accent / warn (>75) / bad (>90) |
+| `col_temp(c)` | CPU/board temp → ok / warn (>70) / bad (>85) / dim (n/a) |
+| `col_disktemp(c)` | disk temp → dim / warn (>45) / bad (>55) |
+| `col_state(up)` | link/service up → ok / dim (text) |
+| `col_dot(up)` | presence dot → ok / grey |
+| `col_health(h)` | 0/1/2 → ok / warn / bad |
+
+**Rule: a module must never hardcode a colour decision** (no `temp > 85 ? UN_BAD :
+…` inline). Call a `col_*` helper, or add a new one here — then it's consistent and
+re-themeable everywhere. `metric_card`/`bar_card` already colour their bar/ring via
+`col_load`.
+
 ## Registering a module
 
 Add it to the table in `registry.h` (id, label for the web editor, fn, variant
@@ -90,9 +117,13 @@ LAYOUT_OVERVIEW=host,cpu:ring,mem,net,storage,uptime
 
 `render_modules()` parses it, looks each id up in the registry, resolves the
 variant name to an index, and calls the module. Unknown ids are skipped. Defaults
-live in `prefs.h` (`cfg_layout_<page>`), and match the original hardcoded layout.
-Pages are enabled/disabled and reordered from the **web layout editor** (writes
-these strings) — see the settings `.page` files.
+live in `prefs.h` (`cfg_layout_<page>`).
+
+Every page is config-driven: `LAYOUT_OVERVIEW`, `LAYOUT_HARDWARE`, `LAYOUT_NETWORK`,
+`LAYOUT_DISKS`, `LAYOUT_DOCKER`, `LAYOUT_HOME`. **Home is a blank canvas** — its
+default is only a starter; put any modules you like on it. Pages are
+enabled/disabled and reordered from the **web layout editor** (writes these
+strings) — see the settings `.page` files.
 
 ## Build + verify
 
