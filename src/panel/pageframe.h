@@ -118,7 +118,7 @@ static void draw_footer(void){
 /* ---------- settings widget hit-testing (static, no allocation) ---------- */
 enum {
     WID_NONE = 0, WID_BRIGHT, WID_SCROFF, WID_ROTATE, WID_LEDS,
-    WID_NIGHT, WID_RESTART, WID_REBOOT, WID_SHUTDOWN
+    WID_NIGHT, WID_FAN, WID_RESTART, WID_REBOOT, WID_SHUTDOWN
 };
 typedef struct { int id, x, y, w, h; } hitbox_t;
 static hitbox_t hbs[16];

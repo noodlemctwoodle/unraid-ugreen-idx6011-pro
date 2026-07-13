@@ -24,6 +24,8 @@ static int mod_fans(int y, stats_t *st, int variant){
 
     int h = 40 + n * 28;
     card(y, gy(h), "FANS");
+    static const char *fanm[] = { "AUTO", "SILENT", "QUIET", "TURBO" };
+    card_tag(y, fanm[cfg_fan_mode & 3], cfg_fan_mode ? UN_ORANGE_M : UN_DIM);
     for (int i = 0; i < n; i++){
         int ry = y + gy(40 + i * 28);
         snprintf(b, sizeof b, "Fan %d", i + 1);

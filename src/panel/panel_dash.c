@@ -84,7 +84,9 @@
 #include "stats_devices.h"
 #include "stats_array.h"
 #include "ui.h"
+#include "ec.h"
 #include "backlight.h"
+#include "fan.h"
 #include "actions.h"
 #include "pageframe.h"
 #include "modules/module.h"
@@ -252,6 +254,7 @@ int main(int argc, char **argv){
             read_notif(&st);
             read_updates(&st);
             hist_push_all(&st);
+            fan_apply(st.temp_c);                  /* CPU-fan curve (no-op in auto mode) */
             next_stats = nowms + (long)interval * 1000L;
             dirty = 1;
         }
@@ -331,6 +334,7 @@ int main(int argc, char **argv){
         }
         usleep(20 * 1000);
     }
+    fan_restore();                              /* hand CPU fans back to EC auto on clean exit */
     touch_close();
     fprintf(stderr, "exiting\n");
     return 0;
