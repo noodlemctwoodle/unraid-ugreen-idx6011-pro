@@ -90,6 +90,7 @@
 #include "modules/module.h"
 #include "modules/cardstyle.h"
 #include "modules/mod_host.h"
+#include "modules/mod_array.h"
 #include "modules/mod_cpu.h"
 #include "modules/mod_mem.h"
 #include "modules/mod_net.h"

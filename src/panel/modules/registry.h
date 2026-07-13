@@ -16,6 +16,7 @@
 
 static const modinfo_t MODULES[] = {
     { "host",    "Host / array",       mod_host,     2, { "card", "compact" } },
+    { "array",   "Array status",       mod_array,    2, { "card", "compact" } },
     { "cpu",     "CPU",                mod_cpu,      8, { "bar", "ring", "graph", "area", "blocks", "trend", "big", "gauge" } },
     { "mem",     "Memory",             mod_mem,      9, { "bar", "ring", "graph", "area", "blocks", "split", "trend", "big", "gauge" } },
     { "net",     "Network (primary)",  mod_net,      5, { "rows", "compact", "big", "graph", "area" } },
