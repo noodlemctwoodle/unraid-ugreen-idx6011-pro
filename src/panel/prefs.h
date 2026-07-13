@@ -32,6 +32,9 @@ static char cfg_layout_disks[256]    = "disks";
 static char cfg_layout_docker[256]   = "containers,vms";
 /* HOME is a fully user-composable page — a distinct ring-based starter by default */
 static char cfg_layout_home[256]     = "cpu:ring,mem:ring,net,storage:ring,power,uptime";
+/* per-page enable (PAGE_<X>); index order matches pages[] in pageframe.h.
+ * All on by default; the SETTINGS page (index 6) is always kept on. */
+static int  cfg_page_on[7] = { 1, 1, 1, 1, 1, 1, 1 };
 
 /* parse a "#rrggbb" / "rrggbb" hex colour; returns def on empty/invalid */
 static uint32_t parse_hexcol(const char *v, uint32_t def){
@@ -61,6 +64,12 @@ static void settings_load(void){
         else if (!strcmp(k, "LAYOUT_DISKS"))    snprintf(cfg_layout_disks,    sizeof cfg_layout_disks,    "%s", v);
         else if (!strcmp(k, "LAYOUT_DOCKER"))   snprintf(cfg_layout_docker,   sizeof cfg_layout_docker,   "%s", v);
         else if (!strcmp(k, "LAYOUT_HOME"))     snprintf(cfg_layout_home,     sizeof cfg_layout_home,     "%s", v);
+        else if (!strcmp(k, "PAGE_HOME"))       cfg_page_on[0] = atoi(v) != 0;
+        else if (!strcmp(k, "PAGE_OVERVIEW"))   cfg_page_on[1] = atoi(v) != 0;
+        else if (!strcmp(k, "PAGE_HARDWARE"))   cfg_page_on[2] = atoi(v) != 0;
+        else if (!strcmp(k, "PAGE_NETWORK"))    cfg_page_on[3] = atoi(v) != 0;
+        else if (!strcmp(k, "PAGE_DISKS"))      cfg_page_on[4] = atoi(v) != 0;
+        else if (!strcmp(k, "PAGE_DOCKER"))     cfg_page_on[5] = atoi(v) != 0;
         else if (!strcmp(k, "COL_ACCENT"))     UN_ORANGE_M = parse_hexcol(v, UN_ORANGE_M);
         else if (!strcmp(k, "COL_GRAD_A"))     UN_RED      = parse_hexcol(v, UN_RED);
         else if (!strcmp(k, "COL_GRAD_B"))     UN_ORANGE   = parse_hexcol(v, UN_ORANGE);

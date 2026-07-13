@@ -67,4 +67,20 @@ static void render_modules(const char *layout, stats_t *st){
     page_end = y;
 }
 
+/* print the module registry as JSON on stdout (for the web layout editor's palette,
+ * so it stays in sync with this table). Shape:
+ * [{"id":"cpu","label":"CPU","variants":["bar","ring","graph"]},...] */
+static int write_modules_json(void){
+    printf("[");
+    for (int i = 0; i < N_MODULES; i++){
+        printf("%s{\"id\":\"%s\",\"label\":\"%s\",\"variants\":[",
+               i ? "," : "", MODULES[i].id, MODULES[i].label);
+        for (int v = 0; v < MODULES[i].nvariants; v++)
+            printf("%s\"%s\"", v ? "," : "", MODULES[i].variants[v]);
+        printf("]}");
+    }
+    printf("]\n");
+    return 0;
+}
+
 #endif /* PANEL_MODULE_REGISTRY_H */

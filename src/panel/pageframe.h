@@ -44,6 +44,21 @@ static const struct { const char *title; page_fn body; } pages[NPAGES] = {
     { "SETTINGS", page_settings },
 };
 
+/* ---------- page enable/skip (PAGE_<X> toggles; SETTINGS is always on) ---------- */
+static int page_on(int i){
+    if (i == PAGE_SETTINGS) return 1;
+    return (i >= 0 && i < NPAGES) ? cfg_page_on[i] : 0;
+}
+static int next_page(int cur, int dir){          /* next ENABLED page in a direction */
+    for (int k = 0; k < NPAGES; k++){
+        cur = (cur + dir + NPAGES) % NPAGES;
+        if (page_on(cur)) return cur;
+    }
+    return cur;                                  /* all off can't happen (SETTINGS on) */
+}
+static int n_pages_on(void){ int n = 0; for (int i = 0; i < NPAGES; i++) if (page_on(i)) n++; return n; }
+static int page_pos(int cur){ int p = 0; for (int i = 0; i <= cur && i < NPAGES; i++) if (page_on(i)) p++; return p; }
+
 static void draw_header(stats_t *st){
     rect(0, 0, W, BODY_Y0 - 6, UN_BLACK, 255);   /* opaque incl. title zone */
     draw_unraid_icon(12, 25);                             /* official 60x34 mark */
@@ -62,7 +77,7 @@ static void draw_header(stats_t *st){
     text(W - 16 - text_w(1.5f, b), 52, 1.5f, UN_DIM, b);
     hgrad(0, HEADER_H, W, 3, UN_RED, UN_ORANGE);          /* signature rule */
     text_c(HEADER_H + 18, 2.2f, UN_DIM, pages[cur_page].title);
-    snprintf(b, sizeof b, "%d/%d", cur_page + 1, NPAGES);
+    snprintf(b, sizeof b, "%d/%d", page_pos(cur_page), n_pages_on());
     text(W - 16 - text_w(1.4f, b), HEADER_H + 22, 1.4f, 0x555555, b);
 }
 
@@ -81,9 +96,11 @@ static void draw_banner(stats_t *st){
 static void draw_footer(void){
     rect(0, FOOTER_Y - 4, W, H - (FOOTER_Y - 4), UN_BLACK, 255);
     hline(16, FOOTER_Y, W - 32, UN_GREY_70);
-    int pitch = 24, x0 = (W - (NPAGES - 1) * pitch) / 2;
+    int total = n_pages_on();
+    int pitch = 24, x0 = (W - (total - 1) * pitch) / 2, j = 0;
     for (int i = 0; i < NPAGES; i++){
-        int cx = x0 + i * pitch;
+        if (!page_on(i)) continue;
+        int cx = x0 + j * pitch; j++;
         if (i == cur_page){
             rect(cx - 5, 932, 10, 10, UN_ORANGE, 255);
             rect(cx - 4, 931, 8, 12, UN_ORANGE, 255);

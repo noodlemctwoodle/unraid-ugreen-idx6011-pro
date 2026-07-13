@@ -119,6 +119,7 @@ int main(int argc, char **argv){
     const char *touch_hint = NULL; int no_touch = 0;
     const char *shot_dir = NULL;
     int prev_page = -1; const char *prev_layout = NULL, *prev_out = NULL;
+    int want_modules = 0;
 
     settings_load();                            /* flash cfg first, CLI overrides */
     for (int i = 1; i < argc; i++){
@@ -132,6 +133,7 @@ int main(int argc, char **argv){
         else if (!strcmp(argv[i], "--preview") && i + 3 < argc){   /* <page> <layout> <out.png> */
             prev_page = atoi(argv[++i]); prev_layout = argv[++i]; prev_out = argv[++i];
         }
+        else if (!strcmp(argv[i], "--modules")) want_modules = 1;   /* print registry JSON */
         else if (!strcmp(argv[i], "--rotate") && i + 1 < argc) cfg_rotate = atoi(argv[++i]);
         else if (!strcmp(argv[i], "--cal") && i + 1 < argc){
             const char *c = argv[++i];
@@ -140,10 +142,12 @@ int main(int argc, char **argv){
             cal_inv_y   = strchr(c, 'y') != NULL;
         }
     }
+    if (want_modules) return write_modules_json();        /* module catalog for the web editor */
     if (prev_out) return write_preview(prev_page, prev_layout, prev_out);  /* one page, draft layout */
     if (shot_dir) return write_shots(shot_dir, bgpath);   /* offscreen PNG render, then exit */
     if (cfg_interval < 1) cfg_interval = 1;
     if (cfg_brightness < 5) cfg_brightness = 5;
+    if (!page_on(cur_page)) cur_page = next_page(cur_page, +1);   /* don't start on a disabled page */
     if (cfg_brightness > 100) cfg_brightness = 100;
     int interval = cfg_interval;
     rotate_ms = (long)cfg_rotate * 1000L;
@@ -241,10 +245,10 @@ int main(int argc, char **argv){
                 dirty = 1;
             } else switch (ev.type){
             case TOUCH_SWIPE_LEFT:
-                cur_page = (cur_page + 1) % NPAGES; scrolly[cur_page] = 0;
+                cur_page = next_page(cur_page, +1); scrolly[cur_page] = 0;
                 confirm_which = 0; dirty = 1; break;
             case TOUCH_SWIPE_RIGHT:
-                cur_page = (cur_page + NPAGES - 1) % NPAGES; scrolly[cur_page] = 0;
+                cur_page = next_page(cur_page, -1); scrolly[cur_page] = 0;
                 confirm_which = 0; dirty = 1; break;
             case TOUCH_DRAG:
                 scrolly[cur_page] -= ev.y; dirty = 1; break;   /* 1:1 finger scroll */
@@ -252,7 +256,7 @@ int main(int argc, char **argv){
                 if (cur_page == PAGE_SETTINGS && widget_tap(ev.x, ev.y)){
                     dirty = 1;
                 } else if (ev.y >= FOOTER_Y){
-                    cur_page = (cur_page + 1) % NPAGES; confirm_which = 0; dirty = 1;
+                    cur_page = next_page(cur_page, +1); confirm_which = 0; dirty = 1;
                 } else {
                     dim = 0; apply_brightness();                   /* wake */
                 }
@@ -280,7 +284,7 @@ int main(int argc, char **argv){
         }
         if (rotate_ms > 0 && !screen_off &&
             nowms - last_touch >= rotate_ms && nowms - last_rotate >= rotate_ms){
-            cur_page = (cur_page + 1) % NPAGES;
+            cur_page = next_page(cur_page, +1);
             scrolly[cur_page] = 0;
             last_rotate = nowms; dirty = 1;
         }
