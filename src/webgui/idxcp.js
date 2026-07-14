@@ -19,7 +19,7 @@
   function norm(raw){ var s=String(raw==null?'':raw).trim().replace(/^#+/,'').toLowerCase();
     if(/^[0-9a-f]{3}$/.test(s)) s=s.charAt(0)+s.charAt(0)+s.charAt(1)+s.charAt(1)+s.charAt(2)+s.charAt(2);
     return /^[0-9a-f]{6}$/.test(s)?s:null; }
-  function markChanged(el){ var f=el.closest('form'); if(f){ var a=f.querySelectorAll('input[value="Apply"]');
+  function markChanged(el){ var f=el.closest('form'); if(f){ var a=f.querySelectorAll('input[name="#apply"]');
     for(var i=0;i<a.length;i++) a[i].disabled=false; } try{ formHasUnsavedChanges=true; }catch(e){} }
   function setup(cp){
     var chip=cp.querySelector('.idxcp-chip'), text=cp.querySelector('.idxcp-hex');

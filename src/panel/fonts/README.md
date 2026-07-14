@@ -28,6 +28,6 @@ be kept with the fonts when redistributed.
 1. Drop `NewName.ttf` in this folder and its `NewName-OFL.txt` (or equivalent
    licence) next to it.
 2. Add it to the packaging list in `release/mkpayload.sh` and to the Font
-   `<select>` in `src/UgreenIDX6011ProScreen.page`.
-3. Select it from the Screen settings page. No code change is required — any
-   `fonts/<value>.ttf` resolves automatically.
+   `<select>` in `src/UgreenIDX6011ProLayout.page` (the Display > Theme tab).
+3. Select it from the Display > Theme settings page. No code change is required
+   — any `fonts/<value>.ttf` resolves automatically.

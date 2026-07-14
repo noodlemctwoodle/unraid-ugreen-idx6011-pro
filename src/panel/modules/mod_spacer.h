@@ -1,9 +1,8 @@
-//
-// OmniFetch/../plugin/src/panel/modules/mod_spacer.h
-//
-// Created by noodlemctwoodle on 13/07/2026.
-//
 /*
+ * plugin/src/panel/modules/mod_spacer.h
+ *
+ * Created by noodlemctwoodle on 13/07/2026.
+ *
  * Spacer — an empty, transparent gap that just advances the layout. Useful for
  * pushing content down so the wallpaper shows at the top, or opening a gap
  * between cards. Draws nothing (the background / wallpaper shows through).

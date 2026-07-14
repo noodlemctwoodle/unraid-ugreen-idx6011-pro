@@ -32,7 +32,7 @@
   function cleanName(s){ return String(s==null?'':s).replace(/[\x00-\x1f]/g,' ').slice(0,23); }
 
   function markChanged(){ if(!form) return;
-    var a=form.querySelectorAll('input[value="Apply"]'); for(var i=0;i<a.length;i++) a[i].disabled=false;
+    var a=form.querySelectorAll('input[name="#apply"]'); for(var i=0;i<a.length;i++) a[i].disabled=false;
     try{ formHasUnsavedChanges=true; }catch(e){} }
 
   /* rebuild the hidden N_PAGES / PAGE<n>_* fields from `pages` */
