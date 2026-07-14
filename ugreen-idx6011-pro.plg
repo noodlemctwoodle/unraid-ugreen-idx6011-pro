@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name    "ugreen-idx6011-pro">
 <!ENTITY author  "noodlemctwoodle">
-<!ENTITY version "2026.07.12.1">
+<!ENTITY version "2026.07.13">
 <!ENTITY plgdir  "/boot/config/plugins/&name;">
 ]>
 
@@ -15,6 +15,45 @@
         pluginURL="https://raw.githubusercontent.com/noodlemctwoodle/unraid-ugreen-idx6011-pro/main/&name;.plg">
 
 <CHANGES>
+###2026.07.13
+- Fully customisable dashboard. Build any page from a library of modules and pick
+  each one's look: bar, ring, gauge, history graph, area, segmented blocks,
+  used/free split, trend, or big number. New modules - Array status, Updates
+  (Unraid OS + plugins), Power draw, NPU, Fans, Host, VMs, and per-item Disk /
+  Interface / Container / VM cards. The Docker cards show each container's IP and
+  flag when an image update is available.
+- Web Layout editor with a live preview. Add, rename, reorder, delete and
+  show/hide pages; for each module choose its visualisation (and, for per-item
+  cards, which disk/interface/container/VM), with a live render of the real
+  258x960 panel beside you.
+- Fan control from the panel. Drive all four chassis fans on Auto / Silent /
+  Quiet / Turbo temperature curves (CPU fans follow the CPU, case fans the hottest
+  disk) or Max. A floor keeps every fan spinning and a critical temperature forces
+  100%. Live fan RPM on a Fans card, including an animated spinning-fan view.
+- Theme your dashboard. Choose the font, heading and text sizes, and every palette
+  colour with live colour pickers - now including card-title and dim-text colours
+  plus a card-opacity slider. Point at a wallpaper and a header logo from any image
+  on the server via a file browser; both hot-swap on the panel live, with no restart.
+  Pick network-rate units (bits or bytes) and the primary network interface. Cards
+  grow with the text size instead of overlapping.
+- Wallpapers and full-screen pages. Make cards translucent so a wallpaper shows
+  through (globally or per page), add Spacer modules to push content down, and hide
+  any page's header bar / title card / page dots for a clean full-screen image page.
+  A text drop shadow, a themeable card-title colour and a wallpaper-dim scrim keep
+  everything readable over even busy images.
+- Theme presets and sharing. Built-in presets (Unraid, Sakura, Ember, Abyss, Aurora,
+  Grape, Cyber, Mono) recolour the dashboard in a click; Save current writes a theme
+  file to panel/themes/, and a Load-a-theme dropdown lists your saved themes - share
+  one by copying its .cfg.
+- Power-save schedule. Turn the screen and disk/LAN LEDs off between two local times
+  (quiet hours). A tap wakes everything and it re-sleeps 30s after the last touch; the
+  timezone comes from Unraid automatically, and the power LED stays on.
+- Smarter front LEDs. Configurable LAN and per-state disk-light colours, power
+  light on/off, and an activity mode that blinks the disk/LAN LEDs on I/O and goes
+  solid when idle.
+- Redesigned settings. Screen, Lighting and Display (theme + layout) tabs now
+  share one consistent look; everything is also editable live from the panel's own
+  touch Settings page.
 ###2026.07.12.1
 - New plugin icon: original line-art of the UGREEN iDX6011 Pro by Deivizzz.
 ###2026.07.12
@@ -66,9 +105,17 @@ if [ ! -f "&plgdir;/panel/settings.cfg" ]; then
 fi
 # migrate: the panel autostart used to live in /boot/config/go — now plugin-managed
 sed -i '/# UGREEN iDX6011 Pro front-panel dashboard/,/^fi$/d' /boot/config/go 2>/dev/null
-# webGUI assets (plugin icon)
+# webGUI assets: plugin icon + settings page + colour-picker CSS/JS + Apply command.
+# restart.sh MUST live under the webGUI docroot: update.php only runs a #command that
+# realpath()s inside /usr/local/emhttp, so the config page points at plugins/&name;/restart.sh.
 mkdir -p /usr/local/emhttp/plugins/&name;/images
 [ -f "&plgdir;/images/&name;.png" ] &amp;&amp; cp "&plgdir;/images/&name;.png" /usr/local/emhttp/plugins/&name;/images/
+for f in UgreenIDX6011Pro.page UgreenIDX6011ProLighting.page \
+         UgreenIDX6011ProLayout.page idxcp.js idxcp-inc.php idxlayout.js preview.php theme.php restart.sh; do
+  [ -f "&plgdir;/$f" ] &amp;&amp; cp "&plgdir;/$f" /usr/local/emhttp/plugins/&name;/
+done
+rm -f /usr/local/emhttp/plugins/&name;/upload.php   # removed: wallpaper/logo now use a file path, not an upload
+chmod +x /usr/local/emhttp/plugins/&name;/restart.sh 2>/dev/null
 [ -f "&plgdir;/start.sh" ] &amp;&amp; bash "&plgdir;/start.sh"
 [ -f "&plgdir;/start-panel.sh" ] &amp;&amp; bash "&plgdir;/start-panel.sh"
 echo ""

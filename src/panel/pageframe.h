@@ -10,80 +10,138 @@
 #ifndef PANEL_PAGEFRAME_H
 #define PANEL_PAGEFRAME_H
 
-/* ---------- page system ---------- */
-#define NPAGES    7
+/* ---------- page system (dynamic: user-defined content pages + built-in SETTINGS) ----------
+ * MAX_CPAGES / cpage_t / g_cpage / g_ncpage are defined in prefs.h (loaded first).
+ * SETTINGS is the always-present last page. */
+#define MAX_PAGES  (MAX_CPAGES + 1)     /* + the always-present SETTINGS page      */
 #define HEADER_H  84
 #define BODY_Y0   124
 #define FOOTER_Y  918
 #define SCROLL_STEP 300
 static long rotate_ms = 0;              /* auto-rotate off by default */
-static int scrolly[NPAGES];
+static int scrolly[MAX_PAGES];
 static int page_end;                    /* set by each page: content bottom y */
-static int content_h[NPAGES];
+static int content_h[MAX_PAGES];
 
 static int cur_page;
 static int body_top = BODY_Y0;
 
-#define PAGE_SETTINGS 6
+/* per-page chrome preview overrides: -1 = use the saved page flag; 0/1 force it.
+ * Set only by write_preview so the Display editor can preview draft header / title
+ * / page-dot toggles before they're applied. */
+static int g_prev_header = -1, g_prev_title = -1, g_prev_dots = -1;
+/* write_preview renders a DRAFT page: it must always be a CONTENT page (never the
+ * built-in SETTINGS page, whose saved index a new unsaved page collides with) and
+ * carry the draft name + position, not the saved page model's. */
+static int  g_is_preview = 0;
+static char g_preview_name[24] = "";
+static int  g_preview_pos = 0, g_preview_total = 0;
 
-typedef void (*page_fn)(stats_t *st);
-static void page_home(stats_t *st);
-static void page_overview(stats_t *st);
-static void page_hardware(stats_t *st);
-static void page_network(stats_t *st);
-static void page_disks(stats_t *st);
-static void page_docker(stats_t *st);
-static void page_settings(stats_t *st);
-static const struct { const char *title; page_fn body; } pages[NPAGES] = {
-    { "HOME",     page_home     },
-    { "OVERVIEW", page_overview },
-    { "HARDWARE", page_hardware },
-    { "NETWORK",  page_network  },
-    { "DISKS",    page_disks    },
-    { "DOCKER",   page_docker   },
-    { "SETTINGS", page_settings },
-};
+/* the page title + position sit in a card below the clock; its height (and so the
+ * y at which page content begins) grows with the heading/text size. */
+#define TITLECARD_H   28
+#define TITLECARD_TOP 12                         /* gap below the gradient rule (so they don't merge) */
+static int hdr_bottom = BODY_Y0;                 /* y where content begins (below title card) */
+/* header_h() is defined below, once the per-page chrome helpers exist. */
+
+static void page_settings(stats_t *st);          /* the one built-in interactive page */
+
+/* SETTINGS is the last navigable page, at index g_ncpage. */
+static int n_total(void){ return g_ncpage + 1; }
+static int is_settings_page(int i){ return i == g_ncpage; }
+static const char *page_title(int i){
+    if (is_settings_page(i)) return "SETTINGS";
+    return (i >= 0 && i < g_ncpage) ? g_cpage[i].name : "";
+}
+
+/* ---------- page enable/skip (SETTINGS is always on) ---------- */
+static int page_on(int i){
+    if (is_settings_page(i)) return 1;
+    return (i >= 0 && i < g_ncpage) ? g_cpage[i].on : 0;
+}
+static int next_page(int cur, int dir){          /* next ENABLED page in a direction */
+    int n = n_total();
+    for (int k = 0; k < n; k++){
+        cur = (cur + dir + n) % n;
+        if (page_on(cur)) return cur;
+    }
+    return cur;                                  /* all off can't happen (SETTINGS on) */
+}
+static int n_pages_on(void){ int n = 0, t = n_total(); for (int i = 0; i < t; i++) if (page_on(i)) n++; return n; }
+static int page_pos(int cur){ int p = 0, t = n_total(); for (int i = 0; i <= cur && i < t; i++) if (page_on(i)) p++; return p; }
+
+/* ---------- per-page chrome (header bar / title card / page dots) ----------
+ * The SETTINGS page always shows its chrome so it stays navigable. A preview
+ * override (g_prev_*) wins so the editor can preview draft toggles. */
+static int page_show_header(int i){ if (g_prev_header >= 0) return g_prev_header; if (is_settings_page(i)) return 1; return (i >= 0 && i < g_ncpage) ? g_cpage[i].header : 1; }
+static int page_show_title (int i){ if (g_prev_title  >= 0) return g_prev_title;  if (is_settings_page(i)) return 1; return (i >= 0 && i < g_ncpage) ? g_cpage[i].title  : 1; }
+static int page_show_dots  (int i){ if (g_prev_dots   >= 0) return g_prev_dots;   if (is_settings_page(i)) return 1; return (i >= 0 && i < g_ncpage) ? g_cpage[i].dots   : 1; }
+/* y at which page content begins: header bar and/or title card, each optional. */
+static int header_h(void){
+    int sh = page_show_header(cur_page), stt = page_show_title(cur_page);
+    if (sh && stt) return HEADER_H + gy(TITLECARD_TOP) + gy(TITLECARD_H) + gy(8);
+    if (sh)        return HEADER_H + gy(8);
+    if (stt)       return gy(TITLECARD_TOP) + gy(TITLECARD_H) + gy(8);
+    return gy(6);                                 /* full-bleed: just a tiny top margin */
+}
 
 static void draw_header(stats_t *st){
-    rect(0, 0, W, BODY_Y0 - 6, UN_BLACK, 255);   /* opaque incl. title zone */
-    draw_unraid_icon(12, 25);                             /* official 60x34 mark */
-    if (st->notif_count > 0){
-        char nb[16];
-        snprintf(nb, sizeof nb, "%d", st->notif_count > 99 ? 99 : st->notif_count);
-        int tw = text_w(1.5f, nb);
-        uint32_t bc = st->notif_imp == 2 ? UN_BAD : st->notif_imp == 1 ? UN_WARN : UN_ORANGE;
-        rect(76, 12, tw + 12, 17, bc, 255);
-        text(82, 16, 1.5f, 0x1b1b1b, nb);
+    int sh = page_show_header(cur_page), stt = page_show_title(cur_page);
+    char b[64];
+    if (sh){
+        rect(0, 0, W, hdr_bottom - 6, UN_BLACK, 255);     /* opaque header + title backdrop */
+        if (!draw_custom_logo(12, 25))                    /* custom logo if set... */
+            draw_unraid_icon(12, 25);                     /* ...else the official 60x34 mark */
+        if (st->notif_count > 0){
+            char nb[16];
+            snprintf(nb, sizeof nb, "%d", st->notif_count > 99 ? 99 : st->notif_count);
+            int tw = text_w_raw(1.5f, nb);
+            uint32_t bc = st->notif_imp == 2 ? UN_BAD : st->notif_imp == 1 ? UN_WARN : UN_ORANGE;
+            rect(76, 12, tw + 12, 17, bc, 255);
+            text_raw(82, 16, 1.5f, 0x1b1b1b, nb);
+        }
+        /* header chrome (clock/date) stays a fixed size — not user-scaled */
+        time_t t = time(NULL); struct tm tm; localtime_r(&t, &tm);
+        strftime(b, sizeof b, "%H:%M", &tm);
+        text_raw(W - 16 - text_w_raw(3.2f, b), 18, 3.2f, UN_TEXT, b);
+        strftime(b, sizeof b, "%a %d %b", &tm);
+        text_raw(W - 16 - text_w_raw(1.5f, b), 52, 1.5f, UN_DIM, b);
+        hgrad(0, HEADER_H, W, 3, UN_RED, UN_ORANGE);      /* signature rule */
     }
-    char b[64]; time_t t = time(NULL); struct tm tm; localtime_r(&t, &tm);
-    strftime(b, sizeof b, "%H:%M", &tm);
-    text(W - 16 - text_w(3.2f, b), 18, 3.2f, UN_TEXT, b);
-    strftime(b, sizeof b, "%a %d %b", &tm);
-    text(W - 16 - text_w(1.5f, b), 52, 1.5f, UN_DIM, b);
-    hgrad(0, HEADER_H, W, 3, UN_RED, UN_ORANGE);          /* signature rule */
-    text_c(HEADER_H + 18, 2.2f, UN_DIM, pages[cur_page].title);
-    snprintf(b, sizeof b, "%d/%d", cur_page + 1, NPAGES);
-    text(W - 16 - text_w(1.4f, b), HEADER_H + 22, 1.4f, 0x555555, b);
+    if (stt){
+        /* page heading + position, in a card that grows with the heading size */
+        int tcY = (sh ? HEADER_H : 0) + gy(TITLECARD_TOP), tcH = gy(TITLECARD_H);
+        card(tcY, tcH, NULL);
+        const char *ttl = (g_is_preview && g_preview_name[0]) ? g_preview_name : page_title(cur_page);
+        int pos = g_is_preview ? g_preview_pos : page_pos(cur_page);
+        int tot = g_is_preview ? g_preview_total : n_pages_on();
+        htext_c(tcY + gy(6), 2.2f, UN_TEXT, ttl);
+        snprintf(b, sizeof b, "%d/%d", pos, tot);
+        text_raw(W - 22 - text_w_raw(1.4f, b), tcY + gy(9), 1.4f, UN_DIM, b);
+    }
 }
 
 static void draw_banner(stats_t *st){
     uint32_t c = st->notif_imp == 2 ? UN_BAD : st->notif_imp == 1 ? UN_WARN : UN_ORANGE_M;
-    rect(10, BODY_Y0, W - 20, 36, UN_GREY_80, 245);
-    rect(10, BODY_Y0, 3, 36, c, 255);
+    rect(10, hdr_bottom, W - 20, gy(36), UN_GREY_80, 245);
+    rect(10, hdr_bottom, 3, gy(36), c, 255);
     char b[32]; snprintf(b, sizeof b, "%d UNREAD", st->notif_count);
-    text(22, BODY_Y0 + 5, 1.3f, c, b);
+    text(22, hdr_bottom + gy(5), 1.3f, c, b);
     char subj[128];
     snprintf(subj, sizeof subj, "%s", st->notif_subj[0] ? st->notif_subj : "notification");
     trunc_fit(subj, 1.5f, W - 44);
-    text(22, BODY_Y0 + 19, 1.5f, UN_TEXT, subj);
+    text(22, hdr_bottom + gy(19), 1.5f, UN_TEXT, subj);
 }
 
 static void draw_footer(void){
+    if (!page_show_dots(cur_page)) return;             /* full-bleed page: no footer chrome */
     rect(0, FOOTER_Y - 4, W, H - (FOOTER_Y - 4), UN_BLACK, 255);
     hline(16, FOOTER_Y, W - 32, UN_GREY_70);
-    int pitch = 24, x0 = (W - (NPAGES - 1) * pitch) / 2;
-    for (int i = 0; i < NPAGES; i++){
-        int cx = x0 + i * pitch;
+    int total = n_pages_on();
+    int pitch = 24, x0 = (W - (total - 1) * pitch) / 2, j = 0;
+    for (int i = 0; i < n_total(); i++){
+        if (!page_on(i)) continue;
+        int cx = x0 + j * pitch; j++;
         if (i == cur_page){
             rect(cx - 5, 932, 10, 10, UN_ORANGE, 255);
             rect(cx - 4, 931, 8, 12, UN_ORANGE, 255);
@@ -96,7 +154,7 @@ static void draw_footer(void){
 /* ---------- settings widget hit-testing (static, no allocation) ---------- */
 enum {
     WID_NONE = 0, WID_BRIGHT, WID_SCROFF, WID_ROTATE, WID_LEDS,
-    WID_NIGHT, WID_RESTART, WID_REBOOT, WID_SHUTDOWN
+    WID_NIGHT, WID_FAN, WID_RESTART, WID_REBOOT, WID_SHUTDOWN
 };
 typedef struct { int id, x, y, w, h; } hitbox_t;
 static hitbox_t hbs[16];

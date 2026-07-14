@@ -1,0 +1,143 @@
+name: release-beta
+
+# Cut a BETA pre-release from the develop branch.
+#   Actions -> "release-beta" -> Run workflow (branch: develop).
+# It builds the payload from develop, derives a beta manifest
+# (ugreen-idx6011-pro.beta.plg: version <base>.beta.<run>, pluginURL pointing at
+# develop), writes its SHA256, commits that manifest to develop, and publishes a
+# GitHub PRE-RELEASE with the payload .txz.
+#
+# Testers install / stay on the beta channel from:
+#   https://raw.githubusercontent.com/noodlemctwoodle/unraid-ugreen-idx6011-pro/develop/ugreen-idx6011-pro.beta.plg
+# The beta self-updates from develop; installing the stable .plg moves back to the
+# stable channel (stable > any <base>.beta.<n>).
+
+# Two ways to cut a beta:
+#   - push a tag matching *.beta.*  (works from develop today; the tag IS the version)
+#       git tag 2026.07.13.beta.1 && git push origin 2026.07.13.beta.1
+#   - Run workflow (workflow_dispatch) — available once this file is also on the
+#     default branch; version is then <base>.beta.<run_number>.
+on:
+  workflow_dispatch: {}
+  push:
+    tags:
+      - '*.beta.*'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-beta
+  cancel-in-progress: false
+
+jobs:
+  beta:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout develop
+        uses: actions/checkout@v7
+        with:
+          ref: develop
+          token: ${{ secrets.RELEASE_TOKEN }}
+
+      - name: Compute beta version
+        id: meta
+        run: |
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            VER="${{ github.ref_name }}"                       # the pushed tag is the version
+            echo "Beta version from tag: $VER"
+          else
+            BASE=$(grep -oP '<!ENTITY\s+version\s+"\K[^"]+' ugreen-idx6011-pro.plg)
+            [ -n "$BASE" ] || { echo "::error::could not read base <!ENTITY version> from the stable .plg"; exit 1; }
+            VER="${BASE}.beta.${{ github.run_number }}"
+            echo "Beta version (dispatch): $VER"
+          fi
+          case "$VER" in *[!0-9A-Za-z.]*) echo "::error::unexpected beta version '$VER'"; exit 1;; esac
+          echo "version=$VER" >> "$GITHUB_OUTPUT"
+
+      - name: Build panel_dash from source
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libdrm-dev
+          bash src/panel/build.sh
+          ls -la src/panel/panel_dash
+
+      - name: Build payload
+        env:
+          VER: ${{ steps.meta.outputs.version }}
+        run: bash release/mkpayload.sh "$VER"
+
+      - name: Derive the beta .plg (version + pluginURL + SHA256)
+        id: plg
+        env:
+          VER: ${{ steps.meta.outputs.version }}
+        run: |
+          SHA=$(sha256sum "release/ugreen-idx6011-pro-$VER.txz" | awk '{print $1}')
+          echo "payload SHA256: $SHA"
+          echo "sha256=$SHA" >> "$GITHUB_OUTPUT"
+          # Derive the beta manifest from the stable one: bump the version, point the
+          # pluginURL at develop/<name>.beta.plg, and write the payload hash. Everything
+          # else (payload URL + install logic use &version;/&name; entities) is reused.
+          sed -e "s#<!ENTITY version \"[^\"]*\">#<!ENTITY version \"$VER\">#" \
+              -e "s#main/&name;\.plg#develop/\&name;.beta.plg#" \
+              -e "s#<SHA256>[0-9a-fA-F]*</SHA256>#<SHA256>$SHA</SHA256>#" \
+              ugreen-idx6011-pro.plg > ugreen-idx6011-pro.beta.plg
+          echo "--- derived beta .plg header ---"
+          sed -n '1,15p' ugreen-idx6011-pro.beta.plg
+
+      - name: Commit the beta manifest to develop
+        env:
+          VER: ${{ steps.meta.outputs.version }}
+        run: |
+          git config user.name  "noodlemctwoodle"
+          git config user.email "noodlemctwoodle@users.noreply.github.com"
+          git add ugreen-idx6011-pro.beta.plg
+          if git diff --cached --quiet; then
+            echo "beta manifest unchanged - nothing to commit"
+          else
+            git commit -m "ci: beta ${VER}"
+            git push origin develop
+          fi
+
+      - name: Build release notes
+        env:
+          VER: ${{ steps.meta.outputs.version }}
+          SHA: ${{ steps.plg.outputs.sha256 }}
+        run: |
+          BASE=$(grep -oP '<!ENTITY\s+version\s+"\K[^"]+' ugreen-idx6011-pro.plg)
+          awk -v v="###${BASE}" '
+            $0==v {grab=1; next}
+            /^###/ {if (grab) exit}
+            grab {print}
+          ' ugreen-idx6011-pro.plg > changelog.txt
+          [ -s changelog.txt ] || echo "- beta build" > changelog.txt
+          BPLG="https://raw.githubusercontent.com/noodlemctwoodle/unraid-ugreen-idx6011-pro/develop/ugreen-idx6011-pro.beta.plg"
+          {
+            echo '> **Beta / pre-release.** Testing build cut from the `develop` branch - expect rough edges. For a stable install use the [latest release](https://github.com/noodlemctwoodle/unraid-ugreen-idx6011-pro/releases/latest).'
+            echo ''
+            echo '## Install / update the beta'
+            echo ''
+            echo 'In the Unraid web UI: **Plugins -> Install Plugin**, paste this URL and install:'
+            echo ''
+            echo '```'
+            echo "$BPLG"
+            echo '```'
+            echo ''
+            echo 'Then **reboot**. The beta self-updates from `develop`; each new beta run bumps the version. To move back to the stable channel, install the stable `.plg`.'
+            echo ''
+            echo "## What's in this beta (targeting ${BASE})"
+            echo ''
+            cat changelog.txt
+            echo ''
+            echo '---'
+            echo "**Payload:** \`ugreen-idx6011-pro-${VER}.txz\`  |  **SHA256:** \`${SHA}\`"
+          } > notes.md
+          echo "---- notes ----"; cat notes.md
+
+      - name: Publish beta pre-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VER: ${{ steps.meta.outputs.version }}
+        run: |
+          gh release create "$VER" "release/ugreen-idx6011-pro-$VER.txz" \
+            --target develop --title "$VER (beta)" --prerelease --notes-file notes.md

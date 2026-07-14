@@ -153,9 +153,51 @@ static void docker_parse(stats_t *st){
         if (s && (!next || s < next)) json_copy_str(s + 9, c->state, sizeof c->state);
         char *t = strstr(p, "\"Status\":\"");
         if (t && (!next || t < next)) json_copy_str(t + 10, c->status, sizeof c->status);
+        char *im = strstr(p, "\"Image\":\"");
+        if (im && (!next || im < next)) json_copy_str(im + 9, c->image, sizeof c->image);
+        char *ipp = strstr(p, "\"IPAddress\":\"");   /* first NON-empty IP (host-net = empty) */
+        while (ipp && (!next || ipp < next)){
+            char tmp[44]; json_copy_str(ipp + 13, tmp, sizeof tmp);
+            if (tmp[0]){ snprintf(c->ip, sizeof c->ip, "%s", tmp); break; }
+            ipp = strstr(ipp + 13, "\"IPAddress\":\"");
+        }
         st->n_ctrs++;
         if (!next) break;
         p = next;
+    }
+}
+
+/* container "update available" flags (best-effort). Unraid's docker manager writes
+ * /var/lib/docker/unraid-update-status.json keyed by image ref, with a "status"
+ * whose value is false when an image update is ready. Absent (no CA-managed
+ * containers) -> no flags; a schema mismatch simply yields no flags, never a crash. */
+static char updbuf[65536];
+static void read_ctr_updates(stats_t *st){
+    FILE *f = fopen("/var/lib/docker/unraid-update-status.json", "r");
+    if (!f) return;
+    size_t n = fread(updbuf, 1, sizeof updbuf - 1, f); updbuf[n] = 0; fclose(f);
+    for (int i = 0; i < st->n_ctrs; i++){
+        ctr_t *c = &st->ctrs[i];
+        if (!c->image[0]) continue;
+        char img[72]; snprintf(img, sizeof img, "%s", c->image);
+        char *slash = strrchr(img, '/');                        /* strip :tag, but only after */
+        char *tag = strrchr(slash ? slash : img, ':');          /* the final '/' so a registry */
+        if (tag) *tag = 0;                                      /* :port survives */
+        char key[74]; snprintf(key, sizeof key, "\"%s", img);
+        size_t klen = strlen(key);
+        char *k = updbuf, *hit = NULL;                          /* require a full key boundary */
+        while ((k = strstr(k, key))){
+            char after = k[klen];
+            if (after == '"' || after == ':'){ hit = k; break; }   /* exact key, or key + :tag */
+            k += klen;
+        }
+        if (!hit) continue;
+        char *end = strchr(hit, '}');                           /* this entry's object end */
+        char *stp = strstr(hit, "\"status\"");
+        if (stp && (!end || stp < end)){
+            char *fv = strstr(stp, "false");
+            if (fv && (!end || fv < end) && fv - stp < 16) c->update = 1;
+        }
     }
 }
 
@@ -172,14 +214,40 @@ static void read_vms(stats_t *st){
         }
         fclose(f);
     }
+    st->n_vms = 0;
     if (!st->vm_enabled) return;
-    DIR *d = opendir("/var/run/libvirt/qemu"); if (!d) return;
     struct dirent *e;
-    while ((e = readdir(d))){
-        size_t l = strlen(e->d_name);
-        if (l > 4 && !strcmp(e->d_name + l - 4, ".pid")) st->vm_count++;
+    /* defined domains: /etc/libvirt/qemu/<name>.xml ; running: a matching .pid */
+    DIR *dd = opendir("/etc/libvirt/qemu");
+    if (dd){
+        while ((e = readdir(dd)) && st->n_vms < MAX_VMS){
+            size_t l = strlen(e->d_name);
+            if (l <= 4 || strcmp(e->d_name + l - 4, ".xml")) continue;
+            vm_t *vm = &st->vms[st->n_vms];
+            snprintf(vm->name, sizeof vm->name, "%.*s", (int)(l - 4), e->d_name);
+            char pid[256]; snprintf(pid, sizeof pid, "/var/run/libvirt/qemu/%s.pid", vm->name);
+            vm->running = access(pid, F_OK) == 0;
+            if (vm->running) st->vm_count++;
+            st->n_vms++;
+        }
+        closedir(dd);
     }
-    closedir(d);
+    /* also count any running domain without an .xml we saw (belt and braces) */
+    DIR *dr = opendir("/var/run/libvirt/qemu");
+    if (dr){
+        while ((e = readdir(dr))){
+            size_t l = strlen(e->d_name);
+            if (l <= 4 || strcmp(e->d_name + l - 4, ".pid")) continue;
+            char nm[48]; snprintf(nm, sizeof nm, "%.*s", (int)(l - 4), e->d_name);
+            int known = 0;
+            for (int i = 0; i < st->n_vms; i++) if (!strcmp(st->vms[i].name, nm)){ known = 1; break; }
+            if (!known && st->n_vms < MAX_VMS){
+                snprintf(st->vms[st->n_vms].name, sizeof st->vms[0].name, "%s", nm);
+                st->vms[st->n_vms].running = 1; st->n_vms++; st->vm_count++;
+            }
+        }
+        closedir(dr);
+    }
 }
 
 /* cached 10s: full container list + running/total + VM state */
@@ -187,12 +255,14 @@ static void read_docker(stats_t *st){
     static long last = -100000;
     static int c_run = -1, c_tot = -1, c_n;
     static ctr_t c_list[MAX_CTRS];
-    static int c_vm_en, c_vm_cnt;
+    static int c_vm_en, c_vm_cnt, c_vm_n;
+    static vm_t c_vm_list[MAX_VMS];
     long nowms = now_ms();
     if (nowms - last >= 10000){
         last = nowms;
         if (docker_http_get("/containers/json?all=1") >= 0){
             docker_parse(st);
+            read_ctr_updates(st);                        /* best-effort update flags */
             c_n = st->n_ctrs; c_tot = st->n_ctrs; c_run = 0;
             for (int i = 0; i < st->n_ctrs; i++)
                 if (!strcmp(st->ctrs[i].state, "running")) c_run++;
@@ -201,12 +271,14 @@ static void read_docker(stats_t *st){
             c_run = c_tot = -1; c_n = 0;
         }
         read_vms(st);
-        c_vm_en = st->vm_enabled; c_vm_cnt = st->vm_count;
+        c_vm_en = st->vm_enabled; c_vm_cnt = st->vm_count; c_vm_n = st->n_vms;
+        memcpy(c_vm_list, st->vms, sizeof c_vm_list);
     }
     st->docker = c_run; st->docker_total = c_tot;
     st->n_ctrs = c_n;
     memcpy(st->ctrs, c_list, sizeof c_list);
-    st->vm_enabled = c_vm_en; st->vm_count = c_vm_cnt;
+    st->vm_enabled = c_vm_en; st->vm_count = c_vm_cnt; st->n_vms = c_vm_n;
+    memcpy(st->vms, c_vm_list, sizeof c_vm_list);
 }
 
 

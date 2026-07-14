@@ -19,8 +19,15 @@ static volatile sig_atomic_t stop_flag;
 
 static void on_sig(int s){ (void)s; stop_flag = 1; }
 
+/* vertical draw clip [g_clip_top, g_clip_bot). The scrolling page body is clipped
+ * to the content region so it never writes into the header/footer bands — without
+ * this, a single-buffered scanout mid-frame shows body content behind the header
+ * (a flash) while scrolling. Defaults are wide-open (no clip). */
+static int g_clip_top = 0;
+static int g_clip_bot = 1 << 20;
+
 static inline void px(int x, int y, uint32_t c){
-    if ((unsigned)x < (unsigned)W && (unsigned)y < (unsigned)H)
+    if ((unsigned)x < (unsigned)W && (unsigned)y < (unsigned)H && y >= g_clip_top && y < g_clip_bot)
         fbmem[y * fbpitch + x] = c;
 }
 static inline uint32_t blend(uint32_t dst, uint32_t src, uint8_t a){
@@ -28,9 +35,19 @@ static inline uint32_t blend(uint32_t dst, uint32_t src, uint8_t a){
     uint32_t g  = ((src & 0x00ff00) * a + (dst & 0x00ff00) * (255 - a)) >> 8;
     return (rb & 0xff00ff) | (g & 0x00ff00);
 }
+/* alpha-plot a single pixel over what's already there (for anti-aliased shapes) */
+static inline void px_blend(int x, int y, uint32_t src, uint8_t a){
+    if ((unsigned)x < (unsigned)W && (unsigned)y < (unsigned)H && y >= g_clip_top && y < g_clip_bot){
+        uint32_t *p = &fbmem[y * fbpitch + x];
+        *p = blend(*p, src, a);
+    }
+}
 static void rect(int x, int y, int w, int h, uint32_t c, uint8_t a){
     if (x < 0){ w += x; x = 0; } if (y < 0){ h += y; y = 0; }
+    if (y < g_clip_top){ h -= (g_clip_top - y); y = g_clip_top; }   /* vertical clip */
+    if (y + h > g_clip_bot) h = g_clip_bot - y;
     if (x + w > W) w = W - x; if (y + h > H) h = H - y;
+    if (w <= 0 || h <= 0) return;
     for (int j = 0; j < h; j++){
         uint32_t *row = fbmem + (y + j) * fbpitch + x;
         if (a == 255) for (int i = 0; i < w; i++) row[i] = c;
@@ -39,9 +56,16 @@ static void rect(int x, int y, int w, int h, uint32_t c, uint8_t a){
 }
 static void hline(int x, int y, int w, uint32_t c){ rect(x, y, w, 1, c, 255); }
 
-/* ---------- text via stb_easy_font (unchanged from v1) ---------- */
+/* ---------- text ----------
+ * Real anti-aliased type via stb_truetype when a TTF is loaded (font_init);
+ * falls back to the vendored stb_easy_font vector font if none. A real font
+ * gives full glyph coverage (em-dash, degree sign, arrows) and proper shapes.
+ * The `scale` API is preserved: it maps to a pixel height so the existing
+ * per-card y-offsets and text_w()-based alignment keep working unchanged. */
+
+/* stb_easy_font fallback (the original v1 renderer) */
 static char qbuf[64000];
-static void text(int x, int y, float scale, uint32_t c, const char *s){
+static void text_easy(int x, int y, float scale, uint32_t c, const char *s){
     int n = stb_easy_font_print(0, 0, (char*)s, NULL, qbuf, sizeof(qbuf));
     float *v = (float*)qbuf;                    /* 16B/vertex: x,y,z,color */
     for (int q = 0; q < n; q++){
@@ -57,11 +81,154 @@ static void text(int x, int y, float scale, uint32_t c, const char *s){
         rect(rx, ry, rw, rh, c, 255);
     }
 }
-static int text_w(float scale, const char *s){
+static int text_w_easy(float scale, const char *s){
     return (int)(stb_easy_font_width((char*)s) * scale);
 }
-static void text_c(int y, float scale, uint32_t c, const char *s){ /* centered */
+
+/* ---- stb_truetype path ---- */
+static stbtt_fontinfo g_font;
+static int   g_font_ok = 0;
+static unsigned char *g_font_data = NULL;
+static float FONT_K = 9.0f;               /* scale unit -> pixel height (tunable) */
+static int   g_font_asc, g_font_desc, g_font_gap;
+
+/* load a TTF from disk; falls back silently (g_font_ok stays 0) on any error. */
+static int font_init(const char *path){
+    if (!path || !*path) return 0;
+    FILE *f = fopen(path, "rb"); if (!f) return 0;
+    fseek(f, 0, SEEK_END); long n = ftell(f); fseek(f, 0, SEEK_SET);
+    if (n <= 0){ fclose(f); return 0; }
+    g_font_data = (unsigned char*)malloc((size_t)n);
+    if (!g_font_data){ fclose(f); return 0; }
+    size_t rd = fread(g_font_data, 1, (size_t)n, f); fclose(f);
+    if (rd != (size_t)n){ free(g_font_data); g_font_data = NULL; return 0; }
+    int off = stbtt_GetFontOffsetForIndex(g_font_data, 0);
+    if (off < 0 || !stbtt_InitFont(&g_font, g_font_data, off)){
+        free(g_font_data); g_font_data = NULL; return 0;
+    }
+    stbtt_GetFontVMetrics(&g_font, &g_font_asc, &g_font_desc, &g_font_gap);
+    const char *k = getenv("PANEL_FONT_K"); if (k && *k) FONT_K = (float)atof(k);
+    g_font_ok = 1;
+    return 1;
+}
+
+/* minimal UTF-8 decode: returns next codepoint, advances *p past it */
+static unsigned utf8_next(const char **p){
+    const unsigned char *s = (const unsigned char*)*p;
+    unsigned c = s[0];
+    if (c < 0x80){ *p += 1; return c; }
+    if ((c >> 5) == 0x6  && s[1]){ *p += 2; return ((c & 0x1f) << 6) | (s[1] & 0x3f); }
+    if ((c >> 4) == 0xe  && s[1] && s[2]){ *p += 3;
+        return ((c & 0x0f) << 12) | ((s[1] & 0x3f) << 6) | (s[2] & 0x3f); }
+    if ((c >> 3) == 0x1e && s[1] && s[2] && s[3]){ *p += 4;
+        return ((c & 0x07) << 18) | ((s[1] & 0x3f) << 12) | ((s[2] & 0x3f) << 6) | (s[3] & 0x3f); }
+    *p += 1; return c;                        /* invalid lead byte: skip one */
+}
+
+/* glyph cache: rasterize each (codepoint, pixel-size) once and reuse. The panel
+ * redraws every interval; without this it re-rasterizes every glyph every frame
+ * (~5% of a core). The set of (glyph,size) pairs is small and bounded, so cached
+ * bitmaps are never freed. */
+typedef struct { unsigned cp; int px, used; int w, h, xoff, yoff; float adv; unsigned char *bmp; } glyph_t;
+#define GLYPH_CACHE 4096
+static glyph_t g_glyphs[GLYPH_CACHE];
+
+static glyph_t *glyph_get(unsigned cp, int px, float sc){
+    unsigned h = (cp * 131u + (unsigned)px * 2654435761u) & (GLYPH_CACHE - 1);
+    for (int probe = 0; probe < GLYPH_CACHE; probe++){
+        glyph_t *g = &g_glyphs[(h + probe) & (GLYPH_CACHE - 1)];
+        if (g->used){ if (g->cp == cp && g->px == px) return g; continue; }
+        int adv, lsb; stbtt_GetCodepointHMetrics(&g_font, (int)cp, &adv, &lsb);
+        g->bmp = stbtt_GetCodepointBitmap(&g_font, sc, sc, (int)cp, &g->w, &g->h, &g->xoff, &g->yoff);
+        g->adv = adv * sc; g->cp = cp; g->px = px; g->used = 1;
+        return g;
+    }
+    return NULL;                                   /* cache full (bounded set: never) */
+}
+static void px_scale(float scale, int *px, float *sc){
+    int p = (int)(scale * FONT_K + 0.5f); if (p < 1) p = 1;
+    *px = p; *sc = stbtt_ScaleForPixelHeight(&g_font, (float)p);
+}
+
+static int text_w_ttf(float scale, const char *s){
+    int px; float sc; px_scale(scale, &px, &sc);
+    float w = 0; const char *p = s; unsigned prev = 0;
+    while (*p){
+        unsigned cp = utf8_next(&p);
+        if (prev) w += stbtt_GetCodepointKernAdvance(&g_font, (int)prev, (int)cp) * sc;
+        glyph_t *g = glyph_get(cp, px, sc); if (g) w += g->adv; prev = cp;
+    }
+    return (int)(w + 0.5f);
+}
+static void text_ttf(int x, int y, float scale, uint32_t c, const char *s){
+    int px; float sc; px_scale(scale, &px, &sc);
+    int baseline = y + (int)(g_font_asc * sc + 0.5f);
+    float penx = (float)x; const char *p = s; unsigned prev = 0;
+    while (*p){
+        unsigned cp = utf8_next(&p);
+        if (prev) penx += stbtt_GetCodepointKernAdvance(&g_font, (int)prev, (int)cp) * sc;
+        glyph_t *g = glyph_get(cp, px, sc);
+        if (g && g->bmp){
+            int gx = (int)(penx + 0.5f) + g->xoff, gy = baseline + g->yoff;
+            for (int j = 0; j < g->h; j++){
+                int py = gy + j;
+                if ((unsigned)py >= (unsigned)H || py < g_clip_top || py >= g_clip_bot) continue;
+                uint32_t *drow = fbmem + py * fbpitch;
+                const unsigned char *brow = g->bmp + j * g->w;
+                for (int i = 0; i < g->w; i++){
+                    int pxx = gx + i; if ((unsigned)pxx >= (unsigned)W) continue;
+                    uint8_t a = brow[i]; if (!a) continue;
+                    drow[pxx] = (a == 255) ? c : blend(drow[pxx], c, a);
+                }
+            }
+        }
+        if (g) penx += g->adv; prev = cp;
+    }
+}
+
+/* g_has_wallpaper: set by build_bg when the background is a loaded image (not the
+ * brand gradient). g_text_shadow: render() turns on a 1px dark drop shadow behind
+ * ALL text while a wallpaper is showing, so labels/values stay legible over any
+ * image (and translucent cards). No wallpaper => no shadow => the default dark
+ * theme is byte-for-byte unchanged and pays no extra cost. */
+static int g_has_wallpaper = 0, g_text_shadow = 0;
+
+/* raw renderer (no user size multiplier) — used for fixed header chrome */
+static void text_raw(int x, int y, float scale, uint32_t c, const char *s){
+    if (g_text_shadow){                                  /* drop shadow for legibility over a wallpaper */
+        if (g_font_ok) text_ttf(x + 1, y + 1, scale, 0x000000, s);
+        else           text_easy(x + 1, y + 1, scale, 0x000000, s);
+    }
+    if (g_font_ok) text_ttf(x, y, scale, c, s);
+    else           text_easy(x, y, scale, c, s);
+}
+static int text_w_raw(float scale, const char *s){
+    return g_font_ok ? text_w_ttf(scale, s) : text_w_easy(scale, s);
+}
+
+/* user-tunable size multipliers (Theme settings): body vs section headings.
+ * text()/text_w() scale body content; htext()/htext_w() scale titles. */
+static float g_text_scale = 1.0f;
+static float g_head_scale = 1.0f;
+
+/* vertical LAYOUT scale = max(head, text). Cards scale their y-offsets, heights,
+ * gaps and ring/gauge radii by this, so bigger text just makes cards taller
+ * (never overlaps). gy() is the identity at 100%, so the default look is
+ * byte-for-byte unchanged. Only vertical geometry scales — the panel width is
+ * fixed at 258 px, so horizontal insets/bar widths stay put. */
+static float g_geom_scale = 1.0f;
+static inline int gy(float v){ return (int)(v * g_geom_scale + 0.5f); }
+
+static void text(int x, int y, float scale, uint32_t c, const char *s){ text_raw(x, y, scale * g_text_scale, c, s); }
+static int  text_w(float scale, const char *s){ return text_w_raw(scale * g_text_scale, s); }
+static void htext(int x, int y, float scale, uint32_t c, const char *s){ text_raw(x, y, scale * g_head_scale, c, s); }
+static int  htext_w(float scale, const char *s){ return text_w_raw(scale * g_head_scale, s); }
+
+static void text_c(int y, float scale, uint32_t c, const char *s){ /* centered body */
     text((W - text_w(scale, s)) / 2, y, scale, c, s);
+}
+static void htext_c(int y, float scale, uint32_t c, const char *s){ /* centered heading */
+    htext((W - htext_w(scale, s)) / 2, y, scale, c, s);
 }
 static void text_bold(int x, int y, float s, uint32_t c, const char *str){
     text(x, y, s, c, str);
@@ -72,19 +239,22 @@ static void trunc_fit(char *s, float scale, int maxw){
     while (n > 0 && text_w(scale, s) > maxw) s[--n] = 0;
 }
 
-/* ---------- Unraid brand palette ---------- */
-#define UN_RED       0xe22828   /* signature gradient start (red)      */
-#define UN_ORANGE    0xff8c2f   /* signature gradient end (orange)     */
-#define UN_ORANGE_M  0xf15a2c   /* midpoint — single-colour accent     */
-#define UN_BLACK     0x1b1b1b   /* webGUI black-theme background       */
-#define UN_GREY_90   0x141414
-#define UN_GREY_80   0x262626   /* card fill                           */
-#define UN_GREY_70   0x333333   /* dividers / card top edge            */
-#define UN_TEXT      0xf2f2f2
-#define UN_DIM       0x999999
-#define UN_OK        0x3fb950   /* array STARTED                       */
-#define UN_WARN      0xf0a020
-#define UN_BAD       0xe22828
+/* ---------- brand palette (runtime — overridable from settings.cfg) ----------
+ * These default to the Unraid palette; settings_load() (prefs.h) may recolour
+ * them from the config page. Not #defines so they can be themed at runtime. */
+static uint32_t UN_RED      = 0xe22828;  /* signature gradient start (red)  */
+static uint32_t UN_ORANGE   = 0xff8c2f;  /* signature gradient end (orange) */
+static uint32_t UN_ORANGE_M = 0xf15a2c;  /* single-colour accent (spine/gauge) */
+static uint32_t UN_BLACK    = 0x1b1b1b;  /* background                      */
+static uint32_t UN_GREY_90  = 0x141414;
+static uint32_t UN_GREY_80  = 0x262626;  /* card fill                       */
+static uint32_t UN_GREY_70  = 0x333333;  /* dividers / card top edge        */
+static uint32_t UN_TEXT     = 0xf2f2f2;  /* primary text                    */
+static uint32_t UN_DIM      = 0x999999;  /* dim/label/secondary text        */
+static uint32_t UN_TITLE    = 0x999999;  /* card section-heading colour (defaults to dim) */
+static uint32_t UN_OK       = 0x3fb950;  /* healthy / array STARTED         */
+static uint32_t UN_WARN     = 0xf0a020;  /* warning                         */
+static uint32_t UN_BAD      = 0xe22828;  /* error / critical                */
 
 static uint32_t lerp_rgb(uint32_t a, uint32_t b, float t){
     if (t < 0) t = 0; if (t > 1) t = 1;
@@ -147,16 +317,53 @@ static void draw_unraid_icon(int x, int y){
     }
 }
 
+/* optional custom header logo — scaled to fit the header mark area (max 84x44),
+ * blitted with alpha. Loaded via load_logo() from the configured path; the main
+ * loop reloads it live when the path or the file changes (no restart, no flash). */
+static unsigned char *g_logo_img; static int g_logo_iw, g_logo_ih;
+static void load_logo(const char *path){
+    if (g_logo_img){ stbi_image_free(g_logo_img); g_logo_img = NULL; g_logo_iw = g_logo_ih = 0; }
+    if (path && *path) g_logo_img = stbi_load(path, &g_logo_iw, &g_logo_ih, NULL, 4);
+}
+/* Returns 1 if a custom logo is drawn, 0 to fall back to the Unraid mark. */
+static int draw_custom_logo(int x, int y){
+    unsigned char *img = g_logo_img; int iw = g_logo_iw, ih = g_logo_ih;
+    if (!img || iw <= 0 || ih <= 0) return 0;
+    float sc = 1.0f;
+    if (iw > 84) sc = 84.0f / iw;
+    if (ih * sc > 44) sc = 44.0f / ih;
+    int dw = (int)(iw * sc), dh = (int)(ih * sc);
+    for (int j = 0; j < dh; j++){
+        int py = y + j; if ((unsigned)py >= (unsigned)H) continue;
+        int sy = (int)(j / sc); if (sy >= ih) sy = ih - 1;
+        for (int i = 0; i < dw; i++){
+            int pxx = x + i; if ((unsigned)pxx >= (unsigned)W) continue;
+            int sx = (int)(i / sc); if (sx >= iw) sx = iw - 1;
+            unsigned char *p = img + (sy * iw + sx) * 4;
+            uint8_t a = p[3]; if (!a) continue;
+            uint32_t c = (uint32_t)p[0] << 16 | (uint32_t)p[1] << 8 | p[2];
+            uint32_t *d = &fbmem[py * fbpitch + pxx];
+            *d = (a == 255) ? c : blend(*d, c, a);
+        }
+    }
+    return 1;
+}
+
 /* ---------- background (v1 image path; brand-dark fallback) ---------- */
-static void make_bg(const char *path){
-    bg = malloc((size_t)W * H * 4);
+static int cfg_bg_dim = 0;   /* darken a wallpaper 0..80% (a readability scrim); set from settings.cfg BG_DIM */
+/* build a fresh W*H background buffer from an image path (scaled to the panel),
+ * or the brand gradient if the path is empty/unreadable. Caller owns the buffer. */
+static uint32_t *build_bg(const char *path){
+    uint32_t *b = malloc((size_t)W * H * 4);
     int iw, ih, comp; unsigned char *img = NULL;
-    if (path) img = stbi_load(path, &iw, &ih, &comp, 3);
+    if (path && *path) img = stbi_load(path, &iw, &ih, &comp, 3);
+    g_has_wallpaper = (img != NULL);                  /* drives the text drop shadow */
     if (img){
+        int k = 100 - (cfg_bg_dim < 0 ? 0 : cfg_bg_dim > 80 ? 80 : cfg_bg_dim);   /* darken scrim */
         for (int y = 0; y < H; y++) for (int x = 0; x < W; x++){
             int sx = x * iw / W, sy = y * ih / H;
             unsigned char *p = img + (sy * iw + sx) * 3;
-            bg[y * W + x] = (uint32_t)p[0] << 16 | (uint32_t)p[1] << 8 | p[2];
+            b[y * W + x] = (uint32_t)(p[0]*k/100) << 16 | (uint32_t)(p[1]*k/100) << 8 | (uint32_t)(p[2]*k/100);
         }
         stbi_image_free(img);
         fprintf(stderr, "background: %s (%dx%d)\n", path, iw, ih);
@@ -164,9 +371,18 @@ static void make_bg(const char *path){
         for (int y = 0; y < H; y++){            /* brand black -> near black */
             float t = (float)y / H;
             uint8_t g = (uint8_t)(27 - 14 * t);  /* 0x1b -> 0x0d */
-            for (int x = 0; x < W; x++) bg[y * W + x] = (uint32_t)g << 16 | (uint32_t)g << 8 | g;
+            for (int x = 0; x < W; x++) b[y * W + x] = (uint32_t)g << 16 | (uint32_t)g << 8 | g;
         }
     }
+    return b;
+}
+static void make_bg(const char *path){ bg = build_bg(path); }
+/* hot-swap the wallpaper with no visible tear: build the whole new buffer first,
+ * then swap the pointer between frames and free the old one. Lets the main loop
+ * change the wallpaper live (no process restart, no screen flash). */
+static void swap_bg(const char *path){
+    uint32_t *nb = build_bg(path);
+    uint32_t *old = bg; bg = nb; free(old);
 }
 
 

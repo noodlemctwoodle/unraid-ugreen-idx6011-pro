@@ -38,8 +38,22 @@ static void read_mem(stats_t *st){
 }
 
 /* --- network: default-route iface + per-iface rows --- */
+/* iface names are short and use a restricted charset; reject anything else so a
+ * hand-edited PRIMARY_IFACE can't be interpolated into an unexpected /sys path. */
+static int iface_name_ok(const char *s){
+    if (!s || !*s || strlen(s) > 31) return 0;
+    for (const char *p = s; *p; p++)
+        if (!(isalnum((unsigned char)*p) || *p == '.' || *p == '-' ||
+              *p == '_' || *p == ':' || *p == '@')) return 0;
+    return 1;
+}
 static void primary_iface(char out[32]){
-    strcpy(out, "br0");                        /* fallback */
+    /* explicit override from settings.cfg (PRIMARY_IFACE), if that iface exists */
+    if (iface_name_ok(cfg_primary_if)){
+        char q[64]; snprintf(q, sizeof q, "/sys/class/net/%s", cfg_primary_if);
+        if (access(q, F_OK) == 0){ snprintf(out, 32, "%s", cfg_primary_if); return; }
+    }
+    strcpy(out, "br0");                        /* fallback (default-route auto-pick) */
     FILE *f = fopen("/proc/net/route", "r"); if (!f) return;
     char line[256];
     if (!fgets(line, sizeof line, f)){ fclose(f); return; }   /* header */

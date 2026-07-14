@@ -1,32 +1,62 @@
 <?xml version="1.0" encoding="utf-8"?>
-<Containers>
-  <Plugin>True</Plugin>
+<Plugin>
   <Name>UGREEN iDX6011 Pro Front Panel</Name>
   <PluginURL>https://raw.githubusercontent.com/noodlemctwoodle/unraid-ugreen-idx6011-pro/main/ugreen-idx6011-pro.plg</PluginURL>
   <PluginAuthor>noodlemctwoodle</PluginAuthor>
-  <Beta>False</Beta>
-  <Category>Tools:System</Category>
   <Support>https://github.com/noodlemctwoodle/unraid-ugreen-idx6011-pro/issues</Support>
   <Project>https://github.com/noodlemctwoodle/unraid-ugreen-idx6011-pro</Project>
+  <ReadMe>https://raw.githubusercontent.com/noodlemctwoodle/unraid-ugreen-idx6011-pro/main/README.md</ReadMe>
   <Icon>https://raw.githubusercontent.com/noodlemctwoodle/unraid-ugreen-idx6011-pro/main/images/ugreen-idx6011-pro.png</Icon>
-  <Date>2026-07-12</Date>
+  <Category>Tools:System</Category>
+  <Beta>False</Beta>
+  <Date>2026-07-13</Date>
+  <Overview>
+Fully customisable touch LCD dashboard + smart front-panel LEDs and fan control for the
+UGREEN NASync iDX6011 Pro, running natively on Unraid - no UGOS required. Build your own
+dashboard pages from a module library, drive the fans, and theme everything from the
+Unraid web UI. Model-gated via DMI, so it safely no-ops on other hardware.
+  </Overview>
   <Description>
 Touch LCD dashboard + smart front-panel LEDs for the **UGREEN NASync iDX6011 Pro**,
 running natively on Unraid - no UGOS required.
 
-- Seven swipeable pages of live stats on the 258x960 front touchscreen (CPU, memory,
-  per-interface network, per-disk temps/usage/health, GPU/NPU, power draw, array +
-  notifications, docker) plus an interactive touch Settings page.
-- Smart front LEDs (power / 2x LAN / 6x disk): drive presence, SMART health
-  (green/amber/red) and LAN link, updated live.
+- **Customisable dashboard** on the 258x960 front touchscreen: build any page from a
+  library of modules (CPU, memory, network, storage, GPU, NPU, power, fans, uptime,
+  array status, OS/plugin updates, docker, VMs, and per-item disk / interface /
+  container / VM cards), each with a choice of visual styles - bar, ring, gauge, history
+  graph, area, blocks, split, trend or big number.
+- **Web Layout editor** with a live preview: add / rename / reorder / delete pages, pick
+  each module's style, and theme the font, sizes and full colour palette. Point at any
+  image on the server for the **wallpaper / header logo** (hot-swaps live, no restart),
+  make cards translucent, hide the header / title / page-dots for a **full-screen image
+  page**, add spacer gaps, and save / load / share **theme presets**.
+- **Fan control**: drive all four chassis fans on temperature curves (Auto / Silent /
+  Quiet / Turbo) or Max, with a never-stall floor - live RPM and an animated spinning-fan card.
+- **Smart front LEDs** (power / 2x LAN / 6x disk): configurable colours, SMART health
+  (green/amber/red), LAN link, and an activity mode that blinks on I/O.
 - Self-contained: downloads a SHA256-verified payload and registers its own EFI boot
   entry (no UGOS/NVMe/grub dependency). Model-gated via DMI - no-ops on other hardware.
 
-Requires the BIOS Watchdog Timer disabled and the panel EFI entry set first in the
-BIOS boot order. See the project README before installing.
+Requires the BIOS Watchdog Timer disabled and the panel EFI entry set first in the BIOS
+boot order. See the project README before installing.
   </Description>
   <Changes>
+###2026.07.13
+- Fully customisable dashboard with a module library and many visual styles; web Layout
+  editor with a live preview; panel-driven four-fan curve control (Auto/Silent/Quiet/
+  Turbo/Max) with an animated Fans card; theming (font, sizes, full palette incl. card-title
+  and dim colours, network units); richer stats (docker container IPs + update flags, VMs,
+  NPU, fans); smarter configurable front LEDs; and a redesigned settings UI.
+- Wallpapers and themes: point at any image on the server for the wallpaper / header logo
+  (hot-swapped live, no restart); translucent cards (global or per-page opacity), spacer
+  gaps, and per-page full-screen image pages (hide header / title / dots); plus theme
+  presets you can save, load and share as files.
+- Power-save schedule: turn the screen and disk/LAN LEDs off between two local times
+  (quiet hours); a tap wakes everything and it re-sleeps 30s after the last touch. The
+  timezone comes from Unraid automatically.
+###2026.07.12.1
+- New plugin icon.
 ###2026.07.12
 - Initial release. The full front panel for the UGREEN NASync iDX6011 Pro on Unraid.
   </Changes>
-</Containers>
+</Plugin>

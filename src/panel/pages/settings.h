@@ -12,28 +12,29 @@
 
 /* one tap-to-cycle settings row: label left, value right, whole card tappable */
 static int settings_row(int y, int wid, const char *label, const char *val){
-    card(y, 52, NULL);
-    text(22, y + 18, 2.0f, UN_TEXT, label);
-    text(W - 22 - text_w(2.0f, val), y + 18, 2.0f, UN_ORANGE, val);
-    hb_add(wid, 10, y, W - 20, 52);
-    return y + 62;
+    int h = gy(52);
+    card(y, h, NULL);
+    text(22, y + gy(18), 2.0f, UN_TEXT, label);
+    text(W - 22 - text_w(2.0f, val), y + gy(18), 2.0f, UN_ORANGE, val);
+    hb_add(wid, 10, y, W - 20, h);
+    return y + h + gy(10);
 }
 
 /* single- or two-line action button (l2 != NULL => taller, subtitle on its own line) */
 static int settings_button(int y, int wid, const char *l1, const char *l2,
                            uint32_t fill, uint32_t txt_col){
     int two = (l2 && l2[0]);
-    int h = two ? 90 : 76;
+    int h = gy(two ? 90 : 76);
     rect(10, y, W - 20, h, fill, 255);
     rect(10, y, W - 20, 1, UN_GREY_70, 255);
     if (two){
-        text_bold((W - text_w(2.3f, l1)) / 2 - 1, y + 20, 2.3f, txt_col, l1);
-        text_c(y + 58, 1.7f, txt_col, l2);
+        text_bold((W - text_w(2.3f, l1)) / 2 - 1, y + gy(20), 2.3f, txt_col, l1);
+        text_c(y + gy(58), 1.7f, txt_col, l2);
     } else {
-        text_bold((W - text_w(2.4f, l1)) / 2 - 1, y + 28, 2.4f, txt_col, l1);
+        text_bold((W - text_w(2.4f, l1)) / 2 - 1, y + gy(28), 2.4f, txt_col, l1);
     }
-    hb_add(wid, 10, y - 6, W - 20, h + 12);   /* padded into the gaps for easier tapping */
-    return y + h + 14;
+    hb_add(wid, 10, y - gy(6), W - 20, h + gy(12));   /* padded into the gaps for easier tapping */
+    return y + h + gy(14);
 }
 
 static void page_settings(stats_t *st){
@@ -44,15 +45,15 @@ static void page_settings(stats_t *st){
     long nowms = now_ms();
 
     /* brightness slider */
-    card(y, 84, "BRIGHTNESS");
+    card(y, gy(84), "BRIGHTNESS");
     snprintf(b, sizeof b, "%d%%", cfg_brightness);
-    text(W - 22 - text_w(1.9f, b), y + 10, 1.9f, UN_ORANGE, b);
-    rect(SLIDER_X, y + 42, SLIDER_W, 24, 0x2a2a2a, 255);
+    text(W - 22 - text_w(1.9f, b), y + gy(10), 1.9f, UN_ORANGE, b);
+    rect(SLIDER_X, y + gy(42), SLIDER_W, gy(24), 0x2a2a2a, 255);
     int fw = SLIDER_W * cfg_brightness / 100;
-    hgrad(SLIDER_X, y + 42, fw, 24, UN_RED, UN_ORANGE);
-    rect(SLIDER_X + fw - 2, y + 38, 4, 32, UN_TEXT, 255);
-    hb_add(WID_BRIGHT, 10, y + 30, W - 20, 48);
-    y += 96;
+    hgrad(SLIDER_X, y + gy(42), fw, gy(24), UN_RED, UN_ORANGE);
+    rect(SLIDER_X + fw - 2, y + gy(38), 4, gy(32), UN_TEXT, 255);
+    hb_add(WID_BRIGHT, 10, y + gy(30), W - 20, gy(48));
+    y += gy(96);
 
     /* tap-to-cycle rows */
     if (cfg_screen_off == 0) snprintf(b, sizeof b, "never");
@@ -65,7 +66,9 @@ static void page_settings(stats_t *st){
 
     y = settings_row(y, WID_LEDS,  "LEDs",       cfg_leds  ? "on" : "off");
     y = settings_row(y, WID_NIGHT, "Night mode", cfg_night ? "on" : "off");
-    y += 8;
+    static const char *fanm[] = { "auto", "silent", "quiet", "turbo", "max" };
+    y = settings_row(y, WID_FAN, "Fans", fanm[(unsigned)cfg_fan_mode % 5]);
+    y += gy(8);
 
     y = settings_button(y, WID_RESTART, "RESTART DASH", NULL, UN_GREY_80, UN_TEXT);
 
@@ -81,9 +84,9 @@ static void page_settings(stats_t *st){
     } else {
         y = settings_button(y, WID_SHUTDOWN, "SHUTDOWN", "hold to confirm", UN_GREY_80, UN_ORANGE);
     }
-    y += 4;
+    y += gy(4);
     text_c(y, 1.4f, 0x666666, "hold, then tap to confirm");
-    page_end = y + 22;
+    page_end = y + gy(22);
 }
 
 /* ---------- settings widget actions ---------- */
@@ -120,6 +123,10 @@ static int widget_tap(int x, int y){
         cfg_night = !cfg_night;
         apply_brightness();
         settings_save();
+        return 1;
+    case WID_FAN:
+        cfg_fan_mode = (cfg_fan_mode + 1) % 5;   /* auto -> silent -> quiet -> turbo -> max */
+        settings_save();                          /* fan_apply() picks it up next tick */
         return 1;
     case WID_RESTART:
         do_restart_dash();

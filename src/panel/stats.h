@@ -14,6 +14,7 @@
 #define MAX_IFACES 6
 #define MAX_DISKS  12
 #define MAX_CTRS   20
+#define MAX_VMS    16
 
 typedef struct {
     char name[32], ip[44], ip6[48];
@@ -34,7 +35,15 @@ typedef struct {
     char name[40];
     char state[16];                  /* running / exited / paused / ...      */
     char status[48];                 /* "Up 3 hours" free text               */
+    char image[72];                  /* image ref, e.g. "linuxserver/plex"   */
+    char ip[44];                     /* first non-empty container IP; "" host */
+    int  update;                     /* 1 = image update available (Unraid)  */
 } ctr_t;
+
+typedef struct {
+    char name[48];
+    int  running;                    /* 1 = a libvirt .pid exists            */
+} vm_t;
 
 typedef struct {
     char host[64], ip[48], arr[32];
@@ -53,12 +62,17 @@ typedef struct {
     int npu_avail; double npu_busy; int npu_freq, npu_max_freq;
     unsigned long long npu_mem;
     int fans_total, fans_on;
+    int n_fan_rpm; int fan_rpm[4];   /* EC tachometers (RPM), read-only */
     int docker;                      /* running count, -1 = n/a */
     int docker_total;                /* total containers, -1 = n/a */
     int n_ctrs; ctr_t ctrs[MAX_CTRS];
     int vm_enabled, vm_count;
+    int n_vms; vm_t vms[MAX_VMS];
     int pkg_temp, nvme_temp, board_temp;
     char version[32], kernel[64];
+    int  os_update;                  /* 1 = a newer Unraid OS is available   */
+    char os_new_ver[32];             /* the available OS version             */
+    int  plugin_updates;             /* count of plugins with pending updates */
     unsigned long long resync, resync_pos; char resync_act[32];
     double resync_mbs;
     int md_bad;                      /* disabled + invalid + missing */
