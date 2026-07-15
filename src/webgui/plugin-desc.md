@@ -1,3 +1,5 @@
+**UGREEN iDX6011 Pro Front Panel**
+
 A fully customisable touch-LCD dashboard, smart front-panel LEDs and fan control
 for the **UGREEN NASync iDX6011 Pro**, running natively on Unraid — no UGOS required.
 
