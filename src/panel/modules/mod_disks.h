@@ -75,7 +75,7 @@ static int disk_card(int y, disk_t *d, int style){
         snprintf(b, sizeof b, "%s  (no fs)", sz);
         text(C_X0, y + gy(74), 1.7f, UN_DIM, b);
     }
-    if (sm[0]) text(C_X0, y + gy(ch - 22), 1.5f, bad > 0 ? UN_WARN : UN_GREY_70, sm);
+    if (sm[0]) text(C_X0, y + gy(ch - 22), 1.5f, bad > 0 ? UN_WARN : UN_DIM, sm);
     return gy(ch) + gy(C_GAP);
 }
 
