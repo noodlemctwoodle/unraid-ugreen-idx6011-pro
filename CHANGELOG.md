@@ -6,6 +6,10 @@ and the plugin's in-app `<CHANGES>` list.
 
 ## 2026.07.15
 
+- **Transfer card.** A new module: add it to any page to watch a Dynamix File
+  Manager copy/move in progress — the operation, destination folder, overall
+  progress %, live rate and ETA. It reads Unraid's built-in file manager, so no
+  setup is needed; when nothing is copying it shows an idle line.
 - **Disk bay LEDs** now light on every populated bay, however the SATA
   controllers enumerate. The LED daemon discovers each controller at runtime
   instead of assuming a fixed PCI address, so a drive in any bay shows its health

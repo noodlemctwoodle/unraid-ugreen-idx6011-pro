@@ -109,6 +109,7 @@
 #include "modules/mod_containers.h"
 #include "modules/mod_vms.h"
 #include "modules/mod_spacer.h"
+#include "modules/mod_transfer.h"
 #include "modules/registry.h"
 #include "pages/settings.h"      /* the one built-in interactive page; content pages are
                                     config-driven (g_cpage) and drawn via render_modules */
@@ -296,6 +297,7 @@ int main(int argc, char **argv){
         if (nowms >= next_stats){
             read_cpu(&st); read_mem(&st); read_net(&st);
             read_disk(&st); read_temp(&st); read_misc(&st);
+            read_transfer(&st);
             read_disks(&st); read_gpu(&st); read_npu(&st);
             read_fans(&st); read_fan_rpm(&st); read_zones(&st); read_docker(&st); read_power(&st);
             read_about(&st);

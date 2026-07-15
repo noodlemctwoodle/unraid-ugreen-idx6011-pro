@@ -78,6 +78,12 @@ typedef struct {
     int md_bad;                      /* disabled + invalid + missing */
     long long sync_errs;
     int mover;
+    int  transfer_active;            /* Dynamix File Manager copy/move in progress */
+    char transfer_op[16];            /* operation title, e.g. "Copy" / "Move" */
+    char transfer_dest[40];          /* destination folder (basename) */
+    double transfer_pct;             /* overall progress, 0..100 */
+    char transfer_speed[16];         /* rsync rate token, e.g. "128.42MB/s" */
+    char transfer_eta[12];           /* rsync ETA, e.g. "5:33:40" */
     int notif_count, notif_imp;      /* imp: 0 normal, 1 warning, 2 alert */
     char notif_subj[128];
 } stats_t;

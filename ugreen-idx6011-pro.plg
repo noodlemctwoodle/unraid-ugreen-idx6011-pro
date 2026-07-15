@@ -16,6 +16,10 @@
 
 <CHANGES>
 ###2026.07.15
+- New Transfer card: add it to any page to watch a Dynamix File Manager copy or
+  move in progress - the operation, destination folder, overall progress %, live
+  rate and ETA. It reads Unraid's built-in file manager, so no setup is needed;
+  when nothing is copying the card shows an idle line.
 - Disk bay LEDs now light on every populated bay, however the SATA controllers
   enumerate. The LED daemon discovers each controller at runtime instead of
   assuming a fixed PCI address, so a drive in any bay shows its health even after

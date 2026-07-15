@@ -185,5 +185,70 @@ static void read_misc(stats_t *st){
     snprintf(st->kernel, sizeof st->kernel, "%s", krnl);
 }
 
+/* --- Dynamix File Manager copy/move progress (built into Unraid) ---
+ * The File Manager runs the copy as `rsync --info=...,progress2`, records the
+ * operation in /var/tmp/file.manager.active (JSON) and its live rsync output in
+ * /var/tmp/file.manager.status, with the running PID in /var/tmp/file.manager.pid.
+ * We treat the op as active only while that PID is alive, read the title +
+ * destination from the JSON, and take the latest progress line (NN% + rate + ETA)
+ * from the tail of the status file. */
+static void read_transfer(stats_t *st){
+    st->transfer_active = 0; st->transfer_op[0] = 0; st->transfer_dest[0] = 0;
+    st->transfer_pct = 0; st->transfer_speed[0] = 0; st->transfer_eta[0] = 0;
+
+    FILE *pf = fopen("/var/tmp/file.manager.pid", "r"); if (!pf) return;
+    int pid = 0, got = fscanf(pf, "%d", &pid); fclose(pf);
+    if (got != 1 || pid <= 0) return;
+    char pp[64]; struct stat sb;
+    snprintf(pp, sizeof pp, "/proc/%d", pid);
+    if (stat(pp, &sb) != 0) return;                       /* process gone -> idle */
+
+    /* operation title + destination folder from the active JSON (light string parse) */
+    FILE *af = fopen("/var/tmp/file.manager.active", "r");
+    if (af){
+        char b[1400]; size_t n = fread(b, 1, sizeof b - 1, af); b[n] = 0; fclose(af);
+        char *t = strstr(b, "\"title\":\"");
+        if (t){ t += 9; char *e = strchr(t, '"');
+            if (e){ int l = (int)(e - t); if (l > 15) l = 15; snprintf(st->transfer_op, sizeof st->transfer_op, "%.*s", l, t); } }
+        char *g = strstr(b, "\"target\":\"");
+        if (g){ g += 10; char *e = strchr(g, '"');
+            if (e){ char tg[256]; int l = (int)(e - g), j = 0;
+                for (int i = 0; i < l && j < (int)sizeof tg - 1; i++){ if (g[i] == '\\' && i + 1 < l) i++; tg[j++] = g[i]; }
+                tg[j] = 0;
+                while (j > 1 && tg[j - 1] == '/') tg[--j] = 0;   /* strip trailing slash */
+                char *bn = strrchr(tg, '/'); bn = bn ? bn + 1 : tg;
+                snprintf(st->transfer_dest, sizeof st->transfer_dest, "%s", bn);
+            }
+        }
+    }
+    if (!st->transfer_op[0]) snprintf(st->transfer_op, sizeof st->transfer_op, "Transfer");
+
+    /* latest progress line from the tail of the status file (rsync progress2:
+     * "<size>  NN%  <rate>/s  <H:MM:SS>", updates separated by \r or \n) */
+    FILE *sf = fopen("/var/tmp/file.manager.status", "r");
+    if (sf){
+        if (fseek(sf, -4096L, SEEK_END) != 0) fseek(sf, 0L, SEEK_SET);
+        char buf[4200]; size_t n = fread(buf, 1, sizeof buf - 1, sf); buf[n] = 0; fclose(sf);
+        char pct[16] = "", spd[24] = "", eta[16] = "", *save = NULL;
+        for (char *line = strtok_r(buf, "\r\n", &save); line; line = strtok_r(NULL, "\r\n", &save)){
+            if (!strchr(line, '%')) continue;
+            char p2[16] = "", s2[24] = "", e2[16] = "", tmp[512], *ts = NULL;
+            snprintf(tmp, sizeof tmp, "%s", line);
+            for (char *tok = strtok_r(tmp, " \t", &ts); tok; tok = strtok_r(NULL, " \t", &ts)){
+                size_t tl = strlen(tok);
+                if (tl && tok[tl - 1] == '%')                       snprintf(p2, sizeof p2, "%s", tok);
+                else if (tl >= 2 && !strcmp(tok + tl - 2, "/s"))    snprintf(s2, sizeof s2, "%s", tok);
+                else if (tok[0] >= '0' && tok[0] <= '9' && strchr(tok, ':')) snprintf(e2, sizeof e2, "%s", tok);
+            }
+            if (p2[0] && s2[0]){ snprintf(pct, sizeof pct, "%s", p2);
+                                 snprintf(spd, sizeof spd, "%s", s2);
+                                 snprintf(eta, sizeof eta, "%s", e2); }
+        }
+        if (pct[0]){ st->transfer_pct = atof(pct);
+                     snprintf(st->transfer_speed, sizeof st->transfer_speed, "%s", spd);
+                     snprintf(st->transfer_eta, sizeof st->transfer_eta, "%s", eta); }
+    }
+    st->transfer_active = 1;
+}
 
 #endif /* PANEL_STATS_ARRAY_H */
