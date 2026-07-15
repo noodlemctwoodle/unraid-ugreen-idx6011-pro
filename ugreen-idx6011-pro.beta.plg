@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name    "ugreen-idx6011-pro">
 <!ENTITY author  "noodlemctwoodle">
-<!ENTITY version "2026.07.15.beta.6">
+<!ENTITY version "2026.07.15.beta.10">
 <!ENTITY plgdir  "/boot/config/plugins/&name;">
 ]>
 
@@ -23,6 +23,11 @@
   Add-module list is grouped by area (System, Compute, Power, Network, Storage,
   Docker and Layout) so it stays easy to navigate. Every card shows a tidy idle
   line when its data source isn't present.
+- Three more cards: CPU cores (per-core load as a grid or a bar strip, with the
+  average load and clock), Temperatures (CPU, board and every NVMe sensor, each
+  colour-coded) and Boot flash (USB usage). The disk cards also gain a SMART line
+  showing drive age, SSD/NVMe life remaining and any reallocated or pending
+  sectors, read from the health data Unraid already caches (no disk wake-ups).
 - New Transfer card: add it to any page to watch a Dynamix File Manager copy or
   move in progress - the operation, destination folder, overall progress %, live
   rate and ETA. It reads Unraid's built-in file manager, so no setup is needed;
@@ -107,7 +112,7 @@
 -->
 <FILE Name="&plgdir;/&name;-&version;.txz">
 <URL>https://github.com/noodlemctwoodle/unraid-ugreen-idx6011-pro/releases/download/&version;/&name;-&version;.txz</URL>
-<SHA256>998bc93cc60ecb8da542f6ee8260e3f64b9ff6fb92ff8cc08c18e01006a4022c</SHA256>
+<SHA256>b118955365b9d309bfc53b45844a9a2a4361758334cad08867600b9a6115f1d9</SHA256>
 </FILE>
 
 <FILE Run="/bin/bash">
