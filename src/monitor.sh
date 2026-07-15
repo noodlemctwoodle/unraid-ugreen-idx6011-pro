@@ -33,31 +33,62 @@ trap 'rm -f "$PIDFILE"' EXIT
 REFRESH=2
 SMART_INTERVAL=300
 
-# ---- bay mapping by PHYSICAL SATA PORT (stable across reboots + disk swaps) --------
+# ---- bay mapping by PHYSICAL SATA PORT --------------------------------------------
 # Users never edit this: the map comes from mapping.conf (written by calibrate.sh);
-# if that's absent, the built-in iDX6011 Pro default is used (same wiring on every unit).
-# /dev/sdX and HCTL both reshuffle across reboots, so we key on the fixed port path.
+# if that's absent, the built-in default is DISCOVERED at runtime (build_default_map).
+# /dev/sdX and HCTL reshuffle across reboots, so we key on the controller + ata port.
 declare -A PORT_TO_BAY
 MAP_CONF=/boot/config/plugins/ugreen-idx6011-pro/mapping.conf
 MAP_MTIME=""
-load_map(){   # (re)load the bay map from mapping.conf; falls back to the built-in iDX6011 Pro default.
+
+# Build the default bay map by DISCOVERING each SATA controller at runtime and keying
+# on its relative ata-port order — never a hardcoded PCI address. The discrete ASMedia
+# ASM1164 that drives bays 1/2/5/6 enumerates at a bus address that shifts between boots
+# and BIOS revisions (seen at both 0000:56:00.0 and 0000:58:00.0), so a fixed address
+# goes stale and those four bays go dark. Wiring is identical on every iDX6011 Pro: the
+# Intel PCH SATA ports -> bays 3,4; the four ASMedia ports, in order -> bays 1,2,5,6
+# (top-to-bottom). Discovering it makes a fresh install light every bay first time.
+map_controller(){   # $1 = PCI address; remaining args = bay numbers in ata-port order
+  local pci="$1"; shift
+  [ -n "$pci" ] && [ -d "/sys/bus/pci/devices/$pci" ] || return 0
+  local bays=("$@") i=0 ata
+  while IFS= read -r ata; do
+    [ "$i" -lt "${#bays[@]}" ] || break
+    PORT_TO_BAY["$pci/$ata"]="${bays[$i]}"; i=$((i+1))
+  done < <(ls -1 "/sys/bus/pci/devices/$pci/" 2>/dev/null | grep -xE 'ata[0-9]+' | sort -V)
+}
+build_default_map(){
+  PORT_TO_BAY=()
+  local a d pci vid intel="" asm=""
+  declare -A seen=()
+  for a in /sys/bus/pci/devices/*/ata[0-9]*; do
+    [ -e "$a" ] || continue                       # no SATA ports present
+    d=${a%/ata*}; pci=${d##*/}
+    [ -n "${seen[$pci]:-}" ] && continue; seen[$pci]=1
+    vid=$(cat "/sys/bus/pci/devices/$pci/vendor" 2>/dev/null)
+    case "$vid" in
+      0x8086) intel="$pci" ;;                     # Intel PCH SATA  -> bays 3,4
+      0x1b21) asm="$pci"   ;;                     # ASMedia ASM1164 -> bays 1,2,5,6
+    esac
+  done
+  map_controller "$intel" 3 4
+  map_controller "$asm"   1 2 5 6
+  # breadcrumb for field diagnosis: a non-conforming unit (chip swap / missing
+  # controller) shows up here instead of failing silently with dark bays.
+  logger -t ugreen-leds "bay map: intel=${intel:-MISSING} asm=${asm:-MISSING}, ${#PORT_TO_BAY[@]} ports" 2>/dev/null
+}
+
+load_map(){   # discover the default map, then overlay any calibrated mapping.conf.
   local m; m=$(stat -c %Y "$MAP_CONF" 2>/dev/null || echo none)
   [ "$m" = "$MAP_MTIME" ] && return 1          # unchanged since last load
   MAP_MTIME="$m"
-  PORT_TO_BAY=()
-  if [ -f "$MAP_CONF" ]; then
-    while read -r port bay _; do
-      [ -z "$port" ] && continue; [ "${port:0:1}" = "#" ] && continue
-      [ -n "$bay" ] && PORT_TO_BAY["$port"]="$bay"
+  build_default_map                            # drift-resistant discovered default (all bays)
+  if [ -f "$MAP_CONF" ]; then                  # calibrate.sh entries OVERLAY the default: a real
+    while read -r port bay _; do               # calibration still wins, but a leftover/stale map
+      [ -z "$port" ] && continue               # (ports whose PCI device has since moved) can no
+      [ "${port:0:1}" = "#" ] && continue      # longer defeat discovery — its absent ports simply
+      [ -n "$bay" ] && PORT_TO_BAY["$port"]="$bay"   # never match a present disk, so all bays light.
     done < "$MAP_CONF"
-  fi
-  if [ ${#PORT_TO_BAY[@]} -eq 0 ]; then
-    # Built-in iDX6011 Pro map (identical SATA wiring on every unit; verified by calibration).
-    PORT_TO_BAY=(
-      ["0000:56:00.0/ata3"]=1 ["0000:56:00.0/ata4"]=2   # bays 1-2  (ASMedia ASM1164)
-      ["0000:00:17.0/ata1"]=3 ["0000:00:17.0/ata2"]=4   # bays 3-4  (Intel AHCI)
-      ["0000:56:00.0/ata5"]=5 ["0000:56:00.0/ata6"]=6   # bays 5-6  (ASMedia ASM1164)
-    )
   fi
   return 0
 }
