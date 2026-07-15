@@ -38,6 +38,9 @@ install -m0644 src/UgreenIDX6011Pro.page \
                src/UgreenIDX6011ProLighting.page src/UgreenIDX6011ProLayout.page "$STAGE/"
 install -m0644 src/webgui/idxcp.js src/webgui/idxcp-inc.php \
                src/webgui/idxlayout.js src/webgui/preview.php src/webgui/theme.php "$STAGE/"
+# plugin-page description: Unraid's Plugins page renders plugins/<name>/README.md as the
+# description, so ship one (installed into the webGUI plugin dir by the .plg).
+install -m0644 src/webgui/plugin-desc.md "$STAGE/README.md"
 # --- dashboard binary + per-kernel touch modules + display overlay -----------
 install -d "$STAGE/panel/modules/$KVER" "$STAGE/panel/overlay/$KVER"
 # dashboard binary: prefer a freshly-built one (CI / src/panel/build.sh); the
