@@ -4,6 +4,19 @@ All notable user-facing changes to the **UGREEN iDX6011 Pro** Unraid plugin.
 Versions are date-based (`YYYY.MM.DD`); the same notes drive each GitHub release
 and the plugin's in-app `<CHANGES>` list.
 
+## 2026.07.15
+
+- **Disk bay LEDs** now light on every populated bay, however the SATA
+  controllers enumerate. The LED daemon discovers each controller at runtime
+  instead of assuming a fixed PCI address, so a drive in any bay shows its health
+  even after a BIOS/PCIe re-enumeration moves a controller — previously up to
+  four bays could stay dark. A stale bay calibration can no longer override this.
+- **Storage card** now reports the whole array (matching the Unraid Main page)
+  instead of the cache pool.
+- **Plugins page** now shows a description for the plugin in the Unraid web UI.
+- **Docs**: clarified where to disable the BIOS Watchdog Timer (the Advanced tab
+  in BIOS setup).
+
 ## 2026.07.13
 
 - **Fully customisable dashboard.** Build any page from a library of modules and

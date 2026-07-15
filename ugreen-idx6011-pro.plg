@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name    "ugreen-idx6011-pro">
 <!ENTITY author  "noodlemctwoodle">
-<!ENTITY version "2026.07.13">
+<!ENTITY version "2026.07.15">
 <!ENTITY plgdir  "/boot/config/plugins/&name;">
 ]>
 
@@ -15,6 +15,17 @@
         pluginURL="https://raw.githubusercontent.com/noodlemctwoodle/unraid-ugreen-idx6011-pro/main/&name;.plg">
 
 <CHANGES>
+###2026.07.15
+- Disk bay LEDs now light on every populated bay, however the SATA controllers
+  enumerate. The LED daemon discovers each controller at runtime instead of
+  assuming a fixed PCI address, so a drive in any bay shows its health even after
+  a BIOS or PCIe re-enumeration moves a controller (previously up to four bays
+  could stay dark). A stale bay calibration can no longer override this.
+- The on-screen Storage card now reports the whole array (matching the Unraid
+  Main page) instead of the cache pool.
+- The Unraid Plugins page now shows a description for the plugin.
+- Clarified in the docs where to disable the BIOS Watchdog Timer (the Advanced
+  tab in BIOS setup, not Ctrl+F1).
 ###2026.07.13
 - Fully customisable dashboard. Build any page from a library of modules and pick
   each one's look: bar, ring, gauge, history graph, area, segmented blocks,
