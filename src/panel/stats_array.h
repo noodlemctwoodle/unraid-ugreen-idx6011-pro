@@ -50,6 +50,41 @@ static void read_disks(stats_t *st){
     fclose(f);
 }
 
+/* --- per-disk SMART detail from Unraid's CACHED reports (/var/local/emhttp/smart/<name>) ---
+ * No smartctl call and no spin-up. Fills poh / wear% / reallocated / pending on st->disks[].
+ * Handles both the ATA attribute table and NVMe "Key: value" health lines. Absent file -> all -1. */
+static void read_smart(stats_t *st){
+    for (int d = 0; d < st->n_disks; d++){
+        disk_t *dk = &st->disks[d];
+        dk->poh = -1; dk->wear = -1; dk->realloc = -1; dk->pending = -1;
+        char p[128]; snprintf(p, sizeof p, "/var/local/emhttp/smart/%s", dk->name);
+        FILE *f = fopen(p, "r"); if (!f) continue;
+        char line[512];
+        while (fgets(line, sizeof line, f)){
+            if (strstr(line, "Power On Hours")){ char *c = strchr(line, ':'); if (c) dk->poh = atoll(c + 1); continue; }
+            if (strstr(line, "Percentage Used")){ char *c = strchr(line, ':'); if (c){ int u = atoi(c + 1); if (u >= 0 && u <= 100) dk->wear = 100 - u; } continue; }
+            char tmp[512]; snprintf(tmp, sizeof tmp, "%s", line);
+            char *save = NULL, *tok = strtok_r(tmp, " \t\r\n", &save);
+            if (!tok || !isdigit((unsigned char)tok[0])) continue;      /* not an ATA attribute row */
+            char name[40] = ""; int col = 1, val = -1; char *last = tok;
+            while ((tok = strtok_r(NULL, " \t\r\n", &save))){
+                col++;
+                if (col == 2)      snprintf(name, sizeof name, "%s", tok);
+                else if (col == 4) val = atoi(tok);                     /* normalised VALUE */
+                last = tok;                                             /* RAW = last column */
+            }
+            long long raw = last ? atoll(last) : -1;
+            if      (!strcmp(name, "Power_On_Hours"))          dk->poh = raw;
+            else if (!strcmp(name, "Reallocated_Sector_Ct"))   dk->realloc = raw;
+            else if (!strcmp(name, "Current_Pending_Sector"))  dk->pending = raw;
+            else if (!strcmp(name, "Wear_Leveling_Count") || !strcmp(name, "Media_Wearout_Indicator") ||
+                     !strcmp(name, "SSD_Life_Left")       || !strcmp(name, "Percent_Lifetime_Remain"))
+                dk->wear = val;
+        }
+        fclose(f);
+    }
+}
+
 /* --- OS + plugin update status (cached 60s) ---
  * Unraid OS: /tmp/unraidcheck/result.json ("isNewer" + target "version").
  * Plugins:   /tmp/plugins/pluginPending (one pending plugin per line). */

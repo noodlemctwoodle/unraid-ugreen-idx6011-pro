@@ -18,6 +18,8 @@
 #define MAX_SHARES 32
 #define MAX_POOLS  8
 #define MAX_UD     16
+#define MAX_CORES  32
+#define MAX_TZ     8
 
 typedef struct {
     char name[32], ip[44], ip6[48];
@@ -33,6 +35,9 @@ typedef struct {
     int temp;                        /* C, -1 = unavailable */
     long long errors;
     unsigned long long fs_size, fs_used, size_kib;   /* KiB */
+    long long poh;                   /* SMART power-on hours (-1 = n/a) */
+    int wear;                        /* SSD/NVMe life remaining % (-1 = n/a) */
+    long long realloc, pending;      /* reallocated + pending sectors (-1 = n/a) */
 } disk_t;
 
 typedef struct {
@@ -95,6 +100,9 @@ typedef struct {
     int n_pools;  struct { char name[24]; double used_gb, tot_gb, pct; } pools[MAX_POOLS];
     int n_ud;     struct { char name[28]; double used_gb, tot_gb, pct; } ud[MAX_UD];
     int ups_present; char ups_status[16]; double ups_charge, ups_load, ups_runtime, ups_linev;
+    int n_cores; double core_pct[MAX_CORES]; int cpu_mhz;
+    int n_tz; struct { char name[12]; int temp; } tz[MAX_TZ];
+    double flash_pct, flash_used_gb, flash_tot_gb;
     int notif_count, notif_imp;      /* imp: 0 normal, 1 warning, 2 alert */
     char notif_subj[128];
 } stats_t;

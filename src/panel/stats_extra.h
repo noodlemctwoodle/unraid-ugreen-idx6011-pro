@@ -228,4 +228,91 @@ static void read_ups(stats_t *st){
     st->ups_present = seen_status ? 1 : 0;   /* only real if apcupsd answered with STATUS */
 }
 
+/* --- per-core CPU load (+ average frequency) ---
+ * Per-core busy% from /proc/stat "cpuN ..." deltas (busy=u+n+s+irq+sirq+steal,
+ * tot=busy+idle+iowait); first call reports 0. Frequency = mean of each core's
+ * cpufreq scaling_cur_freq (kHz->MHz), 0 when cpufreq is absent. Bounded to
+ * MAX_CORES; every fopen guarded so a box without cpufreq/permission degrades. */
+static void read_cores(stats_t *st){
+    static unsigned long long pbusy[MAX_CORES], ptot[MAX_CORES];
+    static int have_prev = 0;
+    st->n_cores = 0; st->cpu_mhz = 0;
+
+    FILE *f = fopen("/proc/stat", "r");
+    if (f){
+        char line[256];
+        while (fgets(line, sizeof line, f) && st->n_cores < MAX_CORES){
+            if (strncmp(line, "cpu", 3) || !isdigit((unsigned char)line[3])) continue;  /* skip "cpu " aggregate + non-cpu rows */
+            int idx; unsigned long long u,n,s,i,io,irq,sirq,steal;
+            if (sscanf(line, "cpu%d %llu %llu %llu %llu %llu %llu %llu %llu",
+                       &idx,&u,&n,&s,&i,&io,&irq,&sirq,&steal) < 9) continue;
+            if (idx < 0 || idx >= MAX_CORES) continue;
+            unsigned long long busy = u+n+s+irq+sirq+steal, tot = busy+i+io;
+            double pct = 0;
+            if (have_prev && tot > ptot[idx])
+                pct = 100.0 * (double)(busy - pbusy[idx]) / (double)(tot - ptot[idx]);
+            if (pct < 0) pct = 0; if (pct > 100) pct = 100;
+            st->core_pct[st->n_cores++] = pct;
+            pbusy[idx] = busy; ptot[idx] = tot;
+        }
+        fclose(f);
+        have_prev = 1;
+    }
+
+    long long fsum = 0; int fcnt = 0;
+    for (int c = 0; c < st->n_cores; c++){
+        char p[128];
+        snprintf(p, sizeof p, "/sys/devices/system/cpu/cpu%d/cpufreq/scaling_cur_freq", c);
+        FILE *g = fopen(p, "r"); if (!g) continue;
+        long long khz = 0;
+        if (fscanf(g, "%lld", &khz) == 1 && khz > 0){ fsum += khz; fcnt++; }
+        fclose(g);
+    }
+    if (fcnt > 0) st->cpu_mhz = (int)(fsum / fcnt / 1000);
+}
+
+/* --- labelled thermal zones: CPU + board (set by read_zones) + each NVMe hwmon.
+ * MUST run AFTER read_zones so st->pkg_temp / st->board_temp are populated. --- */
+static void read_temps(stats_t *st){
+    st->n_tz = 0;
+    if (st->pkg_temp > 0 && st->n_tz < MAX_TZ){                 /* CPU (skip if unavailable) */
+        snprintf(st->tz[st->n_tz].name, sizeof st->tz[st->n_tz].name, "CPU");
+        st->tz[st->n_tz].temp = st->pkg_temp; st->n_tz++;
+    }
+    if (st->board_temp > 0 && st->n_tz < MAX_TZ){              /* Board (skip if unavailable) */
+        snprintf(st->tz[st->n_tz].name, sizeof st->tz[st->n_tz].name, "Board");
+        st->tz[st->n_tz].temp = st->board_temp; st->n_tz++;
+    }
+    DIR *d = opendir("/sys/class/hwmon"); if (!d) return;       /* absent -> just CPU/Board */
+    struct dirent *e; int nvme = 0;
+    while ((e = readdir(d)) && st->n_tz < MAX_TZ){              /* bounded to MAX_TZ */
+        if (e->d_name[0] == '.') continue;
+        char p[512]; snprintf(p, sizeof p, "/sys/class/hwmon/%s/name", e->d_name);
+        FILE *f = fopen(p, "r"); if (!f) continue;
+        char name[64] = ""; if (fgets(name, sizeof name, f)) name[strcspn(name, "\n")] = 0;
+        fclose(f);
+        if (strcmp(name, "nvme")) continue;
+        snprintf(p, sizeof p, "/sys/class/hwmon/%s/temp1_input", e->d_name);
+        f = fopen(p, "r"); if (!f) continue;                   /* milli-C */
+        int t = 0, ok = (fscanf(f, "%d", &t) == 1); fclose(f);
+        if (!ok || t / 1000 <= 0) continue;                    /* skip zone whose temp <= 0 */
+        snprintf(st->tz[st->n_tz].name, sizeof st->tz[st->n_tz].name, "NVMe%d", ++nvme);
+        st->tz[st->n_tz].temp = t / 1000; st->n_tz++;
+    }
+    closedir(d);
+}
+
+/* --- boot flash (USB) usage via statvfs("/boot") --- */
+static void read_flash(stats_t *st){
+    st->flash_pct = -1; st->flash_used_gb = st->flash_tot_gb = 0;
+    struct statvfs v;
+    if (statvfs("/boot", &v) != 0 || v.f_blocks == 0) return;
+    double tot  = (double)v.f_blocks * v.f_frsize;
+    double used = tot - (double)v.f_bfree * v.f_frsize;
+    if (tot <= 0) return;
+    st->flash_tot_gb  = tot / 1e9;
+    st->flash_used_gb = used / 1e9;
+    st->flash_pct     = 100.0 * used / tot;
+}
+
 #endif /* PANEL_STATS_EXTRA_H */

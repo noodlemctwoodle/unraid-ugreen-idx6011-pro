@@ -23,6 +23,7 @@ static const modinfo_t MODULES[] = {
     { "uptime",   "System",  "Uptime",                 mod_uptime,     3, { "card", "big", "hero" } },
     { "parity",   "System",  "Parity / array op",      mod_parity,     1, { "card" } },
     { "license",  "System",  "Unraid licence",         mod_license,    1, { "card" } },
+    { "flash",    "System",  "Boot flash",             mod_flash,      1, { "card" } },
 
     { "cpu",      "Compute", "CPU",                    mod_cpu,        8, { "bar", "ring", "graph", "area", "blocks", "trend", "big", "gauge" } },
     { "cputemp",  "Compute", "CPU temperature",        mod_cputemp,    4, { "bar", "graph", "area", "gauge" } },
@@ -30,10 +31,12 @@ static const modinfo_t MODULES[] = {
     { "gpu",      "Compute", "GPU",                    mod_gpu,        7, { "bar", "graph", "area", "blocks", "trend", "big", "gauge" } },
     { "npu",      "Compute", "NPU",                    mod_npu,        8, { "bar", "ring", "graph", "area", "blocks", "trend", "big", "gauge" } },
     { "load",     "Compute", "Load average",           mod_load,       1, { "card" } },
+    { "cores",    "Compute", "CPU cores",              mod_cores,      2, { "grid", "bars" } },
 
     { "power",    "Power & cooling", "Power draw",     mod_power,      4, { "card", "big", "graph", "area" } },
     { "fans",     "Power & cooling", "Fans (spinning RPM)", mod_fans,  7, { "dials", "list", "hero", "compact", "gauge", "bars", "ring" } },
     { "ups",      "Power & cooling", "UPS",            mod_ups,        1, { "card" } },
+    { "temps",    "Power & cooling", "Temperatures",   mod_temps,      2, { "card", "compact" } },
 
     { "net",      "Network", "Network (primary)",      mod_net,        5, { "rows", "compact", "big", "graph", "area" } },
     { "ifaces",   "Network", "Interfaces (all in one card)", mod_ifaces, 4, { "full", "compact", "mini", "big" } },

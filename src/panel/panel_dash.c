@@ -119,6 +119,9 @@
 #include "modules/mod_pool.h"
 #include "modules/mod_unassigned.h"
 #include "modules/mod_ups.h"
+#include "modules/mod_cores.h"
+#include "modules/mod_temps.h"
+#include "modules/mod_flash.h"
 #include "modules/registry.h"
 #include "pages/settings.h"      /* the one built-in interactive page; content pages are
                                     config-driven (g_cpage) and drawn via render_modules */
@@ -291,7 +294,7 @@ int main(int argc, char **argv){
                                                 * mode can never strand them at a frozen duty */
 
     stats_t st; memset(&st, 0, sizeof(st));
-    read_cpu(&st); read_net(&st); read_gpu(&st); read_npu(&st); read_power(&st);   /* prime deltas */
+    read_cpu(&st); read_cores(&st); read_net(&st); read_gpu(&st); read_npu(&st); read_power(&st);   /* prime deltas */
     usleep(300 * 1000);
 
     if (!no_touch) touch_init(touch_hint);
@@ -313,6 +316,7 @@ int main(int argc, char **argv){
             read_about(&st);
             read_notif(&st);
             read_updates(&st);
+            read_cores(&st); read_temps(&st); read_flash(&st); read_smart(&st);
             hist_push_all(&st);
             fan_apply(&st);                        /* fan curves (no-op in auto mode) */
             next_stats = nowms + (long)interval * 1000L;

@@ -44,7 +44,15 @@ static int disk_card(int y, disk_t *d, int style){
     }
 
     /* full (default) — the detailed card */
-    int ch = 116;
+    char sm[48] = ""; long long bad = 0;   /* SMART summary: age · life · bad sectors */
+    {
+        char *p = sm; size_t n = sizeof sm; int any = 0;
+        if (d->poh >= 0){ int w = snprintf(p, n, "%.1fy", d->poh / 8760.0); if (w > 0){ p += w; n -= (size_t)w; } any = 1; }
+        if (d->wear >= 0){ int w = snprintf(p, n, "%s%d%% life", any ? " \xc2\xb7 " : "", d->wear); if (w > 0){ p += w; n -= (size_t)w; } any = 1; }
+        bad = (d->realloc > 0 ? d->realloc : 0) + (d->pending > 0 ? d->pending : 0);
+        if (bad > 0) snprintf(p, n, "%s%lld bad", any ? " \xc2\xb7 " : "", bad);
+    }
+    int ch = sm[0] ? 138 : 116;
     card(y, gy(ch), NULL);
     item_head(y, dot, d->name, 2.3f, tmp, 2.2f, tcol);
     if (d->errors > 0){
@@ -67,6 +75,7 @@ static int disk_card(int y, disk_t *d, int style){
         snprintf(b, sizeof b, "%s  (no fs)", sz);
         text(C_X0, y + gy(74), 1.7f, UN_DIM, b);
     }
+    if (sm[0]) text(C_X0, y + gy(ch - 22), 1.5f, bad > 0 ? UN_WARN : UN_GREY_70, sm);
     return gy(ch) + gy(C_GAP);
 }
 

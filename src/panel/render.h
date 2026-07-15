@@ -57,13 +57,14 @@ static int write_shots(const char *dir, const char *bgpath){
     load_logo(resolve_logo());
 
     stats_t st; memset(&st, 0, sizeof st);
-    read_cpu(&st); read_net(&st); read_gpu(&st); read_npu(&st); read_power(&st);
+    read_cpu(&st); read_cores(&st); read_net(&st); read_gpu(&st); read_npu(&st); read_power(&st);
     usleep(400 * 1000);                              /* let deltas settle */
     read_cpu(&st);  read_mem(&st);  read_net(&st);  read_disk(&st);
     read_temp(&st); read_misc(&st); read_disks(&st); read_gpu(&st);
     read_npu(&st);  read_fans(&st); read_fan_rpm(&st); read_zones(&st); read_docker(&st);
     read_power(&st); read_about(&st); read_notif(&st); read_updates(&st); read_transfer(&st);
     read_diskio(&st); read_load(&st); read_shares(&st); read_pools(&st); read_unassigned(&st); read_ups(&st);
+    read_cores(&st); read_temps(&st); read_flash(&st); read_smart(&st);
     hist_seed_demo(&st);                            /* representative graph history for shots */
 
     unsigned char *rgba = malloc((size_t)W * H * 4);
@@ -101,13 +102,14 @@ static int write_preview(int page, const char *layout, const char *outfile){
     load_logo(resolve_logo());
 
     stats_t st; memset(&st, 0, sizeof st);
-    read_cpu(&st); read_net(&st); read_gpu(&st); read_npu(&st); read_power(&st);
+    read_cpu(&st); read_cores(&st); read_net(&st); read_gpu(&st); read_npu(&st); read_power(&st);
     usleep(400 * 1000);
     read_cpu(&st);  read_mem(&st);  read_net(&st);  read_disk(&st);
     read_temp(&st); read_misc(&st); read_disks(&st); read_gpu(&st);
     read_npu(&st);  read_fans(&st); read_fan_rpm(&st); read_zones(&st); read_docker(&st);
     read_power(&st); read_about(&st); read_notif(&st); read_updates(&st); read_transfer(&st);
     read_diskio(&st); read_load(&st); read_shares(&st); read_pools(&st); read_unassigned(&st); read_ups(&st);
+    read_cores(&st); read_temps(&st); read_flash(&st); read_smart(&st);
     hist_seed_demo(&st);
 
     if (page < 0) page = 0;
