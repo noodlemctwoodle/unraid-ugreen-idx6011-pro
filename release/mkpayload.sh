@@ -26,7 +26,7 @@ trap 'rm -rf "$STAGE"' EXIT
 
 # --- flat scripts (LED + LCD + boot + Apply-restart) -------------------------
 install -m0755 src/start.sh src/stop.sh src/monitor.sh src/calibrate.sh \
-               src/start-panel.sh src/stop-panel.sh src/assert-boot.sh src/restart.sh "$STAGE/"
+               src/start-panel.sh src/stop-panel.sh src/keep-panel.sh src/assert-boot.sh src/restart.sh "$STAGE/"
 # --- shared binaries ---------------------------------------------------------
 install -m0755 prebuilt/ugreen_leds_cli "$STAGE/"
 install -m0644 prebuilt/i2c-tools-*.txz "$STAGE/"
