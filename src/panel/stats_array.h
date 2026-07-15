@@ -151,8 +151,9 @@ static void read_misc(stats_t *st){
     FILE *f = fopen("/proc/uptime", "r");
     if (f){ double u; if (fscanf(f, "%lf", &u) == 1) st->up_s = (long)u; fclose(f); }
 
-    st->arr[0] = 0; st->resync = st->resync_pos = 0; st->resync_act[0] = 0;
+    st->arr[0] = 0; st->resync = st->resync_pos = st->resync_size = 0; st->resync_act[0] = 0;
     st->resync_mbs = 0; st->md_bad = 0; st->sync_errs = 0; st->mover = 0;
+    st->reg_type[0] = 0; st->reg_to[0] = 0;
     f = fopen("/var/local/emhttp/var.ini", "r");
     if (f){
         char line[512];
@@ -162,8 +163,11 @@ static void read_misc(stats_t *st){
             if (!ini_kv(line, &k, &v)) continue;
             if      (!strcmp(k, "mdState"))          snprintf(st->arr, sizeof st->arr, "%s", v);
             else if (!strcmp(k, "version"))          snprintf(st->version, sizeof st->version, "%s", v);
+            else if (!strcmp(k, "regTy"))            snprintf(st->reg_type, sizeof st->reg_type, "%s", v);
+            else if (!strcmp(k, "regTo"))            snprintf(st->reg_to, sizeof st->reg_to, "%s", v);
             else if (!strcmp(k, "mdResync"))         st->resync = strtoull(v, NULL, 10);
             else if (!strcmp(k, "mdResyncPos"))      st->resync_pos = strtoull(v, NULL, 10);
+            else if (!strcmp(k, "mdResyncSize"))     st->resync_size = strtoull(v, NULL, 10);
             else if (!strcmp(k, "mdResyncAction"))   snprintf(st->resync_act, sizeof st->resync_act, "%s", v);
             else if (!strcmp(k, "mdResyncDt"))       dt = strtoull(v, NULL, 10);
             else if (!strcmp(k, "mdResyncDb"))       db = strtoull(v, NULL, 10);

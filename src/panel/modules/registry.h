@@ -21,15 +21,19 @@ static const modinfo_t MODULES[] = {
     { "array",    "System",  "Array status",           mod_array,      4, { "card", "compact", "badge", "hero" } },
     { "update",   "System",  "Updates (OS + plugins)", mod_update,     4, { "card", "badge", "hero", "compact" } },
     { "uptime",   "System",  "Uptime",                 mod_uptime,     3, { "card", "big", "hero" } },
+    { "parity",   "System",  "Parity / array op",      mod_parity,     1, { "card" } },
+    { "license",  "System",  "Unraid licence",         mod_license,    1, { "card" } },
 
     { "cpu",      "Compute", "CPU",                    mod_cpu,        8, { "bar", "ring", "graph", "area", "blocks", "trend", "big", "gauge" } },
     { "cputemp",  "Compute", "CPU temperature",        mod_cputemp,    4, { "bar", "graph", "area", "gauge" } },
     { "mem",      "Compute", "Memory",                 mod_mem,        9, { "bar", "ring", "graph", "area", "blocks", "split", "trend", "big", "gauge" } },
     { "gpu",      "Compute", "GPU",                    mod_gpu,        7, { "bar", "graph", "area", "blocks", "trend", "big", "gauge" } },
     { "npu",      "Compute", "NPU",                    mod_npu,        8, { "bar", "ring", "graph", "area", "blocks", "trend", "big", "gauge" } },
+    { "load",     "Compute", "Load average",           mod_load,       1, { "card" } },
 
     { "power",    "Power & cooling", "Power draw",     mod_power,      4, { "card", "big", "graph", "area" } },
     { "fans",     "Power & cooling", "Fans (spinning RPM)", mod_fans,  7, { "dials", "list", "hero", "compact", "gauge", "bars", "ring" } },
+    { "ups",      "Power & cooling", "UPS",            mod_ups,        1, { "card" } },
 
     { "net",      "Network", "Network (primary)",      mod_net,        5, { "rows", "compact", "big", "graph", "area" } },
     { "ifaces",   "Network", "Interfaces (all in one card)", mod_ifaces, 4, { "full", "compact", "mini", "big" } },
@@ -39,6 +43,10 @@ static const modinfo_t MODULES[] = {
     { "disks",    "Storage", "Disks (all in one card)", mod_disks,     3, { "full", "compact", "bar" } },
     { "disk",     "Storage", "Disk (pick one)",        mod_disk,       3, { "full", "compact", "bar" }, 1, "disks" },
     { "transfer", "Storage", "Transfer (File Manager copy)", mod_transfer, 1, { "bar" } },
+    { "diskio",   "Storage", "Disk I/O",               mod_diskio,     1, { "card" } },
+    { "shares",   "Storage", "Shares (all in one card)", mod_shares,   2, { "card", "compact" } },
+    { "pool",     "Storage", "Pools (cache)",          mod_pools,      2, { "card", "compact" } },
+    { "unassigned","Storage","Unassigned devices",     mod_unassigned, 2, { "card", "compact" } },
 
     { "containers","Docker & VMs", "Containers (all in one card)", mod_containers, 2, { "card", "compact" } },
     { "container", "Docker & VMs", "Container (pick one)", mod_container, 2, { "card", "compact" }, 1, "containers" },

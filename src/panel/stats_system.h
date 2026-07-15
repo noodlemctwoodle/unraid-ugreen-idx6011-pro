@@ -92,6 +92,11 @@ static void read_net(stats_t *st){
         char p[128]; snprintf(p, sizeof p, "/sys/class/net/%s/operstate", ifn);
         FILE *g = fopen(p, "r");
         if (g){ char stbuf[16] = ""; if (fgets(stbuf, sizeof stbuf, g)) ic->up = !strncmp(stbuf, "up", 2); fclose(g); }
+        if (ic->up){                                     /* link speed (Mbps); -1/absent when down */
+            snprintf(p, sizeof p, "/sys/class/net/%s/speed", ifn);
+            g = fopen(p, "r");
+            if (g){ int sp = 0; if (fscanf(g, "%d", &sp) == 1 && sp > 0) ic->link_mbps = sp; fclose(g); }
+        }
     }
     fclose(f);
 

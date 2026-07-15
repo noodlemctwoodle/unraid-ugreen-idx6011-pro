@@ -63,6 +63,7 @@ static int write_shots(const char *dir, const char *bgpath){
     read_temp(&st); read_misc(&st); read_disks(&st); read_gpu(&st);
     read_npu(&st);  read_fans(&st); read_fan_rpm(&st); read_zones(&st); read_docker(&st);
     read_power(&st); read_about(&st); read_notif(&st); read_updates(&st); read_transfer(&st);
+    read_diskio(&st); read_load(&st); read_shares(&st); read_pools(&st); read_unassigned(&st); read_ups(&st);
     hist_seed_demo(&st);                            /* representative graph history for shots */
 
     unsigned char *rgba = malloc((size_t)W * H * 4);
@@ -106,6 +107,7 @@ static int write_preview(int page, const char *layout, const char *outfile){
     read_temp(&st); read_misc(&st); read_disks(&st); read_gpu(&st);
     read_npu(&st);  read_fans(&st); read_fan_rpm(&st); read_zones(&st); read_docker(&st);
     read_power(&st); read_about(&st); read_notif(&st); read_updates(&st); read_transfer(&st);
+    read_diskio(&st); read_load(&st); read_shares(&st); read_pools(&st); read_unassigned(&st); read_ups(&st);
     hist_seed_demo(&st);
 
     if (page < 0) page = 0;
