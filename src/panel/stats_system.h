@@ -127,10 +127,16 @@ static void read_net(stats_t *st){
     }
 }
 
-/* --- storage summary via statvfs (v1) --- */
+/* --- storage summary via statvfs: the whole ARRAY, not a single pool ---
+ * /mnt/user0 is the array-only user view (data disks, no cache/pools) — the total
+ * the Unraid Main page shows; /mnt/user (union) is the fallback. Deliberately NOT
+ * /mnt/cache: that is one pool, so the card would report a single disk, not the array. */
 static void read_disk(stats_t *st){
-    struct statvfs v; const char *p = "/mnt/cache";
-    if (statvfs(p, &v) != 0){ p = "/mnt/user"; if (statvfs(p, &v) != 0) return; }
+    struct statvfs v; const char *cand[] = { "/mnt/user0", "/mnt/user", NULL };
+    int ok = 0;
+    for (int i = 0; cand[i]; i++)
+        if (statvfs(cand[i], &v) == 0 && v.f_blocks > 0){ ok = 1; break; }
+    if (!ok) return;
     double tot = (double)v.f_blocks * v.f_frsize, freeb = (double)v.f_bfree * v.f_frsize;
     st->disk_tot_gb  = tot / 1e9; st->disk_used_gb = (tot - freeb) / 1e9;
     st->disk_used_pct = tot > 0 ? 100.0 * (tot - freeb) / tot : 0;
