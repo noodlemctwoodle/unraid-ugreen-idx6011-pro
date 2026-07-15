@@ -16,6 +16,13 @@
 
 <CHANGES>
 ###2026.07.15
+- Nine more cards for your pages: Disk I/O (live read/write), Load average, Shares,
+  Pools (cache), Unassigned devices, UPS (apcupsd battery/runtime), Parity / array
+  operation (check/sync/rebuild progress, disabled-disk warning, sync errors) and
+  Unraid licence; interface cards now show the link speed (1G / 2.5G / ...). The
+  Add-module list is grouped (System / Compute / Power & cooling / Network /
+  Storage / Docker & VMs / Layout) so it stays easy to navigate. Every card shows
+  a tidy idle line when its data source isn't present.
 - New Transfer card: add it to any page to watch a Dynamix File Manager copy or
   move in progress - the operation, destination folder, overall progress %, live
   rate and ETA. It reads Unraid's built-in file manager, so no setup is needed;

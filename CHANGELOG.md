@@ -6,6 +6,14 @@ and the plugin's in-app `<CHANGES>` list.
 
 ## 2026.07.15
 
+- **Nine more cards.** Disk I/O (live read/write MB/s), Load average, Shares,
+  Pools (cache), Unassigned devices, UPS (apcupsd battery / runtime / load),
+  Parity / array operation (check / sync / rebuild progress, disabled-disk
+  warning, sync-error count, mover), and Unraid licence — plus interface cards
+  now show the link speed (1G / 2.5G / …). Each degrades to a tidy idle line
+  when its source isn't present, so they work on any Unraid box. The web
+  editor's Add-module list is now **grouped** (System / Compute / Power &
+  cooling / Network / Storage / Docker & VMs / Layout).
 - **Transfer card.** A new module: add it to any page to watch a Dynamix File
   Manager copy/move in progress — the operation, destination folder, overall
   progress %, live rate and ETA. It reads Unraid's built-in file manager, so no
