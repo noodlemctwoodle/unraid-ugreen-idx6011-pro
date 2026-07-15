@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name    "ugreen-idx6011-pro">
 <!ENTITY author  "noodlemctwoodle">
-<!ENTITY version "2026.07.15.beta.2">
+<!ENTITY version "2026.07.15.beta.3">
 <!ENTITY plgdir  "/boot/config/plugins/&name;">
 ]>
 
@@ -16,6 +16,13 @@
 
 <CHANGES>
 ###2026.07.15
+- Nine more cards for your pages: Disk I/O (live read/write), Load average, Shares,
+  Pools (cache), Unassigned devices, UPS (apcupsd battery/runtime), Parity / array
+  operation (check/sync/rebuild progress, disabled-disk warning, sync errors) and
+  Unraid licence; interface cards now show the link speed (1G / 2.5G / ...). The
+  Add-module list is grouped (System / Compute / Power & cooling / Network /
+  Storage / Docker & VMs / Layout) so it stays easy to navigate. Every card shows
+  a tidy idle line when its data source isn't present.
 - New Transfer card: add it to any page to watch a Dynamix File Manager copy or
   move in progress - the operation, destination folder, overall progress %, live
   rate and ETA. It reads Unraid's built-in file manager, so no setup is needed;
@@ -100,7 +107,7 @@
 -->
 <FILE Name="&plgdir;/&name;-&version;.txz">
 <URL>https://github.com/noodlemctwoodle/unraid-ugreen-idx6011-pro/releases/download/&version;/&name;-&version;.txz</URL>
-<SHA256>182e66f10503504f83d047333d9e0b99aad045199a24f8eff0192a9bba942510</SHA256>
+<SHA256>afe5b5de83363c6106b94b51b53cec110e9dbafd08697292c99c6fd5692c1e51</SHA256>
 </FILE>
 
 <FILE Run="/bin/bash">
