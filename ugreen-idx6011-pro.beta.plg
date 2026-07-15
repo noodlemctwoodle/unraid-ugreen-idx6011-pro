@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name    "ugreen-idx6011-pro">
 <!ENTITY author  "noodlemctwoodle">
-<!ENTITY version "2026.07.15.beta.10">
+<!ENTITY version "2026.07.15.beta.11">
 <!ENTITY plgdir  "/boot/config/plugins/&name;">
 ]>
 
@@ -112,7 +112,7 @@
 -->
 <FILE Name="&plgdir;/&name;-&version;.txz">
 <URL>https://github.com/noodlemctwoodle/unraid-ugreen-idx6011-pro/releases/download/&version;/&name;-&version;.txz</URL>
-<SHA256>b118955365b9d309bfc53b45844a9a2a4361758334cad08867600b9a6115f1d9</SHA256>
+<SHA256>e2c95c2e5050567c359ce9ae37d7705870d044d3d0b943429b084adade369775</SHA256>
 </FILE>
 
 <FILE Run="/bin/bash">
