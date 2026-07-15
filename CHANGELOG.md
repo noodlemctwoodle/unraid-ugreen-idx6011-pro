@@ -66,4 +66,4 @@ and the plugin's in-app `<CHANGES>` list.
   Boot → UEFI USB Hard Disk Drive BBS Priorities, then reboot.
 - Bundled touch modules + display wake-probe overlay are built for Unraid 7.3.2
   (kernel 6.18.38-Unraid); rebuild with `boot/build-overlay.sh` for other kernels.
-- Requires the BIOS Watchdog Timer disabled (Ctrl+F1 in BIOS setup reveals it).
+- Requires the BIOS Watchdog Timer disabled (Advanced tab in BIOS setup).

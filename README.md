@@ -58,9 +58,9 @@ running **Unraid** — the full front panel, working natively, no UGOS required 
 - **UGOS not required** — the plugin self-registers its own EFI boot entry, so a box
   with UGOS wiped from the NVMe works identically (see below)
 - **BIOS Watchdog Timer disabled** — **mandatory** for any non-UGOS OS, or the box
-  hard-resets every ~2 minutes. The setting is hidden by default: on the BIOS setup
-  screen press **Ctrl+F1** to reveal the advanced menus, then find and disable the
-  **Watchdog Timer**.
+  hard-resets every ~2 minutes. In BIOS setup, go to the **Advanced** tab, then find
+  and disable the **Watchdog Timer** (it may be nested under a Hardware Monitor or
+  Super I/O submenu).
 
 ## How it works
 
