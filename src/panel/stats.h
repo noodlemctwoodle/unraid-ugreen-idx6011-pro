@@ -91,7 +91,7 @@ typedef struct {
     char transfer_eta[12];           /* rsync ETA, e.g. "5:33:40" */
     double io_rd_mbs, io_wr_mbs;     /* whole-device disk read/write throughput, MB/s */
     double load1, load5, load15;     /* system load average */
-    int n_shares; struct { char name[28]; double used_gb; int health; } shares[MAX_SHARES];
+    int n_shares; struct { char name[28]; char where[16]; double free_gb; int health; } shares[MAX_SHARES];
     int n_pools;  struct { char name[24]; double used_gb, tot_gb, pct; } pools[MAX_POOLS];
     int n_ud;     struct { char name[28]; double used_gb, tot_gb, pct; } ud[MAX_UD];
     int ups_present; char ups_status[16]; double ups_charge, ups_load, ups_runtime, ups_linev;

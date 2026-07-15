@@ -45,6 +45,7 @@ static const modinfo_t MODULES[] = {
     { "transfer", "Storage", "Transfer (File Manager copy)", mod_transfer, 1, { "bar" } },
     { "diskio",   "Storage", "Disk I/O",               mod_diskio,     1, { "card" } },
     { "shares",   "Storage", "Shares (all in one card)", mod_shares,   2, { "card", "compact" } },
+    { "share",    "Storage", "Share (pick one)",       mod_share,      2, { "card", "compact" }, 1, "shares" },
     { "pool",     "Storage", "Pools (cache)",          mod_pools,      2, { "card", "compact" } },
     { "unassigned","Storage","Unassigned devices",     mod_unassigned, 2, { "card", "compact" } },
 
@@ -141,7 +142,7 @@ static int write_layouts_json(void){
  * a NAME dropdown (interfaces / disks / containers) instead of a raw index. */
 static int write_items_json(void){
     stats_t st; memset(&st, 0, sizeof st);
-    read_net(&st); read_disks(&st); read_docker(&st);
+    read_net(&st); read_disks(&st); read_docker(&st); read_shares(&st);
     printf("{\"ifaces\":[");
     for (int i = 0; i < st.n_ifaces; i++){ if (i) putchar(','); json_str(st.ifc[i].name); }
     printf("],\"disks\":[");
@@ -150,6 +151,8 @@ static int write_items_json(void){
     for (int i = 0; i < st.n_ctrs; i++){ if (i) putchar(','); json_str(st.ctrs[i].name); }
     printf("],\"vms\":[");
     for (int i = 0; i < st.n_vms; i++){ if (i) putchar(','); json_str(st.vms[i].name); }
+    printf("],\"shares\":[");
+    for (int i = 0; i < st.n_shares; i++){ if (i) putchar(','); json_str(st.shares[i].name); }
     printf("]}\n");
     return 0;
 }

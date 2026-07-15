@@ -75,40 +75,49 @@ static void read_load(stats_t *st){
 }
 
 /* --- user shares from /var/local/emhttp/shares.ini ---
- * Blocks like ["Media"] with key="value" lines: name, used (KB), free (KB),
- * color ("green-on"/"yellow-on"/"red-on"). used_gb = used(KB) * 1024 bytes / 1e9.
- * health: 0 if color has "green", 2 if "red", else 1. Missing file / no blocks
- * leaves n_shares = 0 and the module draws a dim idle line. */
-static void shares_commit(stats_t *st, const char *name, double used_gb, int health){
+ * Blocks like ["Media"] with key="value" lines. NOTE: shares.ini "used"/"free"
+ * are the used/free of the POOL the share lives on (identical for every share on
+ * that pool), NOT the share's own data — so we surface the share's PLACEMENT
+ * (its cache pool, or the array) + the pool's free + health, which is accurate.
+ * where: cachePool for cache-only/prefer shares, else "array". health: 0 green,
+ * 2 red, else 1. Missing file / no blocks -> n_shares = 0 -> dim idle line. */
+static void shares_commit(stats_t *st, const char *name, const char *pool,
+                          const char *cache, double free_gb, int health){
     if (!name[0] || st->n_shares >= MAX_SHARES) return;
-    snprintf(st->shares[st->n_shares].name, sizeof st->shares[st->n_shares].name, "%s", name);
-    st->shares[st->n_shares].used_gb = used_gb;
-    st->shares[st->n_shares].health  = health;
-    st->n_shares++;
+    const char *where = (pool[0] && (!strcmp(cache, "only") || !strcmp(cache, "prefer")))
+                        ? pool : "array";
+    int i = st->n_shares++;
+    snprintf(st->shares[i].name,  sizeof st->shares[i].name,  "%s", name);
+    snprintf(st->shares[i].where, sizeof st->shares[i].where, "%s", where);
+    st->shares[i].free_gb = free_gb;
+    st->shares[i].health  = health;
 }
 static void read_shares(stats_t *st){
     st->n_shares = 0;
     FILE *f = fopen("/var/local/emhttp/shares.ini", "r"); if (!f) return;
-    char line[512], name[28] = ""; double used_gb = 0; int health = 1, have = 0;
+    char line[512], name[28] = "", pool[16] = "", cache[8] = ""; double free_gb = 0;
+    int health = 1, have = 0;
     while (fgets(line, sizeof line, f)){
         if (line[0] == '['){
-            if (have) shares_commit(st, name, used_gb, health);
-            name[0] = 0; used_gb = 0; health = 1; have = 1;
+            if (have) shares_commit(st, name, pool, cache, free_gb, health);
+            name[0] = 0; pool[0] = 0; cache[0] = 0; free_gb = 0; health = 1; have = 1;
             sscanf(line, "[\"%27[^\"]\"]", name);
             continue;
         }
         if (!have) continue;
         char *k, *v;
         if (!ini_kv(line, &k, &v)) continue;
-        if      (!strcmp(k, "name"))  snprintf(name, sizeof name, "%s", v);
-        else if (!strcmp(k, "used"))  used_gb = strtod(v, NULL) * 1024.0 / 1e9;
+        if      (!strcmp(k, "name"))      snprintf(name, sizeof name, "%s", v);
+        else if (!strcmp(k, "free"))      free_gb = strtod(v, NULL) * 1024.0 / 1e9;
+        else if (!strcmp(k, "useCache"))  snprintf(cache, sizeof cache, "%s", v);
+        else if (!strcmp(k, "cachePool")) snprintf(pool, sizeof pool, "%s", v);
         else if (!strcmp(k, "color")){
             if      (strstr(v, "green")) health = 0;
             else if (strstr(v, "red"))   health = 2;
             else                         health = 1;
         }
     }
-    if (have) shares_commit(st, name, used_gb, health);
+    if (have) shares_commit(st, name, pool, cache, free_gb, health);
     fclose(f);
 }
 
