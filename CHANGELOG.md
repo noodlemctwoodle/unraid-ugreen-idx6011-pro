@@ -14,6 +14,12 @@ and the plugin's in-app `<CHANGES>` list.
   when its source isn't present, so they work on any Unraid box. The web
   editor's Add-module list is now **grouped** (System / Compute / Power &
   cooling / Network / Storage / Docker & VMs / Layout).
+- **Three more cards.** CPU cores (per-core load as a grid or a bar strip, with
+  the average load and clock speed), Temperatures (CPU, board and every NVMe
+  sensor, each colour-coded), and Boot flash (USB usage). The disk cards also
+  gain a **SMART** line — drive age, SSD/NVMe life remaining, and any reallocated
+  or pending sectors (amber when found) — read from the health data Unraid
+  already caches, so no disks are woken.
 - **Transfer card.** A new module: add it to any page to watch a Dynamix File
   Manager copy/move in progress — the operation, destination folder, overall
   progress %, live rate and ETA. It reads Unraid's built-in file manager, so no

@@ -23,6 +23,11 @@
   Add-module list is grouped by area (System, Compute, Power, Network, Storage,
   Docker and Layout) so it stays easy to navigate. Every card shows a tidy idle
   line when its data source isn't present.
+- Three more cards: CPU cores (per-core load as a grid or a bar strip, with the
+  average load and clock), Temperatures (CPU, board and every NVMe sensor, each
+  colour-coded) and Boot flash (USB usage). The disk cards also gain a SMART line
+  showing drive age, SSD/NVMe life remaining and any reallocated or pending
+  sectors, read from the health data Unraid already caches (no disk wake-ups).
 - New Transfer card: add it to any page to watch a Dynamix File Manager copy or
   move in progress - the operation, destination folder, overall progress %, live
   rate and ETA. It reads Unraid's built-in file manager, so no setup is needed;
