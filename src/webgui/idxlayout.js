@@ -207,7 +207,14 @@
 
     var add = el('div','idxl-add'); var asel=el('select','idxl-addsel');
     var ph=el('option',null,'Add module…'); ph.value=''; asel.appendChild(ph);
-    CAT.forEach(function(c){ var o=el('option',null,c.label); o.value=c.id; asel.appendChild(o); });
+    /* group into <optgroup> headings (group order = first-seen in the catalog,
+     * which the registry keeps sorted); ungrouped modules fall under "Other". */
+    var groups={};
+    CAT.forEach(function(c){
+      var g=c.group||'Other', box=groups[g];
+      if(!box){ box=groups[g]=el('optgroup'); box.label=g; asel.appendChild(box); }
+      var o=el('option',null,c.label); o.value=c.id; box.appendChild(o);
+    });
     asel.onchange=function(){ if(!asel.value) return; p.mods.push({id:asel.value, variant:''}); asel.value=''; changed(); };
     add.appendChild(asel); pane.appendChild(add);
   }

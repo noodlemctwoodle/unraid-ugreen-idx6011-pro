@@ -15,29 +15,37 @@
 #define PANEL_MODULE_REGISTRY_H
 
 static const modinfo_t MODULES[] = {
-    { "host",    "Host / array",       mod_host,     3, { "card", "compact", "hero" } },
-    { "array",   "Array status",       mod_array,    4, { "card", "compact", "badge", "hero" } },
-    { "update",  "Updates (OS + plugins)", mod_update, 4, { "card", "badge", "hero", "compact" } },
-    { "cpu",     "CPU",                mod_cpu,      8, { "bar", "ring", "graph", "area", "blocks", "trend", "big", "gauge" } },
-    { "mem",     "Memory",             mod_mem,      9, { "bar", "ring", "graph", "area", "blocks", "split", "trend", "big", "gauge" } },
-    { "net",     "Network (primary)",  mod_net,      5, { "rows", "compact", "big", "graph", "area" } },
-    { "storage", "Storage",            mod_storage,  9, { "bar", "ring", "graph", "area", "blocks", "split", "trend", "big", "gauge" } },
-    { "uptime",  "Uptime",             mod_uptime,   3, { "card", "big", "hero" } },
-    { "gpu",     "GPU",                mod_gpu,      7, { "bar", "graph", "area", "blocks", "trend", "big", "gauge" } },
-    { "cputemp", "CPU temperature",    mod_cputemp,  4, { "bar", "graph", "area", "gauge" } },
-    { "fans",    "Fans (spinning RPM)", mod_fans,    7, { "dials", "list", "hero", "compact", "gauge", "bars", "ring" } },
-    { "npu",     "NPU",                mod_npu,      8, { "bar", "ring", "graph", "area", "blocks", "trend", "big", "gauge" } },
-    { "power",   "Power draw",         mod_power,    4, { "card", "big", "graph", "area" } },
-    { "ifaces",  "Interfaces (all in one card)", mod_ifaces, 4, { "full", "compact", "mini", "big" } },
-    { "iface",   "Interface (pick one)",         mod_iface,  4, { "full", "compact", "mini", "big" }, 1, "ifaces" },
-    { "disks",   "Disks (all in one card)",      mod_disks,  3, { "full", "compact", "bar" } },
-    { "disk",    "Disk (pick one)",              mod_disk,   3, { "full", "compact", "bar" }, 1, "disks" },
-    { "containers","Containers (all in one card)",mod_containers,2, { "card", "compact" } },
-    { "container","Container (pick one)",        mod_container,  2, { "card", "compact" }, 1, "containers" },
-    { "vms",     "VMs (all in one card)",        mod_vms,        2, { "card", "compact" } },
-    { "vm",      "VM (pick one)",                mod_vm,         2, { "card", "compact" }, 1, "vms" },
-    { "transfer","Transfer (File Manager copy)",  mod_transfer,   1, { "bar" } },
-    { "spacer",  "Spacer (empty gap)",           mod_spacer,     3, { "small", "medium", "big" } },
+    /* Grouped for the web editor's "Add module" list (group = the optgroup
+     * heading). Keep entries contiguous per group; new modules just set a group. */
+    { "host",     "System",  "Host / array",           mod_host,       3, { "card", "compact", "hero" } },
+    { "array",    "System",  "Array status",           mod_array,      4, { "card", "compact", "badge", "hero" } },
+    { "update",   "System",  "Updates (OS + plugins)", mod_update,     4, { "card", "badge", "hero", "compact" } },
+    { "uptime",   "System",  "Uptime",                 mod_uptime,     3, { "card", "big", "hero" } },
+
+    { "cpu",      "Compute", "CPU",                    mod_cpu,        8, { "bar", "ring", "graph", "area", "blocks", "trend", "big", "gauge" } },
+    { "cputemp",  "Compute", "CPU temperature",        mod_cputemp,    4, { "bar", "graph", "area", "gauge" } },
+    { "mem",      "Compute", "Memory",                 mod_mem,        9, { "bar", "ring", "graph", "area", "blocks", "split", "trend", "big", "gauge" } },
+    { "gpu",      "Compute", "GPU",                    mod_gpu,        7, { "bar", "graph", "area", "blocks", "trend", "big", "gauge" } },
+    { "npu",      "Compute", "NPU",                    mod_npu,        8, { "bar", "ring", "graph", "area", "blocks", "trend", "big", "gauge" } },
+
+    { "power",    "Power & cooling", "Power draw",     mod_power,      4, { "card", "big", "graph", "area" } },
+    { "fans",     "Power & cooling", "Fans (spinning RPM)", mod_fans,  7, { "dials", "list", "hero", "compact", "gauge", "bars", "ring" } },
+
+    { "net",      "Network", "Network (primary)",      mod_net,        5, { "rows", "compact", "big", "graph", "area" } },
+    { "ifaces",   "Network", "Interfaces (all in one card)", mod_ifaces, 4, { "full", "compact", "mini", "big" } },
+    { "iface",    "Network", "Interface (pick one)",   mod_iface,      4, { "full", "compact", "mini", "big" }, 1, "ifaces" },
+
+    { "storage",  "Storage", "Storage",                mod_storage,    9, { "bar", "ring", "graph", "area", "blocks", "split", "trend", "big", "gauge" } },
+    { "disks",    "Storage", "Disks (all in one card)", mod_disks,     3, { "full", "compact", "bar" } },
+    { "disk",     "Storage", "Disk (pick one)",        mod_disk,       3, { "full", "compact", "bar" }, 1, "disks" },
+    { "transfer", "Storage", "Transfer (File Manager copy)", mod_transfer, 1, { "bar" } },
+
+    { "containers","Docker & VMs", "Containers (all in one card)", mod_containers, 2, { "card", "compact" } },
+    { "container", "Docker & VMs", "Container (pick one)", mod_container, 2, { "card", "compact" }, 1, "containers" },
+    { "vms",      "Docker & VMs", "VMs (all in one card)", mod_vms,     2, { "card", "compact" } },
+    { "vm",       "Docker & VMs", "VM (pick one)",      mod_vm,         2, { "card", "compact" }, 1, "vms" },
+
+    { "spacer",   "Layout",  "Spacer (empty gap)",     mod_spacer,     3, { "small", "medium", "big" } },
 };
 static const int N_MODULES = (int)(sizeof MODULES / sizeof MODULES[0]);
 
@@ -83,8 +91,9 @@ static void render_modules(const char *layout, stats_t *st){
 static int write_modules_json(void){
     printf("[");
     for (int i = 0; i < N_MODULES; i++){
-        printf("%s{\"id\":\"%s\",\"label\":\"%s\",\"indexed\":%d,\"itemsrc\":\"%s\",\"variants\":[",
-               i ? "," : "", MODULES[i].id, MODULES[i].label, MODULES[i].indexed,
+        printf("%s{\"id\":\"%s\",\"group\":\"%s\",\"label\":\"%s\",\"indexed\":%d,\"itemsrc\":\"%s\",\"variants\":[",
+               i ? "," : "", MODULES[i].id, MODULES[i].group ? MODULES[i].group : "",
+               MODULES[i].label, MODULES[i].indexed,
                MODULES[i].itemsrc ? MODULES[i].itemsrc : "");
         for (int v = 0; v < MODULES[i].nvariants; v++)
             printf("%s\"%s\"", v ? "," : "", MODULES[i].variants[v]);
