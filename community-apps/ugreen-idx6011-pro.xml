@@ -9,7 +9,7 @@
   <Icon>https://raw.githubusercontent.com/noodlemctwoodle/unraid-ugreen-idx6011-pro/main/images/ugreen-idx6011-pro.png</Icon>
   <Category>Tools:System</Category>
   <Beta>False</Beta>
-  <Date>2026-07-13</Date>
+  <Date>2026-07-25</Date>
   <Overview>
 Fully customisable touch LCD dashboard + smart front-panel LEDs and fan control for the
 UGREEN NASync iDX6011 Pro, running natively on Unraid - no UGOS required. Build your own
@@ -21,10 +21,11 @@ Touch LCD dashboard + smart front-panel LEDs for the **UGREEN NASync iDX6011 Pro
 running natively on Unraid - no UGOS required.
 
 - **Customisable dashboard** on the 258x960 front touchscreen: build any page from a
-  library of modules (CPU, memory, network, storage, GPU, NPU, power, fans, uptime,
-  array status, OS/plugin updates, docker, VMs, and per-item disk / interface /
-  container / VM cards), each with a choice of visual styles - bar, ring, gauge, history
-  graph, area, blocks, split, trend or big number.
+  library of modules (CPU and per-core load, memory, temperatures, network, storage and
+  disk I/O, GPU, NPU, power, UPS, fans, uptime, load average, array and parity status,
+  shares, pools, unassigned devices, boot flash, licence, OS/plugin updates, docker, VMs,
+  and per-item disk / interface / container / VM cards), each with a choice of visual
+  styles - bar, ring, gauge, history graph, area, blocks, split, trend or big number.
 - **Web Layout editor** with a live preview: add / rename / reorder / delete pages, pick
   each module's style, and theme the font, sizes and full colour palette. Point at any
   image on the server for the **wallpaper / header logo** (hot-swaps live, no restart),
@@ -41,6 +42,22 @@ Requires the BIOS Watchdog Timer disabled and the panel EFI entry set first in t
 boot order. See the project README before installing.
   </Description>
   <Changes>
+###2026.07.25
+- New dashboard cards: Disk I/O, Load average, Shares, Pools (cache), Unassigned
+  devices, UPS (apcupsd), Parity / array operation (check / sync / rebuild progress
+  and sync errors), Unraid licence, CPU cores (per-core load), Temperatures (CPU,
+  board and every NVMe sensor) and Boot-flash usage - plus a live Transfer card that
+  tracks a Dynamix File Manager copy / move. Interface cards now show the link speed
+  (1G / 2.5G / ...) and the Add-module list is grouped by area.
+- Disk cards gain a SMART line (drive age, SSD/NVMe life remaining, reallocated /
+  pending sectors) read from Unraid's cached health data, so no disks are woken. Disk
+  bay LEDs now light on every populated bay however the SATA controllers enumerate,
+  and the on-screen Storage card now reports the whole array (not the cache pool).
+- The front LCD is now a dedicated panel: it holds its last image and self-heals after
+  a crash, aborted install or reboot instead of showing the garbled Linux text console,
+  and a watchdog relaunches the dashboard if it ever stops.
+- The Unraid Plugins page now shows the plugin's name and a description, and the docs
+  clarify where to disable the BIOS Watchdog Timer (the Advanced tab in BIOS setup).
 ###2026.07.13
 - Fully customisable dashboard with a module library and many visual styles; web Layout
   editor with a live preview; panel-driven four-fan curve control (Auto/Silent/Quiet/
