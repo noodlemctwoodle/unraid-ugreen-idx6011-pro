@@ -4,10 +4,16 @@ name: release
 #   1. Bump <!ENTITY version> and add a ###<version> block to CHANGES in the .plg.
 #   2. Commit + push to main.
 #   3. Actions -> "release" -> Run workflow.
-# The job builds the payload, writes its SHA256 back into the .plg (so the plugin
-# URL always serves a hash matching the published asset), commits that, and
-# publishes the GitHub release with the .txz. It no-ops if that version's release
-# already exists, so published versions are never clobbered.
+#
+# Ordering matters and is deliberate: the GitHub release (with the .txz asset) is
+# PUBLISHED FIRST, then the payload's SHA256 is synced into the .plg on main via a
+# pull request. Publishing first means a slow / code-scanning-blocked SHA-sync PR can
+# never lose the built payload (mkpayload output is not byte-reproducible, so a lost
+# payload can't be rebuilt to the same hash). The SHA is taken from the PUBLISHED
+# asset, and the sync runs even when the release already exists, so a re-run always
+# reconciles the .plg hash even if a previous sync PR never merged. The sync-merge is
+# best-effort and non-fatal: if code scanning is slow, the job still succeeds and the
+# SHA PR is merged (auto-merge) or left for a manual merge.
 
 on:
   workflow_dispatch: {}
@@ -26,9 +32,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
         with:
-          # Repo-admin PAT: lets the SHA-sync push to protected main bypass the
-          # require-pull-request / code-scanning rules (the default GITHUB_TOKEN
-          # is the Actions bot, which cannot be exempted on a personal repo).
+          # Repo-admin PAT: lets the SHA-sync push/PR to protected main.
           token: ${{ secrets.RELEASE_TOKEN }}
 
       - name: Read plugin version
@@ -40,7 +44,7 @@ jobs:
           echo "version=$VER" >> "$GITHUB_OUTPUT"
           echo "Plugin version: $VER"
 
-      - name: Skip if release already exists
+      - name: Does this release already exist?
         id: exists
         env:
           GH_TOKEN: ${{ github.token }}
@@ -48,11 +52,12 @@ jobs:
         run: |
           if gh release view "$VER" >/dev/null 2>&1; then
             echo "already=true" >> "$GITHUB_OUTPUT"
-            echo "::notice::release $VER already exists - nothing to do"
+            echo "::notice::release $VER already exists - skipping build/publish, only reconciling the .plg SHA"
           else
             echo "already=false" >> "$GITHUB_OUTPUT"
           fi
 
+      # ---- build + publish (only when the release does not yet exist) --------------
       - name: Build panel_dash from source
         if: steps.exists.outputs.already == 'false'
         run: |
@@ -68,54 +73,10 @@ jobs:
           VER: ${{ steps.meta.outputs.version }}
         run: bash release/mkpayload.sh "$VER"
 
-      - name: Sync SHA256 into the .plg
-        id: sha
-        if: steps.exists.outputs.already == 'false'
-        env:
-          VER: ${{ steps.meta.outputs.version }}
-        run: |
-          SHA=$(sha256sum "release/ugreen-idx6011-pro-$VER.txz" | awk '{print $1}')
-          echo "payload SHA256: $SHA"
-          echo "sha256=$SHA" >> "$GITHUB_OUTPUT"
-          sed -i -E "s#<SHA256>[0-9a-fA-F]*</SHA256>#<SHA256>${SHA}</SHA256>#" ugreen-idx6011-pro.plg
-
-      - name: Sync .plg hash to main via pull request
-        if: steps.exists.outputs.already == 'false'
-        env:
-          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
-          VER: ${{ steps.meta.outputs.version }}
-        run: |
-          # main is fully locked (require pull request + code scanning, no bypass).
-          # Open the SHA-sync PR as the RELEASE_TOKEN user so CodeQL runs on it,
-          # then merge once code scanning passes. Nothing bypasses the rules.
-          if git diff --quiet -- ugreen-idx6011-pro.plg; then
-            echo ".plg SHA256 already current - nothing to sync"
-            exit 0
-          fi
-          BRANCH="ci/plg-sha-${VER}"
-          git config user.name  "noodlemctwoodle"
-          git config user.email "noodlemctwoodle@users.noreply.github.com"
-          git switch -c "$BRANCH"
-          git add ugreen-idx6011-pro.plg
-          git commit -m "ci: sync .plg SHA256 for ${VER}"
-          git push -u origin "$BRANCH"
-          gh pr create --base main --head "$BRANCH" \
-            --title "ci: sync .plg SHA256 for ${VER}" \
-            --body "Automated payload SHA256 for the \`${VER}\` release. Merges once code scanning passes."
-          echo "waiting for code scanning, then merging the SHA PR..."
-          merged=0
-          for i in $(seq 1 40); do
-            if gh pr merge "$BRANCH" --merge --delete-branch 2>/dev/null; then merged=1; echo "merged"; break; fi
-            echo "  [$i/40] not mergeable yet (code scanning running?); sleeping 15s"; sleep 15
-          done
-          [ "$merged" = 1 ] || { echo "::error::SHA PR did not merge in time"; exit 1; }
-          git fetch origin main && git switch main && git reset --hard origin/main
-
       - name: Build release notes
         if: steps.exists.outputs.already == 'false'
         env:
           VER: ${{ steps.meta.outputs.version }}
-          SHA: ${{ steps.sha.outputs.sha256 }}
         run: |
           # changelog block for this version, from the .plg CHANGES
           awk -v v="###${VER}" '
@@ -147,13 +108,11 @@ jobs:
             cat changelog.txt
             echo ''
             echo '---'
-            echo "**Payload:** \`ugreen-idx6011-pro-${VER}.txz\`  |  **SHA256:** \`${SHA}\`"
-            echo ''
             echo 'Docs & source: https://github.com/noodlemctwoodle/unraid-ugreen-idx6011-pro#readme'
           } > notes.md
           echo "---- notes ----"; cat notes.md
 
-      - name: Publish release
+      - name: Publish release (asset first - never lost to a sync race)
         if: steps.exists.outputs.already == 'false'
         env:
           GH_TOKEN: ${{ github.token }}
@@ -161,3 +120,52 @@ jobs:
         run: |
           gh release create "$VER" "release/ugreen-idx6011-pro-$VER.txz" \
             --target main --title "$VER" --notes-file notes.md
+
+      # ---- reconcile the .plg SHA on main from the PUBLISHED asset (always) --------
+      - name: Compute SHA256 from the published asset
+        id: sha
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VER: ${{ steps.meta.outputs.version }}
+        run: |
+          rm -rf _asset && mkdir -p _asset
+          gh release download "$VER" --pattern "ugreen-idx6011-pro-$VER.txz" --dir _asset --clobber
+          SHA=$(sha256sum "_asset/ugreen-idx6011-pro-$VER.txz" | awk '{print $1}')
+          [ -n "$SHA" ] || { echo "::error::could not hash the published asset"; exit 1; }
+          echo "published asset SHA256: $SHA"
+          echo "sha256=$SHA" >> "$GITHUB_OUTPUT"
+
+      - name: Sync .plg <SHA256> to main via pull request (no race - asset is published)
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          VER: ${{ steps.meta.outputs.version }}
+          SHA: ${{ steps.sha.outputs.sha256 }}
+        run: |
+          git config user.name  "noodlemctwoodle"
+          git config user.email "noodlemctwoodle@users.noreply.github.com"
+          git fetch origin main
+          BRANCH="ci/plg-sha-${VER}"
+          # Base the sync branch on the freshest main; wipe any stale copy from a prior run.
+          git branch -D "$BRANCH" 2>/dev/null || true
+          git push origin --delete "$BRANCH" 2>/dev/null || true
+          git checkout -B "$BRANCH" origin/main
+          sed -i -E "s#<SHA256>[0-9a-fA-F]*</SHA256>#<SHA256>${SHA}</SHA256>#" ugreen-idx6011-pro.plg
+          if git diff --quiet -- ugreen-idx6011-pro.plg; then
+            echo "::notice::.plg SHA256 already matches the published asset - nothing to sync"
+            exit 0
+          fi
+          git add ugreen-idx6011-pro.plg
+          git commit -m "ci: sync .plg SHA256 for ${VER}"
+          git push -u origin "$BRANCH"
+          gh pr create --base main --head "$BRANCH" \
+            --title "ci: sync .plg SHA256 for ${VER}" \
+            --body "Automated payload SHA256 for the **${VER}** release (already published as a GitHub release). Safe to merge once code scanning passes." || true
+          # Best-effort, non-fatal: enable auto-merge (merges when checks pass), else try an
+          # immediate merge, else leave the PR for a manual merge. The release is already out.
+          if gh pr merge "$BRANCH" --auto --merge --delete-branch 2>/dev/null; then
+            echo "::notice::auto-merge enabled on the SHA PR - it will merge when code scanning passes"
+          elif gh pr merge "$BRANCH" --merge --delete-branch 2>/dev/null; then
+            echo "::notice::SHA PR merged"
+          else
+            echo "::warning::SHA PR '$BRANCH' left open - the ${VER} release IS published; merge the PR to finish syncing the .plg hash"
+          fi
