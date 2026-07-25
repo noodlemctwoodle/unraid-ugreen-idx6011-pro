@@ -58,6 +58,8 @@ static uint32_t col_state(int up){ return up ? UN_OK : UN_DIM; }        /* link/
 static uint32_t col_dot(int up){ return up ? UN_OK : 0x555555; }        /* presence dot       */
 static uint32_t col_health(int h){                                      /* 0=ok 1=warn 2=bad  */
     return h == 2 ? UN_BAD : h == 1 ? UN_WARN : UN_OK; }
+static uint32_t col_charge(double pct){                                 /* battery: low = bad */
+    return pct < 20 ? UN_BAD : pct < 50 ? UN_WARN : UN_OK; }
 
 /* small top-right tag (e.g. "16T", "1500 MHz") — truncates to the zone right of
  * the title, so it can never run back over the title. */
@@ -274,6 +276,21 @@ static int bar_card(int y, int h, const char *title, const char *value,
     card(y, gy(h), title);
     text(C_R - text_w(C_SUB, value), y + gy(10), C_SUB, UN_DIM, value);
     bar(C_X0, y + gy(h - 34), C_W, gy(16), pct, barcol);
+    return gy(h) + gy(C_GAP);
+}
+
+/* PROGRESS CARD: a long-running operation in progress — title + big percent + a
+ * bar in the accent colour (progress: higher is better, so deliberately NOT the
+ * col_load palette) + an optional detail line (rate / ETA / status). */
+static int progress_card(int y, const char *title, double pct, const char *detail){
+    int h = 118;
+    if (pct < 0) pct = 0; if (pct > 100) pct = 100;
+    card(y, gy(h), title);
+    char p[8]; snprintf(p, sizeof p, "%.0f%%", pct);
+    text(C_X0, y + gy(44), C_VAL, UN_TEXT, p);
+    bar(C_X0, y + gy(76), C_W, gy(20), pct, UN_ORANGE_M);
+    if (detail && detail[0]){ char d[64]; snprintf(d, sizeof d, "%s", detail);
+        trunc_fit(d, C_SUB, C_W); text(C_X0, y + gy(102), C_SUB, UN_DIM, d); }
     return gy(h) + gy(C_GAP);
 }
 

@@ -14,7 +14,12 @@
 /* one interface card. style: 0=full (IPs + totals), 1=compact (DN/UP, 2 lines),
  * 2=mini (one line: name + rates), 3=big (large DN/UP rates). */
 static int iface_card(int y, iface_t *ic, int prim, int style){
-    char b[64], r1[32], r2[32];
+    char b[64], r1[32], r2[32], lnk[16];
+    /* right-hand status: link SPEED when up + known, else LINK / DOWN */
+    if (!ic->up)                     snprintf(lnk, sizeof lnk, "DOWN");
+    else if (ic->link_mbps >= 1000)  snprintf(lnk, sizeof lnk, "%gG", ic->link_mbps / 1000.0);
+    else if (ic->link_mbps > 0)      snprintf(lnk, sizeof lnk, "%dM", ic->link_mbps);
+    else                             snprintf(lnk, sizeof lnk, "LINK");
 
     if (style == 2){                                     /* mini — name as title + DN/UP full-width below */
         int ch = 74;
@@ -31,7 +36,7 @@ static int iface_card(int y, iface_t *ic, int prim, int style){
     if (style == 3){                                     /* big — large DN/UP rates */
         int ch = 150;
         card(y, gy(ch), NULL);
-        item_head(y, col_dot(ic->up), ic->name, 2.4f, ic->up ? "LINK" : "DOWN", 1.6f, col_state(ic->up));
+        item_head(y, col_dot(ic->up), ic->name, 2.4f, lnk, 1.6f, col_state(ic->up));
         fmt_rate(r1, sizeof r1, ic->rx_kbs); snprintf(b, sizeof b, "DN  %s", r1);
         text(C_X0 + gy(4), y + gy(50), 2.9f, UN_TEXT, b);
         fmt_rate(r2, sizeof r2, ic->tx_kbs); snprintf(b, sizeof b, "UP  %s", r2);
@@ -42,7 +47,7 @@ static int iface_card(int y, iface_t *ic, int prim, int style){
         int ch = 108;
         card(y, gy(ch), NULL);
         item_head(y, col_dot(ic->up), ic->name, 2.3f,
-                  ic->up ? "LINK" : "DOWN", 1.5f, col_state(ic->up));
+                  lnk, 1.5f, col_state(ic->up));
         fmt_rate(r1, sizeof r1, ic->rx_kbs); snprintf(b, sizeof b, "DN  %s", r1);
         text(C_X0 + gy(18), y + gy(44), 1.9f, UN_TEXT, b);
         fmt_rate(r2, sizeof r2, ic->tx_kbs); snprintf(b, sizeof b, "UP  %s", r2);
@@ -52,7 +57,7 @@ static int iface_card(int y, iface_t *ic, int prim, int style){
     int has6 = ic->ip6[0] != 0;                          /* full — IPs + totals */
     int ch = 172 + (has6 ? 22 : 0);
     card(y, gy(ch), NULL);
-    item_head(y, col_dot(ic->up), ic->name, 2.4f, ic->up ? "LINK" : "DOWN", 1.6f, col_state(ic->up));
+    item_head(y, col_dot(ic->up), ic->name, 2.4f, lnk, 1.6f, col_state(ic->up));
     if (prim)
         text(C_X0 + gy(18) + htext_w(2.4f, ic->name) + gy(12), y + gy(18), 1.4f, UN_ORANGE, "PRIMARY");
     int cy = y + gy(48);

@@ -15,10 +15,16 @@
 #define MAX_DISKS  12
 #define MAX_CTRS   20
 #define MAX_VMS    16
+#define MAX_SHARES 32
+#define MAX_POOLS  8
+#define MAX_UD     16
+#define MAX_CORES  32
+#define MAX_TZ     8
 
 typedef struct {
     char name[32], ip[44], ip6[48];
     int up;
+    int link_mbps;                   /* link speed in Mbps (0 = unknown / down) */
     unsigned long long rx_tot, tx_tot;
     double rx_kbs, tx_kbs;
 } iface_t;
@@ -29,6 +35,9 @@ typedef struct {
     int temp;                        /* C, -1 = unavailable */
     long long errors;
     unsigned long long fs_size, fs_used, size_kib;   /* KiB */
+    long long poh;                   /* SMART power-on hours (-1 = n/a) */
+    int wear;                        /* SSD/NVMe life remaining % (-1 = n/a) */
+    long long realloc, pending;      /* reallocated + pending sectors (-1 = n/a) */
 } disk_t;
 
 typedef struct {
@@ -70,14 +79,30 @@ typedef struct {
     int n_vms; vm_t vms[MAX_VMS];
     int pkg_temp, nvme_temp, board_temp;
     char version[32], kernel[64];
+    char reg_type[16], reg_to[40];   /* Unraid licence type (Pro/Plus/Trial) + registered-to */
     int  os_update;                  /* 1 = a newer Unraid OS is available   */
     char os_new_ver[32];             /* the available OS version             */
     int  plugin_updates;             /* count of plugins with pending updates */
-    unsigned long long resync, resync_pos; char resync_act[32];
+    unsigned long long resync, resync_pos, resync_size; char resync_act[32];
     double resync_mbs;
     int md_bad;                      /* disabled + invalid + missing */
     long long sync_errs;
     int mover;
+    int  transfer_active;            /* Dynamix File Manager copy/move in progress */
+    char transfer_op[16];            /* operation title, e.g. "Copy" / "Move" */
+    char transfer_dest[40];          /* destination folder (basename) */
+    double transfer_pct;             /* overall progress, 0..100 */
+    char transfer_speed[16];         /* rsync rate token, e.g. "128.42MB/s" */
+    char transfer_eta[12];           /* rsync ETA, e.g. "5:33:40" */
+    double io_rd_mbs, io_wr_mbs;     /* whole-device disk read/write throughput, MB/s */
+    double load1, load5, load15;     /* system load average */
+    int n_shares; struct { char name[28]; char where[16]; double free_gb; int health; } shares[MAX_SHARES];
+    int n_pools;  struct { char name[24]; double used_gb, tot_gb, pct; } pools[MAX_POOLS];
+    int n_ud;     struct { char name[28]; double used_gb, tot_gb, pct; } ud[MAX_UD];
+    int ups_present; char ups_status[16]; double ups_charge, ups_load, ups_runtime, ups_linev;
+    int n_cores; double core_pct[MAX_CORES]; int cpu_mhz;
+    int n_tz; struct { char name[12]; int temp; } tz[MAX_TZ];
+    double flash_pct, flash_used_gb, flash_tot_gb;
     int notif_count, notif_imp;      /* imp: 0 normal, 1 warning, 2 alert */
     char notif_subj[128];
 } stats_t;

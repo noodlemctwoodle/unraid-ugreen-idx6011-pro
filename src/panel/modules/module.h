@@ -31,6 +31,8 @@ static int g_anim = 0;
 
 typedef struct {
     const char *id;          /* stable config id, e.g. "cpu"                 */
+    const char *group;       /* catalog group heading in the web editor's    */
+                             /*   "Add module" list (e.g. "Storage")         */
     const char *label;       /* human label for the web layout editor        */
     modfn       fn;          /* draw function (returns height consumed)       */
     int         nvariants;   /* number of display styles (>= 1)              */

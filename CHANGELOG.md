@@ -4,6 +4,42 @@ All notable user-facing changes to the **UGREEN iDX6011 Pro** Unraid plugin.
 Versions are date-based (`YYYY.MM.DD`); the same notes drive each GitHub release
 and the plugin's in-app `<CHANGES>` list.
 
+## 2026.07.25
+
+- **Eight more cards.** Disk I/O (live read/write MB/s), Load average, Shares
+  (each showing its placement — cache pool or array — the pool's free space and a
+  health dot), Pools (cache), Unassigned devices, UPS (apcupsd battery / runtime /
+  load), Parity / array operation (check / sync / rebuild / clear progress, rate
+  and ETA, disabled-disk warning, sync-error count, mover), and Unraid licence —
+  plus interface cards now show the link speed (1G / 2.5G / …). Each degrades to a
+  tidy idle line when its source isn't present, so they work on any Unraid box. The web
+  editor's Add-module list is now **grouped** (System / Compute / Power &
+  cooling / Network / Storage / Docker & VMs / Layout).
+- **Three more cards.** CPU cores (per-core load as a grid or a bar strip, with
+  the average load and clock speed), Temperatures (CPU, board and every NVMe
+  sensor, each colour-coded), and Boot flash (USB usage). The disk cards also
+  gain a **SMART** line — drive age, SSD/NVMe life remaining, and any reallocated
+  or pending sectors (amber when found) — read from the health data Unraid
+  already caches, so no disks are woken.
+- **Transfer card.** A new module: add it to any page to watch a Dynamix File
+  Manager copy/move in progress — the operation, destination folder, overall
+  progress %, live rate and ETA. It reads Unraid's built-in file manager, so no
+  setup is needed; when nothing is copying it shows an idle line.
+- **Dedicated front panel.** The LCD now holds its last image and heals itself
+  after an aborted install, a crash or a reboot, instead of showing the garbled,
+  looping Linux text console some users saw. A watchdog relaunches the dashboard
+  if it ever stops, and removing the plugin hands the screen cleanly back to Unraid.
+- **Disk bay LEDs** now light on every populated bay, however the SATA
+  controllers enumerate. The LED daemon discovers each controller at runtime
+  instead of assuming a fixed PCI address, so a drive in any bay shows its health
+  even after a BIOS/PCIe re-enumeration moves a controller — previously up to
+  four bays could stay dark. A stale bay calibration can no longer override this.
+- **Storage card** now reports the whole array (matching the Unraid Main page)
+  instead of the cache pool.
+- **Plugins page** now shows the plugin's name and a description in the Unraid web UI.
+- **Docs**: clarified where to disable the BIOS Watchdog Timer (the Advanced tab
+  in BIOS setup).
+
 ## 2026.07.13
 
 - **Fully customisable dashboard.** Build any page from a library of modules and
@@ -66,4 +102,4 @@ and the plugin's in-app `<CHANGES>` list.
   Boot → UEFI USB Hard Disk Drive BBS Priorities, then reboot.
 - Bundled touch modules + display wake-probe overlay are built for Unraid 7.3.2
   (kernel 6.18.38-Unraid); rebuild with `boot/build-overlay.sh` for other kernels.
-- Requires the BIOS Watchdog Timer disabled (Ctrl+F1 in BIOS setup reveals it).
+- Requires the BIOS Watchdog Timer disabled (Advanced tab in BIOS setup).

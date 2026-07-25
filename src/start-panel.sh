@@ -41,13 +41,16 @@ modprobe i2c-dev 2>/dev/null
 
 # ---- start the dashboard only if the panel actually came up ----
 if [ "$(cat /sys/class/drm/card*-eDP-1/status 2>/dev/null | head -1)" = "connected" ]; then
-    pkill -x panel_dash 2>/dev/null; sleep 1
+    pkill -f "keep-panel.sh" 2>/dev/null; pkill -x panel_dash 2>/dev/null; sleep 1
     cp $PANEL/panel_dash /usr/local/bin/panel_dash && chmod +x /usr/local/bin/panel_dash
     ARGS="--backlight $BRIGHTNESS --interval $INTERVAL"
     [ "$ROTATE" -gt 0 ] 2>/dev/null && ARGS="$ARGS --rotate $ROTATE"
-    ( sleep 5; setsid /usr/local/bin/panel_dash $ARGS </dev/null >>$LOG 2>&1 ) </dev/null >/dev/null 2>&1 &
+    # a keeper owns the launch: it unbinds fbcon so the LCD is a DEDICATED DRM panel
+    # (never the flooding text console when the dashboard isn't drawing) and respawns
+    # panel_dash if it dies, with a backoff so a crash can't tight-loop.
+    ( sleep 5; setsid bash $P/keep-panel.sh $ARGS </dev/null >>$LOG 2>&1 ) </dev/null >/dev/null 2>&1 &
     disown 2>/dev/null
-    echo "$(date) panel_dash starting ($ARGS)" >> $LOG
+    echo "$(date) panel keeper starting ($ARGS)" >> $LOG
 else
     echo "$(date) eDP-1 not connected — booted via USB path or overlay missing; dashboard skipped" >> $LOG
     notify warning "Reboot to activate the LCD. If it stays dark, set the BIOS boot priority: Boot > UEFI USB Hard Disk Drive BBS Priorities > 'Unraid (iDX6011 panel)', then reboot."
