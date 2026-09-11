@@ -13,17 +13,27 @@ PANEL=$P/panel
 # monitor.sh, which re-reads the LED colours + power toggle from settings.cfg.
 [ -f "$P/start.sh" ] && bash "$P/start.sh"
 
-# Dashboard — relaunch panel_dash with current settings (no boot re-assert).
+# Dashboard — relaunch the keep-panel.sh SUPERVISOR (not panel_dash directly) with
+# current settings (no boot re-assert). Killing only panel_dash while keep-panel.sh
+# keeps running would leave two processes racing to (re)spawn/own the dashboard: the
+# keeper's own respawn AND this script's — both fighting for DRM master, causing a
+# setcrtc crash-loop that resets the in-process idle timer and can lose settings
+# changes made in the meantime. Always stop the keeper first (see stop-panel.sh).
 [ "$(cat /sys/class/dmi/id/product_name 2>/dev/null)" = "iDX6011 Pro" ] || exit 0
 BRIGHTNESS=75; INTERVAL=1; ROTATE=0
 [ -f "$PANEL/settings.cfg" ] && . "$PANEL/settings.cfg"
 if [ "$(cat /sys/class/drm/card*-eDP-1/status 2>/dev/null | head -1)" = "connected" ]; then
-    pkill -x panel_dash 2>/dev/null; sleep 1
+    # Kill INSIDE the guard: keep-panel.sh idles and retries every 30s when the eDP
+    # isn't there, so stopping it on a boot where the eDP reads disconnected would
+    # remove the supervisor without putting anything back.
+    pkill -f "keep-panel.sh" 2>/dev/null; pkill -x panel_dash 2>/dev/null; sleep 1
     [ -f "$PANEL/panel_dash" ] && { cp "$PANEL/panel_dash" /usr/local/bin/panel_dash; chmod +x /usr/local/bin/panel_dash; }
     ARGS="--backlight $BRIGHTNESS --interval $INTERVAL"
     [ "${ROTATE:-0}" -gt 0 ] 2>/dev/null && ARGS="$ARGS --rotate $ROTATE"
-    # wallpaper/logo come from settings.cfg (panel_dash reads + hot-reloads them)
-    ( setsid /usr/local/bin/panel_dash $ARGS </dev/null >>/var/log/panel_dash.log 2>&1 ) </dev/null >/dev/null 2>&1 &
+    # wallpaper/logo come from settings.cfg (panel_dash reads + hot-reloads them).
+    # A single keeper owns the launch, same as start-panel.sh, so there is never
+    # more than one process contending for the eDP's DRM master.
+    ( setsid bash "$P/keep-panel.sh" $ARGS </dev/null >>/var/log/panel_dash.log 2>&1 ) </dev/null >/dev/null 2>&1 &
     disown 2>/dev/null
 fi
 exit 0

@@ -17,6 +17,17 @@ and the plugin's in-app `<CHANGES>` list.
   every bail-out path instead of failing silently. The install banner also
   now distinguishes "the EFI entry could not be created" from "the entry
   exists but isn't first in the BIOS boot order".
+## Unreleased
+
+- **Fix: front panel would never go idle.** Saving a settings change from the
+  webGUI (`restart.sh`) killed `panel_dash` but left the `keep-panel.sh`
+  supervisor running, which immediately respawned its own copy — racing a
+  second, directly-launched `panel_dash` for DRM master. The resulting
+  `setcrtc: Permission denied` crash-loop reset the on-screen idle timer on
+  every restart, so the screen-off timeout was never reached (and could drop
+  an in-flight settings change). `restart.sh` now stops the `keep-panel.sh`
+  supervisor too and relaunches a single keeper, matching `start-panel.sh` /
+  `stop-panel.sh`.
 
 ## 2026.07.25
 
