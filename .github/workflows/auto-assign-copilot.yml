@@ -1,0 +1,87 @@
+name: auto-assign-copilot
+
+# Hand every newly opened issue to the Copilot coding agent, so triage starts
+# without waiting on a maintainer. Assignment is the trigger: once assigned, the
+# agent picks the issue up, works it and opens a draft PR.
+#
+# WHY A PAT AND NOT GITHUB_TOKEN: the Copilot assignment API rejects GitHub App
+# installation tokens, and the built-in GITHUB_TOKEN is one. A fine-grained PAT is
+# currently the only token that can assign copilot-swe-agent, so this reads
+# COPILOT_ASSIGN_TOKEN (Settings > Secrets and variables > Actions). Needs Issues:
+# read+write on this repository. Without that secret the job logs a notice and
+# exits clean, so a missing or expired token never blocks an issue being filed.
+#
+# The agent is a Bot actor and is invisible to the REST assignee endpoint, so
+# assignment goes through GraphQL. replaceActorsForAssignable replaces the whole
+# assignee list, so existing assignees are read first and preserved.
+#
+# Bot-authored issues are skipped, so dependabot et al. don't spawn agent sessions.
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  issues: write
+
+concurrency:
+  group: auto-assign-copilot-${{ github.event.issue.number }}
+  cancel-in-progress: false
+
+jobs:
+  assign:
+    if: github.event.issue.user.type != 'Bot'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Assign the Copilot coding agent
+        env:
+          GH_TOKEN: ${{ secrets.COPILOT_ASSIGN_TOKEN }}
+          OWNER: ${{ github.repository_owner }}
+          REPO: ${{ github.event.repository.name }}
+          NUM: ${{ github.event.issue.number }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${GH_TOKEN:-}" ]; then
+            echo "::notice::COPILOT_ASSIGN_TOKEN is not set — skipping Copilot assignment."
+            exit 0
+          fi
+
+          BOT_ID=$(gh api graphql -f query='
+            query($owner:String!,$name:String!){
+              repository(owner:$owner,name:$name){
+                suggestedActors(capabilities:[CAN_BE_ASSIGNED], first:100){
+                  nodes{ login __typename ... on Bot { id } }
+                }
+              }
+            }' -F owner="$OWNER" -F name="$REPO" \
+            --jq '.data.repository.suggestedActors.nodes[]
+                  | select(.login=="copilot-swe-agent") | .id')
+
+          if [ -z "$BOT_ID" ]; then
+            echo "::warning::copilot-swe-agent is not assignable here — is the coding agent enabled for this repository?"
+            exit 0
+          fi
+
+          ISSUE_JSON=$(gh api graphql -f query='
+            query($owner:String!,$name:String!,$num:Int!){
+              repository(owner:$owner,name:$name){
+                issue(number:$num){ id assignees(first:20){ nodes{ id } } }
+              }
+            }' -F owner="$OWNER" -F name="$REPO" -F num="$NUM")
+
+          ISSUE_ID=$(printf '%s' "$ISSUE_JSON" | jq -r '.data.repository.issue.id')
+          ACTORS=$(printf '%s' "$ISSUE_JSON" \
+            | jq -c --arg bot "$BOT_ID" \
+                '[.data.repository.issue.assignees.nodes[].id] + [$bot] | unique')
+
+          jq -n --arg id "$ISSUE_ID" --argjson actors "$ACTORS" '{
+            query: "mutation($assignable:ID!,$actors:[ID!]!){
+                      replaceActorsForAssignable(input:{assignableId:$assignable, actorIds:$actors}){
+                        assignable{ ... on Issue { number assignees(first:20){ nodes{ login } } } }
+                      }
+                    }",
+            variables: { assignable: $id, actors: $actors }
+          }' | gh api graphql --input -
+
+          echo "::notice::Assigned copilot-swe-agent to issue #${NUM}"
