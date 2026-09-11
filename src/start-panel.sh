@@ -25,25 +25,42 @@ BRIGHTNESS=75; INTERVAL=1; ROTATE=0; DISABLE_WAKEFIX=0
 # Because it REPLACES i915 system-wide, it can break other iGPU consumers (hardware
 # transcoding, intel_gpu_top, etc — see issue #20) on units that don't actually need
 # it. So it is skipped/removed whenever: the user disabled it (DISABLE_WAKEFIX=1),
-# it was already found unnecessary on this box, or eDP is already connected on the
-# stock driver with no overlay staged yet (BIOS pre-trained the bridge fine).
+# it was already found unnecessary on this box (NEEDS_FLAG), or eDP is already
+# connected while running on the stock driver (no overlay currently staged).
+#
+# Upgrades from older plugin versions may already have the overlay staged
+# unconditionally, with no chance yet to have proven it's actually required — for
+# those, RETEST_FLAG makes the check run exactly once: the overlay is pulled for
+# one boot so the NEXT run can observe the TRUE stock-driver eDP status and either
+# confirm the overlay is needed (re-staged) or mark it unnecessary for good. If
+# hardware changes later require the overlay again, delete NEEDS_FLAG manually.
 NEEDS_FLAG="$PANEL/.wakefix-not-needed"
+RETEST_FLAG="$PANEL/.wakefix-retested"
 edp_status(){ cat /sys/class/drm/card*-eDP-1/status 2>/dev/null | head -1; }
 if [ "$DISABLE_WAKEFIX" = "1" ]; then
     [ -f /boot/bzroot-wakefix ] && rm -f /boot/bzroot-wakefix \
         && echo "$(date) display wake overlay disabled by setting; stock i915 restored (reboot to apply)" >> $LOG
 elif [ -f "$NEEDS_FLAG" ]; then
     rm -f /boot/bzroot-wakefix
-elif [ ! -f /boot/bzroot-wakefix ] && [ "$(edp_status)" = "connected" ]; then
-    touch "$NEEDS_FLAG" 2>/dev/null
-    echo "$(date) eDP already connected on the stock i915 driver - display wake overlay not needed, will not be staged" >> $LOG
-elif [ -f "$PANEL/overlay/$KV/bzroot-wakefix" ]; then
-    cmp -s "$PANEL/overlay/$KV/bzroot-wakefix" /boot/bzroot-wakefix || {
+elif [ ! -f /boot/bzroot-wakefix ]; then
+    if [ "$(edp_status)" = "connected" ]; then
+        touch "$NEEDS_FLAG" 2>/dev/null
+        echo "$(date) eDP already connected on the stock i915 driver - display wake overlay not needed, will not be staged" >> $LOG
+    elif [ -f "$PANEL/overlay/$KV/bzroot-wakefix" ]; then
         cp "$PANEL/overlay/$KV/bzroot-wakefix" /boot/bzroot-wakefix
         echo "$(date) staged overlay for $KV" >> $LOG
+    else
+        notify warning "No display-module overlay for kernel $KV. Run plugin/boot/build-overlay.sh, then reboot."
+    fi
+elif [ ! -f "$RETEST_FLAG" ]; then
+    touch "$RETEST_FLAG" 2>/dev/null
+    rm -f /boot/bzroot-wakefix
+    echo "$(date) re-testing whether the display wake overlay is actually required (one-time, needs a reboot)" >> $LOG
+else
+    cmp -s "$PANEL/overlay/$KV/bzroot-wakefix" /boot/bzroot-wakefix 2>/dev/null || {
+        cp "$PANEL/overlay/$KV/bzroot-wakefix" /boot/bzroot-wakefix 2>/dev/null
+        echo "$(date) staged overlay for $KV" >> $LOG
     }
-elif [ ! -f /boot/bzroot-wakefix ]; then
-    notify warning "No display-module overlay for kernel $KV. Run plugin/boot/build-overlay.sh, then reboot."
 fi
 
 # ---- keep the panel boot path healthy (self-registered EFI entry) ----

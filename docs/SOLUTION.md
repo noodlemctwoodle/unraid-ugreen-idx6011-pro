@@ -109,10 +109,18 @@ system-wide, which on some units breaks other consumers of the iGPU (hardware
 transcoding, `intel_gpu_top`, etc — see issue #20). `start-panel.sh` now skips
 staging it automatically if eDP already reports `connected` on the stock driver
 before the overlay is ever applied (some boards' BIOS pre-trains the bridge fine
-without it), and a `DISABLE_WAKEFIX=1` key in `panel/settings.cfg` (webGUI: Screen
-tab) lets an affected user force the stock driver back — at the cost of the front
-LCD staying dark — on a unit that was auto-detected as needing it. Either path
-requires a reboot to take effect (syslinux/initrd only apply on the next boot).
+without it) — the decision is remembered in `panel/.wakefix-not-needed` so it is
+only ever evaluated once. Installs upgrading from an older plugin version that
+already staged the overlay unconditionally get one automatic re-test (tracked in
+`panel/.wakefix-retested`): the overlay is pulled for a single boot so the next
+boot can observe the true stock-driver eDP status, then either re-stages it
+(confirmed necessary) or marks it unnecessary for good — the front LCD may go dark
+for that one extra boot. A `DISABLE_WAKEFIX=1` key in `panel/settings.cfg` (webGUI:
+Screen tab) additionally lets a user force the stock driver back at any time — at
+the cost of the front LCD staying dark. All of these require a reboot to take
+effect (syslinux/initrd only apply on the next boot). If a unit's hardware changes
+such that the overlay becomes necessary again after being marked unnecessary,
+delete `panel/.wakefix-not-needed` from the flash to force re-evaluation.
 
 **Kernel-update procedure**: any Unraid upgrade changes the kernel → rebuild both
 modules against the new source with the new `config`, regenerate the overlay.
