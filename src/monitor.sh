@@ -107,7 +107,9 @@ COL_HEALTHY=$(hex2rgb "$(cfg_get LED_DISK_OK)"   "0 255 0")
 COL_WARN=$(hex2rgb    "$(cfg_get LED_DISK_WARN)" "255 120 0")
 COL_ERROR=$(hex2rgb   "$(cfg_get LED_DISK_BAD)"  "255 0 0")
 COL_LAN=$(hex2rgb     "$(cfg_get LED_LAN)"       "0 100 255")
+LEDS_ON=$(cfg_get LEDS); LEDS_ON=${LEDS_ON:-1}              # master switch: 0 = every front LED off
 POWER_LED=$(cfg_get LED_POWER); POWER_LED=${POWER_LED:-1}   # 1 = white power LED, 0 = off
+[ "$LEDS_ON" = 0 ] && POWER_LED=0                           # master off also darkens the power LED
 COL_STANDBY=$(hex2rgb "$(cfg_get LED_DISK_STANDBY)" "255 255 255")  # spun-down/standby disks
 ACTIVITY=$(cfg_get LED_ACTIVITY); ACTIVITY=${ACTIVITY:-0}           # 1 = blink disk/LAN on I/O
 BLINK_ON=60; BLINK_OFF=60                                           # hardware blink timing (ms)
@@ -115,6 +117,13 @@ BR_DISK=110
 BR_LAN=150
 
 LED(){ "$BIN" "$@" >/dev/null 2>&1; }
+
+# darken every disk/LAN LED (the power LED goes dark on its own once we stop
+# re-asserting it — the CLI writes below reset the controller).
+blank_leds(){
+  for b in 1 2 3 4 5 6; do LED "disk$b" -off; done
+  LED network_stat -off; LED network_stat2 -off
+}
 
 # power LED (raw i2c — the CLI can't drive it on this model).
 # Full host-takeover incl. mode-reset (0x04); required to light it from a cold/off state.
@@ -193,6 +202,7 @@ ps_min(){ case "${1:-}" in *:*) echo $((10#${1%%:*}*60 + 10#${1##*:}));; *) echo
 PS_ON=$(cfg_get POWERSAVE); PS_ON=${PS_ON:-0}
 PS_S=$(ps_min "$(cfg_get POWERSAVE_START)"); PS_E=$(ps_min "$(cfg_get POWERSAVE_END)")
 PS_BLANK=0
+LEDS_BLANK=0
 TOUCHF=/run/ugreen-idx-touch     # panel_dash touches this on a screen tap during power-save
 ps_now(){
   [ "$PS_ON" = 1 ] && [ "$PS_S" -ge 0 ] && [ "$PS_E" -ge 0 ] && [ "$PS_S" != "$PS_E" ] || return 1
@@ -207,10 +217,16 @@ ps_peek(){ [ -f "$TOUCHF" ] || return 1; local m; m=$(stat -c %Y "$TOUCHF" 2>/de
 
 while true; do
   now=$(date +%s 2>/dev/null || echo 0)
+  if [ "$LEDS_ON" = 0 ]; then            # master switch off: keep every LED dark, drive nothing
+    if [ "$LEDS_BLANK" != 1 ]; then
+      blank_leds
+      LEDS_BLANK=1; LAST_LED=()
+    fi
+    sleep "$REFRESH"; continue
+  fi
   if ps_now && ! ps_peek; then           # in the window + no recent tap: blank disk/LAN LEDs
     if [ "$PS_BLANK" != 1 ]; then
-      for b in 1 2 3 4 5 6; do LED "disk$b" -off; done
-      LED network_stat -off; LED network_stat2 -off
+      blank_leds
       PS_BLANK=1; LAST_LED=()
     fi
     sleep "$REFRESH"; continue
