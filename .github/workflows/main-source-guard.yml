@@ -1,0 +1,40 @@
+name: main-source-guard
+
+# main only ever receives develop. Everything else lands on develop first and
+# reaches main through a release PR.
+#
+# No ruleset rule can express this: every rule type acts on the TARGET branch,
+# none look at where a pull request came from. So this runs as a check and is
+# made required on main, which is the only mechanism GitHub offers.
+#
+# NOTE: for pull_request events GitHub runs the workflow file from the BASE
+# branch, so this only takes effect once it is on main itself — i.e. from the
+# next develop -> main release onwards.
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Only develop may merge into main
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          BASE_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          if [ "$HEAD_REPO" != "$BASE_REPO" ]; then
+            echo "::error::PRs into main must come from this repository's develop branch, not a fork ($HEAD_REPO)."
+            exit 1
+          fi
+          if [ "$HEAD_REF" != "develop" ]; then
+            echo "::error::PRs into main must come from develop. This one is from '$HEAD_REF' — merge it into develop first, then cut a release PR from develop."
+            exit 1
+          fi
+          echo "head is develop; ok to target main"
