@@ -29,8 +29,13 @@ verifies it; then `<FILE Run="/bin/bash"><INLINE>` →
 4. `start-panel.sh`:
    - **DMI gate**: `sys_vendor == UGREEN && product_name == "iDX6011 Pro"`, else exit 0.
    - `assert-boot.sh`: registers a named EFI entry (`Unraid (iDX6011 panel)`) for the
-     USB flash and keeps it first in BootOrder — the BIOS powers the panel rail only
-     for a *registered* entry. No UGOS/NVMe/grub dependency.
+     boot device and keeps it first in BootOrder — the BIOS powers the panel rail only
+     for a *registered* entry. No UGOS/NVMe/grub dependency. Locates the boot device
+     via its `UNRAID`-labelled filesystem (classic USB flash); if none is found (e.g.
+     Unraid 7.x "Internal Boot" — a ZFS boot pool on NVMe/SATA with GRUB, no USB flash
+     at all) it falls back to the ESP backing the currently booted EFI entry
+     (`efibootmgr`'s `BootCurrent`). Logs a `logger -t ugreen-panel` line on every
+     bail-out path so a failure to register is diagnosable.
    - Stages `panel/overlay/$(uname -r)/bzroot-wakefix` → `/boot/bzroot-wakefix`
      (kernel upgrades: panel dark for one boot + an Unraid notification, never a
      broken boot).

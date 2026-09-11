@@ -116,8 +116,10 @@ static int widget_tap(int x, int y){
         return 1;
     case WID_LEDS:
         cfg_leds = !cfg_leds;
+        settings_save();   /* BEFORE apply_leds(): the start.sh/stop.sh it spawns
+                            * restarts monitor.sh, which now reads LEDS back out of
+                            * settings.cfg — so the new value has to be on disk first */
         apply_leds();
-        settings_save();
         return 1;
     case WID_NIGHT:
         cfg_night = !cfg_night;

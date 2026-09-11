@@ -14,5 +14,16 @@ release/*.sha256
 *.pid
 # never commit secrets
 .env
+# SSH keys / credentials used to deploy test builds to a box — these must never
+# reach the repo. Broad on purpose: a private key is one `git add -A` away from a
+# public push, so match by name AND by the conventional extensions.
+id_rsa
+id_ecdsa
+id_ed25519*
+*.pem
+*.key
+*_rsa
+*_ed25519
+/unraid
 # macOS cruft
 .DS_Store
