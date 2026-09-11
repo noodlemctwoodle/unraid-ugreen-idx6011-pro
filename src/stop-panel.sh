@@ -5,7 +5,9 @@
 # entry, BootOrder) — the flash's syslinux default loads bzroot-wakefix, so removing
 # that file would break the boot. Full manual uninstall is documented in
 # docs/front-panel-blueprint.md.
-pkill -f "keep-panel.sh" 2>/dev/null   # stop the keeper first, or it respawns panel_dash
+PIDFILE=/run/ugreen-panel.pid
+pid=$(cat "$PIDFILE" 2>/dev/null)
+case "$pid" in ''|*[!0-9]*) ;; *) kill "$pid" 2>/dev/null;; esac
 pkill -x panel_dash 2>/dev/null
 rm -f /usr/local/bin/panel_dash
 # rebind fbcon so the text console returns on the LCD (keep-panel.sh unbound it)

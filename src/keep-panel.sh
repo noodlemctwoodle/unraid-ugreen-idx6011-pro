@@ -16,6 +16,18 @@
 # Degrades safely: if the eDP isn't present it just idles.
 BIN=/usr/local/bin/panel_dash
 LOG=/var/log/panel_dash.log
+PANEL=/boot/config/plugins/ugreen-idx6011-pro/panel
+PIDFILE=/run/ugreen-panel.pid
+
+if ! ( set -o noclobber; echo $$ > "$PIDFILE" ) 2>/dev/null; then
+    pid=$(cat "$PIDFILE" 2>/dev/null)
+    kill -0 "$pid" 2>/dev/null && exit 0
+    rm -f "$PIDFILE"
+    ( set -o noclobber; echo $$ > "$PIDFILE" ) 2>/dev/null || exit 0
+fi
+cleanup(){ [ "$(cat "$PIDFILE" 2>/dev/null)" = "$$" ] && rm -f "$PIDFILE"; }
+trap cleanup EXIT
+sleep 5
 
 edp_connected(){ [ "$(cat /sys/class/drm/card*-eDP-1/status 2>/dev/null | head -1)" = "connected" ]; }
 fbcon_set(){   # $1 = 1 (bind, console on the LCD) | 0 (unbind, LCD is a DRM panel)
@@ -28,7 +40,8 @@ fbcon_set(){   # $1 = 1 (bind, console on the LCD) | 0 (unbind, LCD is a DRM pan
 fails=0
 while :; do
     if ! edp_connected; then sleep 30; continue; fi
-    [ -x "$BIN" ] || { sleep 10; continue; }
+    [ -x "$BIN" ] || install -m0755 "$PANEL/panel_dash" "$BIN" 2>/dev/null ||
+        { sleep 10; continue; }
     fbcon_set 1                                   # bound -> clean modeset for panel_dash
     start=$(date +%s 2>/dev/null || echo 0)
     "$BIN" "$@" >>"$LOG" 2>&1 &                    # launch the dashboard

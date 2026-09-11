@@ -6,6 +6,7 @@ P=/boot/config/plugins/ugreen-idx6011-pro
 PANEL=$P/panel
 KV=$(uname -r)
 LOG=/var/log/panel_dash.log
+PIDFILE=/run/ugreen-panel.pid
 
 notify(){ /usr/local/emhttp/webGui/scripts/notify -i "$1" -s "Front panel" -d "$2" 2>/dev/null; }
 
@@ -41,14 +42,17 @@ modprobe i2c-dev 2>/dev/null
 
 # ---- start the dashboard only if the panel actually came up ----
 if [ "$(cat /sys/class/drm/card*-eDP-1/status 2>/dev/null | head -1)" = "connected" ]; then
-    pkill -f "keep-panel.sh" 2>/dev/null; pkill -x panel_dash 2>/dev/null; sleep 1
+    pid=$(cat "$PIDFILE" 2>/dev/null)
+    case "$pid" in ''|*[!0-9]*) ;; *) kill "$pid" 2>/dev/null;; esac
+    pkill -x panel_dash 2>/dev/null; sleep 1
+    [ -n "$pid" ] && [ "$(cat "$PIDFILE" 2>/dev/null)" = "$pid" ] && rm -f "$PIDFILE"
     cp $PANEL/panel_dash /usr/local/bin/panel_dash && chmod +x /usr/local/bin/panel_dash
     ARGS="--backlight $BRIGHTNESS --interval $INTERVAL"
     [ "$ROTATE" -gt 0 ] 2>/dev/null && ARGS="$ARGS --rotate $ROTATE"
     # a keeper owns the launch: it unbinds fbcon so the LCD is a DEDICATED DRM panel
     # (never the flooding text console when the dashboard isn't drawing) and respawns
     # panel_dash if it dies, with a backoff so a crash can't tight-loop.
-    ( sleep 5; setsid bash $P/keep-panel.sh $ARGS </dev/null >>$LOG 2>&1 ) </dev/null >/dev/null 2>&1 &
+    ( setsid bash $P/keep-panel.sh $ARGS </dev/null >>$LOG 2>&1 ) </dev/null >/dev/null 2>&1 &
     disown 2>/dev/null
     echo "$(date) panel keeper starting ($ARGS)" >> $LOG
 else
