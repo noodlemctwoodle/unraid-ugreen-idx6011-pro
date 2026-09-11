@@ -6,8 +6,12 @@ P=/boot/config/plugins/ugreen-idx6011-pro
 PANEL=$P/panel
 KV=$(uname -r)
 LOG=/var/log/panel_dash.log
+PIDFILE=/run/ugreen-panel.pid
 
 notify(){ /usr/local/emhttp/webGui/scripts/notify -i "$1" -s "Front panel" -d "$2" 2>/dev/null; }
+is_keeper(){
+    [ "$(tr '\0' '\n' 2>/dev/null < "/proc/$1/cmdline" | sed -n '2p')" = "$P/keep-panel.sh" ]
+}
 
 # ---- model gate ----
 [ "$(cat /sys/class/dmi/id/sys_vendor 2>/dev/null)" = "UGREEN" ] || exit 0
@@ -98,14 +102,34 @@ modprobe i2c-dev 2>/dev/null
 
 # ---- start the dashboard only if the panel actually came up ----
 if [ "$(edp_status)" = "connected" ]; then
-    pkill -f "keep-panel.sh" 2>/dev/null; pkill -x panel_dash 2>/dev/null; sleep 1
-    cp $PANEL/panel_dash /usr/local/bin/panel_dash && chmod +x /usr/local/bin/panel_dash
+    pid=$(cat "$PIDFILE" 2>/dev/null)
+    if is_keeper "$pid"; then
+        pids=$pid
+    else
+        pids=$(pgrep -f "^bash $P/keep-panel[.]sh( |$)")
+    fi
+    for pid in $pids; do is_keeper "$pid" && kill "$pid" 2>/dev/null; done
+    for _ in 1 2 3 4 5; do
+        running=
+        for pid in $pids; do is_keeper "$pid" && running=1; done
+        [ -z "$running" ] && break
+        sleep 1
+    done
+    for pid in $pids; do is_keeper "$pid" && kill -9 "$pid" 2>/dev/null; done
+    for pid in $pids; do
+        [ "$(cat "$PIDFILE" 2>/dev/null)" = "$pid" ] && rm -f "$PIDFILE"
+    done
+    pkill -x panel_dash 2>/dev/null
+    TMPBIN=/usr/local/bin/panel_dash.$$
+    install -m0755 "$PANEL/panel_dash" "$TMPBIN" 2>/dev/null &&
+        mv -f "$TMPBIN" /usr/local/bin/panel_dash
+    rm -f "$TMPBIN"
     ARGS="--backlight $BRIGHTNESS --interval $INTERVAL"
     [ "$ROTATE" -gt 0 ] 2>/dev/null && ARGS="$ARGS --rotate $ROTATE"
     # a keeper owns the launch: it unbinds fbcon so the LCD is a DEDICATED DRM panel
     # (never the flooding text console when the dashboard isn't drawing) and respawns
     # panel_dash if it dies, with a backoff so a crash can't tight-loop.
-    ( sleep 5; setsid bash $P/keep-panel.sh $ARGS </dev/null >>$LOG 2>&1 ) </dev/null >/dev/null 2>&1 &
+    ( setsid bash $P/keep-panel.sh $ARGS </dev/null >>$LOG 2>&1 ) </dev/null >/dev/null 2>&1 &
     disown 2>/dev/null
     echo "$(date) panel keeper starting ($ARGS)" >> $LOG
 else

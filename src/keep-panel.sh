@@ -26,7 +26,31 @@
 # Degrades safely: if the eDP isn't present it just idles.
 BIN=/usr/local/bin/panel_dash
 LOG=/var/log/panel_dash.log
-CFG=/boot/config/plugins/ugreen-idx6011-pro/panel/settings.cfg
+P=/boot/config/plugins/ugreen-idx6011-pro
+PANEL=$P/panel
+CFG=$PANEL/settings.cfg
+PIDFILE=/run/ugreen-panel.pid
+LOCKFILE=/run/ugreen-panel.lock
+TMPBIN=$BIN.$$
+
+exec 9>"$LOCKFILE"
+flock -n 9 || {
+    echo "$(date) panel keeper already running" >> "$LOG"
+    exit 0
+}
+echo $$ > "$PIDFILE"
+cleanup(){
+    [ -n "${pd:-}" ] && kill "$pd" 2>/dev/null
+    rm -f "$TMPBIN"
+    if [ "$(cat "$PIDFILE" 2>/dev/null)" = "$$" ]; then rm -f "$PIDFILE"; fi
+    return 0
+}
+trap cleanup EXIT
+trap 'exit 0' TERM INT
+# Waiting on a child makes the startup delay interruptible; pd is reused for panel_dash below.
+sleep 5 & pd=$!
+wait "$pd"
+pd=
 
 cfg_get(){ [ -f "$CFG" ] && grep -E "^$1=" "$CFG" 2>/dev/null | tail -1 | cut -d= -f2- | tr -d '"\r'; }
 EXTMON=$(cfg_get EXTMON); EXTMON="${EXTMON//[[:space:]]/}"; EXTMON=${EXTMON:-0}
@@ -72,7 +96,11 @@ console_to_external(){
 fails=0
 while :; do
     if ! edp_connected; then sleep 30; continue; fi
-    [ -x "$BIN" ] || { sleep 10; continue; }
+    # Restore the RAM copy if stop-panel removed it while this keeper survived.
+    if [ ! -x "$BIN" ]; then
+        install -m0755 "$PANEL/panel_dash" "$TMPBIN" 2>/dev/null &&
+            mv -f "$TMPBIN" "$BIN" || { rm -f "$TMPBIN"; sleep 10; continue; }
+    fi
     fbcon_set 1                                   # bound -> clean modeset for panel_dash
     start=$(date +%s 2>/dev/null || echo 0)
     "$BIN" "$@" >>"$LOG" 2>&1 &                    # launch the dashboard
