@@ -48,6 +48,7 @@ elif [ ! -f /boot/bzroot-wakefix ]; then
         echo "$(date) eDP already connected on the stock i915 driver - display wake overlay not needed, will not be staged" >> $LOG
     elif [ -f "$PANEL/overlay/$KV/bzroot-wakefix" ]; then
         cp "$PANEL/overlay/$KV/bzroot-wakefix" /boot/bzroot-wakefix
+        touch "$RETEST_FLAG" 2>/dev/null   # confirmed needed just now — no redundant retest later
         echo "$(date) staged overlay for $KV" >> $LOG
     else
         notify warning "No display-module overlay for kernel $KV. Run plugin/boot/build-overlay.sh, then reboot."
