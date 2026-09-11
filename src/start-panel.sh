@@ -44,7 +44,8 @@ if [ "$DISABLE_WAKEFIX" = "1" ]; then
     [ -f /boot/bzroot-wakefix ] && rm -f /boot/bzroot-wakefix \
         && echo "$(date) display wake overlay disabled by setting; stock i915 restored (reboot to apply)" >> $LOG
 elif [ -f "$NOT_NEEDED_FLAG" ]; then
-    rm -f /boot/bzroot-wakefix
+    [ -f /boot/bzroot-wakefix ] && rm -f /boot/bzroot-wakefix \
+        && echo "$(date) display wake overlay previously determined unnecessary; not staged" >> $LOG
 elif [ ! -f /boot/bzroot-wakefix ]; then
     if [ "$(edp_status)" = "connected" ]; then
         touch "$NOT_NEEDED_FLAG" 2>/dev/null
