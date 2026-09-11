@@ -9,8 +9,13 @@ name: release-beta
 #
 # Testers install / stay on the beta channel from:
 #   https://raw.githubusercontent.com/noodlemctwoodle/unraid-ugreen-idx6011-pro/develop/ugreen-idx6011-pro.beta.plg
-# The beta self-updates from develop; installing the stable .plg moves back to the
-# stable channel (stable > any <base>.beta.<n>).
+# The beta self-updates from develop. To LEAVE the beta, remove the plugin first and
+# then install the stable one: the beta is a separate manifest FILENAME
+# (<name>.beta.plg vs <name>.plg), so Unraid treats the two as different installs and
+# installing the stable .plg on top leaves BOTH registered, each running its own
+# install block at boot. Version ordering does not rescue this either - a beta
+# targeting an unreleased version (2026.09.11.beta.N) sorts ABOVE the current stable
+# (2026.07.25), so the stable .plg is not even seen as an upgrade.
 
 # Two ways to cut a beta:
 #   - push a tag matching *.beta.*  (works from develop today; the tag IS the version)
@@ -123,7 +128,9 @@ jobs:
             echo "$BPLG"
             echo '```'
             echo ''
-            echo 'Then **reboot**. The beta self-updates from `develop`; each new beta run bumps the version. To move back to the stable channel, install the stable `.plg`.'
+            echo 'Then **reboot**. The beta self-updates from `develop`; each new beta run bumps the version.'
+            echo ''
+            echo 'To leave the beta, **remove the plugin first**, then install the stable one from Community Applications. The beta is a separate manifest filename (`ugreen-idx6011-pro.beta.plg`), so installing the stable `.plg` on top of it leaves both registered and fighting over the same install.'
             echo ''
             echo "## What's in this beta (targeting ${BASE})"
             echo ''
