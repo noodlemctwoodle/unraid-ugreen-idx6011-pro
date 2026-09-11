@@ -4,6 +4,20 @@ All notable user-facing changes to the **UGREEN iDX6011 Pro** Unraid plugin.
 Versions are date-based (`YYYY.MM.DD`); the same notes drive each GitHub release
 and the plugin's in-app `<CHANGES>` list.
 
+## 2026.09.11
+
+- **Fixed: Internal Boot (ZFS/GRUB) support for the front-panel EFI entry.**
+  `assert-boot.sh` previously located the boot device by looking for a block
+  device labelled `UNRAID`, which doesn't exist on Unraid 7.x's "Internal
+  Boot" (ZFS boot pool on NVMe/SATA, GRUB, no USB flash drive) — the script
+  silently exited before registering the panel's named EFI entry, leaving the
+  front-panel rail unpowered and the LCD dark. It now falls back to the ESP
+  backing the currently booted EFI entry (via `efibootmgr`'s `BootCurrent`)
+  when no `UNRAID`-labelled device is found, and logs a diagnostic message on
+  every bail-out path instead of failing silently. The install banner also
+  now distinguishes "the EFI entry could not be created" from "the entry
+  exists but isn't first in the BIOS boot order".
+
 ## 2026.07.25
 
 - **Eight more cards.** Disk I/O (live read/write MB/s), Load average, Shares

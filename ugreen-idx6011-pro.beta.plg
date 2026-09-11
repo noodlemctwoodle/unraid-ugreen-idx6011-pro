@@ -156,12 +156,19 @@ echo "     'Unraid (iDX6011 panel)' EFI entry this plugin registered."
 echo ""
 if [ "$(cat /sys/class/drm/card*-eDP-1/status 2>/dev/null | head -1)" = "connected" ]; then
   echo "   Panel: ACTIVE - the dashboard is running. Nothing else to do."
-else
+elif command -v efibootmgr &gt;/dev/null &amp;&amp; efibootmgr 2>/dev/null | grep -qF "Unraid (iDX6011 panel)"; then
   echo "   Panel: NOT ACTIVE this boot. To light it:"
   echo "     1) In the BIOS make the panel entry boot first:"
   echo "          Boot > UEFI USB Hard Disk Drive BBS Priorities"
   echo "               > 'Unraid (iDX6011 panel)'"
   echo "     2) Reboot."
+else
+  echo "   Panel: NOT ACTIVE - the 'Unraid (iDX6011 panel)' EFI entry could not"
+  echo "   be created automatically (check 'logger | grep ugreen-panel' for why)."
+  echo "   Register it manually, e.g.:"
+  echo "     efibootmgr -c -d /dev/sdX -p 1 -L 'Unraid (iDX6011 panel)' \\"
+  echo "       -l '\\EFI\\BOOT\\BOOTX64.EFI'"
+  echo "   then set it first in the BIOS boot order and reboot."
 fi
 echo ""
 echo "   Docs: github.com/noodlemctwoodle/unraid-ugreen-idx6011-pro"
