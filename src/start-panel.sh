@@ -30,12 +30,15 @@ BRIGHTNESS=75; INTERVAL=1; ROTATE=0; DISABLE_WAKEFIX=0
 #
 # Upgrades from older plugin versions may already have the overlay staged
 # unconditionally, with no chance yet to have proven it's actually required — for
-# those, RETEST_FLAG makes the check run exactly once: the overlay is pulled for
+# those, EVALUATED_FLAG makes the check run exactly once: the overlay is pulled for
 # one boot so the NEXT run can observe the TRUE stock-driver eDP status and either
-# confirm the overlay is needed (re-staged) or mark it unnecessary for good. If
-# hardware changes later require the overlay again, delete NEEDS_FLAG manually.
+# confirm the overlay is needed (re-staged, EVALUATED_FLAG set) or mark it
+# unnecessary for good (NEEDS_FLAG set instead). A fresh install that stages the
+# overlay for the first time sets EVALUATED_FLAG immediately, since it was just
+# proven necessary and needs no separate re-test. If hardware changes later
+# require the overlay again after being marked unnecessary, delete NEEDS_FLAG.
 NEEDS_FLAG="$PANEL/.wakefix-not-needed"
-RETEST_FLAG="$PANEL/.wakefix-retested"
+EVALUATED_FLAG="$PANEL/.wakefix-evaluated"
 edp_status(){ cat /sys/class/drm/card*-eDP-1/status 2>/dev/null | head -1; }
 if [ "$DISABLE_WAKEFIX" = "1" ]; then
     [ -f /boot/bzroot-wakefix ] && rm -f /boot/bzroot-wakefix \
@@ -48,13 +51,13 @@ elif [ ! -f /boot/bzroot-wakefix ]; then
         echo "$(date) eDP already connected on the stock i915 driver - display wake overlay not needed, will not be staged" >> $LOG
     elif [ -f "$PANEL/overlay/$KV/bzroot-wakefix" ]; then
         cp "$PANEL/overlay/$KV/bzroot-wakefix" /boot/bzroot-wakefix
-        touch "$RETEST_FLAG" 2>/dev/null   # confirmed needed just now — no redundant retest later
+        touch "$EVALUATED_FLAG" 2>/dev/null   # confirmed needed just now — no redundant retest later
         echo "$(date) staged overlay for $KV" >> $LOG
     else
         notify warning "No display-module overlay for kernel $KV. Run plugin/boot/build-overlay.sh, then reboot."
     fi
-elif [ ! -f "$RETEST_FLAG" ]; then
-    touch "$RETEST_FLAG" 2>/dev/null
+elif [ ! -f "$EVALUATED_FLAG" ]; then
+    touch "$EVALUATED_FLAG" 2>/dev/null
     rm -f /boot/bzroot-wakefix
     echo "$(date) re-testing whether the display wake overlay is actually required (one-time, needs a reboot)" >> $LOG
 else
