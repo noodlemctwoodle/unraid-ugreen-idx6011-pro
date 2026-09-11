@@ -104,6 +104,16 @@ lib/modules/6.18.38-Unraid/kernel/drivers/gpu/drm/display/drm_display_helper.ko.
 Loaded via the flash's syslinux (booted through the registered EFI entry):
 `append initrd=/bzroot,/bzroot-wakefix`.
 
+**Only staged when actually needed.** This overlay replaces the stock `i915.ko`
+system-wide, which on some units breaks other consumers of the iGPU (hardware
+transcoding, `intel_gpu_top`, etc — see issue #20). `start-panel.sh` now skips
+staging it automatically if eDP already reports `connected` on the stock driver
+before the overlay is ever applied (some boards' BIOS pre-trains the bridge fine
+without it), and a `DISABLE_WAKEFIX=1` key in `panel/settings.cfg` (webGUI: Screen
+tab) lets an affected user force the stock driver back — at the cost of the front
+LCD staying dark — on a unit that was auto-detected as needing it. Either path
+requires a reboot to take effect (syslinux/initrd only apply on the next boot).
+
 **Kernel-update procedure**: any Unraid upgrade changes the kernel → rebuild both
 modules against the new source with the new `config`, regenerate the overlay.
 Verify vermagic: `modinfo -F vermagic i915.ko` must equal `uname -r` + ` SMP preempt mod_unload`.
