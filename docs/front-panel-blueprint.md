@@ -55,6 +55,18 @@ identically. The USB's own syslinux is left standard, so a plain USB boot still 
 for headless recovery (it goes through the removable-media fallback, which does not
 power the panel).
 
+**Unraid 7.x "Internal Boot" (ZFS boot pool on NVMe/SATA, GRUB, no USB flash):**
+there is no block device labelled `UNRAID` in this configuration, so `blkid -L
+UNRAID` above returns nothing. Register the entry against the ESP of the disk
+that is actually booting instead — `assert-boot.sh` derives this automatically
+from the currently booted EFI entry (`efibootmgr -v`'s `BootCurrent`), or do it
+by hand:
+
+```sh
+efibootmgr -v | grep -A1 BootCurrent          # find the active ESP's partition
+efibootmgr -c -d /dev/nvme0n1 -p 2 -L "Unraid (iDX6011 panel)" -l '\EFI\BOOT\BOOTX64.EFI'
+```
+
 ## Step 2 — Build the patched modules + overlay + touch modules
 
 One script does all of it (container build, correct config, correct xz flags):
