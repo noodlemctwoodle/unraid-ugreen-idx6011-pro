@@ -9,6 +9,9 @@ LOG=/var/log/panel_dash.log
 PIDFILE=/run/ugreen-panel.pid
 
 notify(){ /usr/local/emhttp/webGui/scripts/notify -i "$1" -s "Front panel" -d "$2" 2>/dev/null; }
+is_keeper(){
+    [ "$(tr '\0' '\n' 2>/dev/null < "/proc/$1/cmdline" | sed -n '2p')" = "$P/keep-panel.sh" ]
+}
 
 # ---- model gate ----
 [ "$(cat /sys/class/dmi/id/sys_vendor 2>/dev/null)" = "UGREEN" ] || exit 0
@@ -43,15 +46,19 @@ modprobe i2c-dev 2>/dev/null
 # ---- start the dashboard only if the panel actually came up ----
 if [ "$(cat /sys/class/drm/card*-eDP-1/status 2>/dev/null | head -1)" = "connected" ]; then
     pid=$(cat "$PIDFILE" 2>/dev/null)
-    case "$pid" in
-        ''|*[!0-9]*) ;;
-        *)
-            kill "$pid" 2>/dev/null
-            for _ in 1 2 3 4 5; do kill -0 "$pid" 2>/dev/null || break; sleep 1; done
-            kill -9 "$pid" 2>/dev/null
-            [ "$(cat "$PIDFILE" 2>/dev/null)" = "$pid" ] && rm -f "$PIDFILE"
-            ;;
-    esac
+    is_keeper "$pid" && pids=$pid ||
+        pids=$(pgrep -f "^bash $P/keep-panel[.]sh( |$)")
+    for pid in $pids; do is_keeper "$pid" && kill "$pid" 2>/dev/null; done
+    for _ in 1 2 3 4 5; do
+        running=
+        for pid in $pids; do is_keeper "$pid" && running=1; done
+        [ -z "$running" ] && break
+        sleep 1
+    done
+    for pid in $pids; do is_keeper "$pid" && kill -9 "$pid" 2>/dev/null; done
+    for pid in $pids; do
+        [ "$(cat "$PIDFILE" 2>/dev/null)" = "$pid" ] && rm -f "$PIDFILE"
+    done
     pkill -x panel_dash 2>/dev/null
     cp $PANEL/panel_dash /usr/local/bin/panel_dash && chmod +x /usr/local/bin/panel_dash
     ARGS="--backlight $BRIGHTNESS --interval $INTERVAL"

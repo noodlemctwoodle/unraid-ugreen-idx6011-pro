@@ -22,7 +22,8 @@ PIDFILE=/run/ugreen-panel.pid
 
 if ! ( set -o noclobber; echo $$ > "$PIDFILE" ) 2>/dev/null; then
     pid=$(cat "$PIDFILE" 2>/dev/null)
-    kill -0 "$pid" 2>/dev/null && exit 0
+    script=$(tr '\0' '\n' 2>/dev/null < "/proc/$pid/cmdline" | sed -n '2p')
+    [ "$script" = "$P/keep-panel.sh" ] && exit 0
     rm -f "$PIDFILE"
     ( set -o noclobber; echo $$ > "$PIDFILE" ) 2>/dev/null || exit 0
 fi
