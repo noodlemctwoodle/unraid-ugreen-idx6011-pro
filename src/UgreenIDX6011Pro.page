@@ -62,6 +62,10 @@ $ifaces = idx_ifaces();
     <option value=""<?=idx_val($cfg,'PRIMARY_IFACE','')===''?' selected':''?>>Auto (default route)</option>
     <?php foreach ($ifaces as $n) echo '<option value="' . htmlspecialchars($n) . '"' . (idx_val($cfg,'PRIMARY_IFACE','') === $n ? ' selected' : '') . '>' . htmlspecialchars($n) . '</option>'; ?>
   </select>
+
+  <label>_(Display wake-probe overlay &mdash; patched i915 driver)_</label>
+  <select name="DISABLE_WAKEFIX"><?php idx_opts([0=>'Enabled (default, needed for the front LCD on most units)',1=>'Disabled (restores stock i915 &mdash; front LCD may stay dark)'], idx_val($cfg,'DISABLE_WAKEFIX','0')); ?></select>
+  <div class="idxth-note">_(This overlay replaces the stock <code>i915</code> driver so the front eDP panel wakes on kernels that need it. On some units it isn't required and replacing the driver can break other iGPU consumers (hardware transcoding, <code>intel_gpu_top</code>, etc). If your iGPU stopped working properly for other apps/containers after installing this plugin, set this to Disabled and reboot; the plugin also skips staging it automatically when it detects the panel already works without it.)_</div>
 </div>
 
 &nbsp;
