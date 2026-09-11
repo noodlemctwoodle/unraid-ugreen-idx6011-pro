@@ -20,12 +20,17 @@ P=/boot/config/plugins/ugreen-idx6011-pro
 PANEL=$P/panel
 PIDFILE=/run/ugreen-panel.pid
 LOCKFILE=/run/ugreen-panel.lock
+TMPBIN=$BIN.$$
 
 exec 9>"$LOCKFILE"
-flock -n 9 || exit 0
+flock -n 9 || {
+    echo "$(date) panel keeper already running" >> "$LOG"
+    exit 0
+}
 echo $$ > "$PIDFILE"
 cleanup(){
     [ -n "${pd:-}" ] && kill "$pd" 2>/dev/null
+    rm -f "$TMPBIN"
     if [ "$(cat "$PIDFILE" 2>/dev/null)" = "$$" ]; then rm -f "$PIDFILE"; fi
     return 0
 }
@@ -48,8 +53,10 @@ fails=0
 while :; do
     if ! edp_connected; then sleep 30; continue; fi
     # Restore the RAM copy if stop-panel removed it while this keeper survived.
-    [ -x "$BIN" ] || install -m0755 "$PANEL/panel_dash" "$BIN" 2>/dev/null ||
-        { sleep 10; continue; }
+    if [ ! -x "$BIN" ]; then
+        install -m0755 "$PANEL/panel_dash" "$TMPBIN" 2>/dev/null &&
+            mv -f "$TMPBIN" "$BIN" || { rm -f "$TMPBIN"; sleep 10; continue; }
+    fi
     fbcon_set 1                                   # bound -> clean modeset for panel_dash
     start=$(date +%s 2>/dev/null || echo 0)
     "$BIN" "$@" >>"$LOG" 2>&1 &                    # launch the dashboard
