@@ -4,6 +4,18 @@ All notable user-facing changes to the **UGREEN iDX6011 Pro** Unraid plugin.
 Versions are date-based (`YYYY.MM.DD`); the same notes drive each GitHub release
 and the plugin's in-app `<CHANGES>` list.
 
+## Unreleased
+
+- **Fix: front panel would never go idle.** Saving a settings change from the
+  webGUI (`restart.sh`) killed `panel_dash` but left the `keep-panel.sh`
+  supervisor running, which immediately respawned its own copy — racing a
+  second, directly-launched `panel_dash` for DRM master. The resulting
+  `setcrtc: Permission denied` crash-loop reset the on-screen idle timer on
+  every restart, so the screen-off timeout was never reached (and could drop
+  an in-flight settings change). `restart.sh` now stops the `keep-panel.sh`
+  supervisor too and relaunches a single keeper, matching `start-panel.sh` /
+  `stop-panel.sh`.
+
 ## 2026.07.25
 
 - **Eight more cards.** Disk I/O (live read/write MB/s), Load average, Shares
