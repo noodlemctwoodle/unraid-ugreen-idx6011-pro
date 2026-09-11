@@ -32,7 +32,9 @@ cleanup(){
 }
 trap cleanup EXIT
 trap 'exit 0' TERM INT
-sleep 5
+sleep 5 & pd=$!
+wait "$pd"
+pd=
 
 edp_connected(){ [ "$(cat /sys/class/drm/card*-eDP-1/status 2>/dev/null | head -1)" = "connected" ]; }
 fbcon_set(){   # $1 = 1 (bind, console on the LCD) | 0 (unbind, LCD is a DRM panel)
