@@ -19,17 +19,15 @@ LOG=/var/log/panel_dash.log
 P=/boot/config/plugins/ugreen-idx6011-pro
 PANEL=$P/panel
 PIDFILE=/run/ugreen-panel.pid
+LOCKFILE=/run/ugreen-panel.lock
 
-if ! ( set -o noclobber; echo $$ > "$PIDFILE" ) 2>/dev/null; then
-    pid=$(cat "$PIDFILE" 2>/dev/null)
-    script=$(tr '\0' '\n' 2>/dev/null < "/proc/$pid/cmdline" | sed -n '2p')
-    [ "$script" = "$P/keep-panel.sh" ] && exit 0
-    rm -f "$PIDFILE"
-    ( set -o noclobber; echo $$ > "$PIDFILE" ) 2>/dev/null || exit 0
-fi
+exec 9>"$LOCKFILE"
+flock -n 9 || exit 0
+echo $$ > "$PIDFILE"
 cleanup(){
     [ -n "${pd:-}" ] && kill "$pd" 2>/dev/null
     if [ "$(cat "$PIDFILE" 2>/dev/null)" = "$$" ]; then rm -f "$PIDFILE"; fi
+    return 0
 }
 trap cleanup EXIT
 trap 'exit 0' TERM INT
@@ -49,6 +47,7 @@ fbcon_set(){   # $1 = 1 (bind, console on the LCD) | 0 (unbind, LCD is a DRM pan
 fails=0
 while :; do
     if ! edp_connected; then sleep 30; continue; fi
+    # Restore the RAM copy if stop-panel removed it while this keeper survived.
     [ -x "$BIN" ] || install -m0755 "$PANEL/panel_dash" "$BIN" 2>/dev/null ||
         { sleep 10; continue; }
     fbcon_set 1                                   # bound -> clean modeset for panel_dash

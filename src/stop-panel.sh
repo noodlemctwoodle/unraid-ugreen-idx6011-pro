@@ -12,8 +12,11 @@ is_keeper(){
 }
 
 pid=$(cat "$PIDFILE" 2>/dev/null)
-is_keeper "$pid" && pids=$pid ||
+if is_keeper "$pid"; then
+    pids=$pid
+else
     pids=$(pgrep -f "^bash $P/keep-panel[.]sh( |$)")
+fi
 for pid in $pids; do is_keeper "$pid" && kill "$pid" 2>/dev/null; done
 for _ in 1 2 3 4 5; do
     running=
@@ -23,7 +26,7 @@ for _ in 1 2 3 4 5; do
 done
 for pid in $pids; do is_keeper "$pid" && kill -9 "$pid" 2>/dev/null; done
 for pid in $pids; do
-        [ "$(cat "$PIDFILE" 2>/dev/null)" = "$pid" ] && rm -f "$PIDFILE"
+    [ "$(cat "$PIDFILE" 2>/dev/null)" = "$pid" ] && rm -f "$PIDFILE"
 done
 pkill -x panel_dash 2>/dev/null
 rm -f /usr/local/bin/panel_dash

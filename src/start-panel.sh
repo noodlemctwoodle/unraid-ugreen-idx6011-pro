@@ -46,8 +46,11 @@ modprobe i2c-dev 2>/dev/null
 # ---- start the dashboard only if the panel actually came up ----
 if [ "$(cat /sys/class/drm/card*-eDP-1/status 2>/dev/null | head -1)" = "connected" ]; then
     pid=$(cat "$PIDFILE" 2>/dev/null)
-    is_keeper "$pid" && pids=$pid ||
+    if is_keeper "$pid"; then
+        pids=$pid
+    else
         pids=$(pgrep -f "^bash $P/keep-panel[.]sh( |$)")
+    fi
     for pid in $pids; do is_keeper "$pid" && kill "$pid" 2>/dev/null; done
     for _ in 1 2 3 4 5; do
         running=
