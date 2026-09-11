@@ -25,7 +25,9 @@ if ! ( set -o noclobber; echo $$ > "$PIDFILE" ) 2>/dev/null; then
     rm -f "$PIDFILE"
     ( set -o noclobber; echo $$ > "$PIDFILE" ) 2>/dev/null || exit 0
 fi
-cleanup(){ [ "$(cat "$PIDFILE" 2>/dev/null)" = "$$" ] && rm -f "$PIDFILE"; }
+cleanup(){
+    if [ "$(cat "$PIDFILE" 2>/dev/null)" = "$$" ]; then rm -f "$PIDFILE"; fi
+}
 trap cleanup EXIT
 sleep 5
 

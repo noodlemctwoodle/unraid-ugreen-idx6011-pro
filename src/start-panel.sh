@@ -43,8 +43,15 @@ modprobe i2c-dev 2>/dev/null
 # ---- start the dashboard only if the panel actually came up ----
 if [ "$(cat /sys/class/drm/card*-eDP-1/status 2>/dev/null | head -1)" = "connected" ]; then
     pid=$(cat "$PIDFILE" 2>/dev/null)
-    case "$pid" in ''|*[!0-9]*) ;; *) kill "$pid" 2>/dev/null;; esac
-    pkill -x panel_dash 2>/dev/null; sleep 1
+    case "$pid" in
+        ''|*[!0-9]*) ;;
+        *)
+            kill "$pid" 2>/dev/null
+            for _ in 1 2 3 4 5; do kill -0 "$pid" 2>/dev/null || break; sleep 1; done
+            kill -9 "$pid" 2>/dev/null
+            ;;
+    esac
+    pkill -x panel_dash 2>/dev/null
     [ -n "$pid" ] && [ "$(cat "$PIDFILE" 2>/dev/null)" = "$pid" ] && rm -f "$PIDFILE"
     cp $PANEL/panel_dash /usr/local/bin/panel_dash && chmod +x /usr/local/bin/panel_dash
     ARGS="--backlight $BRIGHTNESS --interval $INTERVAL"

@@ -7,7 +7,15 @@
 # docs/front-panel-blueprint.md.
 PIDFILE=/run/ugreen-panel.pid
 pid=$(cat "$PIDFILE" 2>/dev/null)
-case "$pid" in ''|*[!0-9]*) ;; *) kill "$pid" 2>/dev/null;; esac
+case "$pid" in
+    ''|*[!0-9]*) ;;
+    *)
+        kill "$pid" 2>/dev/null
+        for _ in 1 2 3 4 5; do kill -0 "$pid" 2>/dev/null || break; sleep 1; done
+        kill -9 "$pid" 2>/dev/null
+        ;;
+esac
+[ -n "$pid" ] && [ "$(cat "$PIDFILE" 2>/dev/null)" = "$pid" ] && rm -f "$PIDFILE"
 pkill -x panel_dash 2>/dev/null
 rm -f /usr/local/bin/panel_dash
 # rebind fbcon so the text console returns on the LCD (keep-panel.sh unbound it)
