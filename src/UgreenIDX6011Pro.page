@@ -62,6 +62,10 @@ $ifaces = idx_ifaces();
     <option value=""<?=idx_val($cfg,'PRIMARY_IFACE','')===''?' selected':''?>>Auto (default route)</option>
     <?php foreach ($ifaces as $n) echo '<option value="' . htmlspecialchars($n) . '"' . (idx_val($cfg,'PRIMARY_IFACE','') === $n ? ' selected' : '') . '>' . htmlspecialchars($n) . '</option>'; ?>
   </select>
+
+  <label>_(Keep console on external monitor)_</label>
+  <select name="EXTMON"><?php idx_opts([0=>'Off (default)',1=>'On'], idx_val($cfg,'EXTMON','0')); ?></select>
+  <div class="idxth-note">_(If a monitor is connected alongside the front panel, keep the local text console bound and sized to that monitor instead of the panel &mdash; otherwise it's unbound when the dashboard is running, so a monitor's console goes dark. If the dashboard crashes, the console briefly appears on the monitor until it respawns.)_</div>
 </div>
 
 &nbsp;
