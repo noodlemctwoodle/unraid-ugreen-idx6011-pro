@@ -57,7 +57,13 @@ install -m0644 src/panel/fonts/*.ttf src/panel/fonts/*-OFL.txt "$STAGE/panel/fon
 
 # --- pack (deterministic-ish: sorted, xz) ------------------------------------
 install -d release
-( cd "$STAGE" && find . -type f | sort | tar cJf - -T - ) > "$OUT"
+# --owner/--group/--numeric-owner: the flash is vfat and cannot carry ownership, so
+# tar's chown fails and it EXITS NON-ZERO on extract. The .plg only touches its
+# .payload-<version> marker on a zero exit, so a payload built as any non-root user
+# (GitHub's runner is uid 1001) re-extracts on every boot and spews chown errors at
+# the user. Forcing uid/gid 0 into the archive keeps extraction silent and marked.
+( cd "$STAGE" && find . -type f | sort |
+  tar --owner=0 --group=0 --numeric-owner -cJf - -T - ) > "$OUT"
 
 sha() { if command -v sha256sum >/dev/null; then sha256sum "$1" | awk '{print $1}'
         else shasum -a 256 "$1" | awk '{print $1}'; fi; }
