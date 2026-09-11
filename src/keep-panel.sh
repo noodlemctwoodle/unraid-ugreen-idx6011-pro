@@ -29,7 +29,7 @@ LOG=/var/log/panel_dash.log
 CFG=/boot/config/plugins/ugreen-idx6011-pro/panel/settings.cfg
 
 cfg_get(){ [ -f "$CFG" ] && grep -E "^$1=" "$CFG" 2>/dev/null | tail -1 | cut -d= -f2- | tr -d '"\r'; }
-EXTMON=$(cfg_get EXTMON); EXTMON=${EXTMON:-0}
+EXTMON=$(cfg_get EXTMON); EXTMON="${EXTMON//[[:space:]]/}"; EXTMON=${EXTMON:-0}
 
 edp_connected(){ [ "$(cat /sys/class/drm/card*-eDP-1/status 2>/dev/null | head -1)" = "connected" ]; }
 fbcon_set(){   # $1 = 1 (bind, console on the LCD) | 0 (unbind, LCD is a DRM panel)
@@ -59,12 +59,14 @@ console_to_external(){
     w=${BASH_REMATCH[1]}; h=${BASH_REMATCH[2]}
     [ "$w" -gt 0 ] && [ "$h" -gt 0 ] || return 1
     command -v fbset >/dev/null 2>&1 || return 1   # no fbset -> can't resize; let the caller fall back
-    # 32 = colour depth (bpp); matches the 4K test hardware's fbcon depth and is the
-    # depth i915 already leaves the shared framebuffer at, so this only widens the
-    # visible geometry — it never changes bpp. Virtual == visible size (no pan/scroll
+    # depth: read the framebuffer's CURRENT bpp rather than assuming 32, so this
+    # tracks whatever depth i915 already left the shared framebuffer at; 32 is only
+    # the fallback if that's unreadable. Virtual == visible size (no pan/scroll
     # buffer): the console doesn't need one, and it keeps the geometry call simple.
-    fbset -g "$w" "$h" "$w" "$h" 32 2>/dev/null || return 1
+    local bpp; bpp=$(cat /sys/class/graphics/fb0/bits_per_pixel 2>/dev/null); bpp=${bpp:-32}
+    fbset -g "$w" "$h" "$w" "$h" "$bpp" 2>/dev/null || return 1
     fbcon_set 1
+    return 0   # explicit: fbcon_set's own exit status isn't a reliable success signal
 }
 
 fails=0
