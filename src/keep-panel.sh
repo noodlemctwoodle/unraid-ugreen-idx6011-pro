@@ -32,6 +32,7 @@ cleanup(){
 }
 trap cleanup EXIT
 trap 'exit 0' TERM INT
+# Waiting on a child makes the startup delay interruptible; pd is reused for panel_dash below.
 sleep 5 & pd=$!
 wait "$pd"
 pd=
