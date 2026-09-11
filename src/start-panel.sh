@@ -16,14 +16,28 @@ notify(){ /usr/local/emhttp/webGui/scripts/notify -i "$1" -s "Front panel" -d "$
 # ---- settings (flash-persistent, webGUI-editable) ----
 # panel_dash reads settings.cfg itself (incl. the WALLPAPER / LOGO image paths) and
 # hot-reloads them live, so no --bg is passed here.
-BRIGHTNESS=75; INTERVAL=1; ROTATE=0
+BRIGHTNESS=75; INTERVAL=1; ROTATE=0; DISABLE_WAKEFIX=0
 [ -f $PANEL/settings.cfg ] && . $PANEL/settings.cfg
 
-# ---- keep the panel boot path healthy (self-registered EFI entry) ----
-bash $P/assert-boot.sh 2>>$LOG
-
-# ---- stage the overlay matching THIS Unraid release for the next boot ----
-if [ -f "$PANEL/overlay/$KV/bzroot-wakefix" ]; then
+# ---- display wake-probe overlay: only ever staged when actually needed ----
+# The overlay swaps the stock i915 driver for a patched one so this panel's eDP
+# wakes on kernels that dropped the DPCD probe it depends on (docs/SOLUTION.md).
+# Because it REPLACES i915 system-wide, it can break other iGPU consumers (hardware
+# transcoding, intel_gpu_top, etc — see issue #20) on units that don't actually need
+# it. So it is skipped/removed whenever: the user disabled it (DISABLE_WAKEFIX=1),
+# it was already found unnecessary on this box, or eDP is already connected on the
+# stock driver with no overlay staged yet (BIOS pre-trained the bridge fine).
+NEEDS_FLAG="$PANEL/.wakefix-not-needed"
+edp_status(){ cat /sys/class/drm/card*-eDP-1/status 2>/dev/null | head -1; }
+if [ "$DISABLE_WAKEFIX" = "1" ]; then
+    [ -f /boot/bzroot-wakefix ] && rm -f /boot/bzroot-wakefix \
+        && echo "$(date) display wake overlay disabled by setting; stock i915 restored (reboot to apply)" >> $LOG
+elif [ -f "$NEEDS_FLAG" ]; then
+    rm -f /boot/bzroot-wakefix
+elif [ ! -f /boot/bzroot-wakefix ] && [ "$(edp_status)" = "connected" ]; then
+    touch "$NEEDS_FLAG" 2>/dev/null
+    echo "$(date) eDP already connected on the stock i915 driver - display wake overlay not needed, will not be staged" >> $LOG
+elif [ -f "$PANEL/overlay/$KV/bzroot-wakefix" ]; then
     cmp -s "$PANEL/overlay/$KV/bzroot-wakefix" /boot/bzroot-wakefix || {
         cp "$PANEL/overlay/$KV/bzroot-wakefix" /boot/bzroot-wakefix
         echo "$(date) staged overlay for $KV" >> $LOG
@@ -31,6 +45,9 @@ if [ -f "$PANEL/overlay/$KV/bzroot-wakefix" ]; then
 elif [ ! -f /boot/bzroot-wakefix ]; then
     notify warning "No display-module overlay for kernel $KV. Run plugin/boot/build-overlay.sh, then reboot."
 fi
+
+# ---- keep the panel boot path healthy (self-registered EFI entry) ----
+bash $P/assert-boot.sh 2>>$LOG
 
 # ---- touch I2C stack (per-kernel out-of-tree modules) ----
 modprobe mfd_core 2>/dev/null
@@ -40,7 +57,7 @@ done
 modprobe i2c-dev 2>/dev/null
 
 # ---- start the dashboard only if the panel actually came up ----
-if [ "$(cat /sys/class/drm/card*-eDP-1/status 2>/dev/null | head -1)" = "connected" ]; then
+if [ "$(edp_status)" = "connected" ]; then
     pkill -f "keep-panel.sh" 2>/dev/null; pkill -x panel_dash 2>/dev/null; sleep 1
     cp $PANEL/panel_dash /usr/local/bin/panel_dash && chmod +x /usr/local/bin/panel_dash
     ARGS="--backlight $BRIGHTNESS --interval $INTERVAL"
