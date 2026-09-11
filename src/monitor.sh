@@ -119,7 +119,7 @@ BR_LAN=150
 LED(){ "$BIN" "$@" >/dev/null 2>&1; }
 
 # darken every disk/LAN LED (the power LED goes dark on its own once we stop
-# re-asserting it — the CLI writes below reset the controller).
+# re-asserting it — these CLI writes reset the controller).
 blank_leds(){
   for b in 1 2 3 4 5 6; do LED "disk$b" -off; done
   LED network_stat -off; LED network_stat2 -off
