@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name    "ugreen-idx6011-pro">
 <!ENTITY author  "noodlemctwoodle">
-<!ENTITY version "2026.07.25">
+<!ENTITY version "2026.09.11">
 <!ENTITY plgdir  "/boot/config/plugins/&name;">
 ]>
 
@@ -15,6 +15,15 @@
         pluginURL="https://raw.githubusercontent.com/noodlemctwoodle/unraid-ugreen-idx6011-pro/main/&name;.plg">
 
 <CHANGES>
+###2026.09.11
+- Fixed: `assert-boot.sh` no longer bails out silently on Unraid 7.x "Internal
+  Boot" (ZFS boot pool on NVMe/SATA, GRUB, no USB flash drive). When no
+  `UNRAID`-labelled device exists, it now falls back to the EFI System
+  Partition backing the currently booted entry (via `efibootmgr`'s
+  `BootCurrent`) so the named panel EFI entry still gets registered and the
+  front-panel rail is powered. Added `logger` diagnostics on every bail-out
+  path, and the install banner now distinguishes "entry not created" from
+  "entry created but not first in boot order".
 ###2026.07.25
 - Eight more cards for your pages: Disk I/O (live read/write), Load average, Shares
   (each with its placement - cache pool or array - the pool's free space and a
@@ -162,12 +171,19 @@ echo "     'Unraid (iDX6011 panel)' EFI entry this plugin registered."
 echo ""
 if [ "$(cat /sys/class/drm/card*-eDP-1/status 2>/dev/null | head -1)" = "connected" ]; then
   echo "   Panel: ACTIVE - the dashboard is running. Nothing else to do."
-else
+elif command -v efibootmgr &gt;/dev/null &amp;&amp; efibootmgr 2>/dev/null | grep -qF "Unraid (iDX6011 panel)"; then
   echo "   Panel: NOT ACTIVE this boot. To light it:"
   echo "     1) In the BIOS make the panel entry boot first:"
   echo "          Boot > UEFI USB Hard Disk Drive BBS Priorities"
   echo "               > 'Unraid (iDX6011 panel)'"
   echo "     2) Reboot."
+else
+  echo "   Panel: NOT ACTIVE - the 'Unraid (iDX6011 panel)' EFI entry could not"
+  echo "   be created automatically (check 'logger | grep ugreen-panel' for why)."
+  echo "   Register it manually, e.g.:"
+  echo "     efibootmgr -c -d /dev/sdX -p 1 -L 'Unraid (iDX6011 panel)' \\"
+  echo "       -l '\\EFI\\BOOT\\BOOTX64.EFI'"
+  echo "   then set it first in the BIOS boot order and reboot."
 fi
 echo ""
 echo "   Docs: github.com/noodlemctwoodle/unraid-ugreen-idx6011-pro"
