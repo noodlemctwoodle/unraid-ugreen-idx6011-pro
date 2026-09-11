@@ -4,6 +4,31 @@ All notable user-facing changes to the **UGREEN iDX6011 Pro** Unraid plugin.
 Versions are date-based (`YYYY.MM.DD`); the same notes drive each GitHub release
 and the plugin's in-app `<CHANGES>` list.
 
+## 2026.09.11
+
+- **Fixed: Internal Boot (ZFS/GRUB) support for the front-panel EFI entry.**
+  `assert-boot.sh` previously located the boot device by looking for a block
+  device labelled `UNRAID`, which doesn't exist on Unraid 7.x's "Internal
+  Boot" (ZFS boot pool on NVMe/SATA, GRUB, no USB flash drive) — the script
+  silently exited before registering the panel's named EFI entry, leaving the
+  front-panel rail unpowered and the LCD dark. It now falls back to the ESP
+  backing the currently booted EFI entry (via `efibootmgr`'s `BootCurrent`)
+  when no `UNRAID`-labelled device is found, and logs a diagnostic message on
+  every bail-out path instead of failing silently. The install banner also
+  now distinguishes "the EFI entry could not be created" from "the entry
+  exists but isn't first in the BIOS boot order".
+## Unreleased
+
+- **Fix: front panel would never go idle.** Saving a settings change from the
+  webGUI (`restart.sh`) killed `panel_dash` but left the `keep-panel.sh`
+  supervisor running, which immediately respawned its own copy — racing a
+  second, directly-launched `panel_dash` for DRM master. The resulting
+  `setcrtc: Permission denied` crash-loop reset the on-screen idle timer on
+  every restart, so the screen-off timeout was never reached (and could drop
+  an in-flight settings change). `restart.sh` now stops the `keep-panel.sh`
+  supervisor too and relaunches a single keeper, matching `start-panel.sh` /
+  `stop-panel.sh`.
+
 ## 2026.07.25
 
 - **Eight more cards.** Disk I/O (live read/write MB/s), Load average, Shares
