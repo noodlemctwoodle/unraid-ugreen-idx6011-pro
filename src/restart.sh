@@ -22,8 +22,11 @@ PANEL=$P/panel
 [ "$(cat /sys/class/dmi/id/product_name 2>/dev/null)" = "iDX6011 Pro" ] || exit 0
 BRIGHTNESS=75; INTERVAL=1; ROTATE=0
 [ -f "$PANEL/settings.cfg" ] && . "$PANEL/settings.cfg"
-pkill -f "keep-panel.sh" 2>/dev/null; pkill -x panel_dash 2>/dev/null; sleep 1
 if [ "$(cat /sys/class/drm/card*-eDP-1/status 2>/dev/null | head -1)" = "connected" ]; then
+    # Kill INSIDE the guard: keep-panel.sh idles and retries every 30s when the eDP
+    # isn't there, so stopping it on a boot where the eDP reads disconnected would
+    # remove the supervisor without putting anything back.
+    pkill -f "keep-panel.sh" 2>/dev/null; pkill -x panel_dash 2>/dev/null; sleep 1
     [ -f "$PANEL/panel_dash" ] && { cp "$PANEL/panel_dash" /usr/local/bin/panel_dash; chmod +x /usr/local/bin/panel_dash; }
     ARGS="--backlight $BRIGHTNESS --interval $INTERVAL"
     [ "${ROTATE:-0}" -gt 0 ] 2>/dev/null && ARGS="$ARGS --rotate $ROTATE"
