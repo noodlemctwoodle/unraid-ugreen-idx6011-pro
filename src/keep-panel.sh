@@ -16,7 +16,8 @@
 # Degrades safely: if the eDP isn't present it just idles.
 BIN=/usr/local/bin/panel_dash
 LOG=/var/log/panel_dash.log
-PANEL=/boot/config/plugins/ugreen-idx6011-pro/panel
+P=/boot/config/plugins/ugreen-idx6011-pro
+PANEL=$P/panel
 PIDFILE=/run/ugreen-panel.pid
 
 if ! ( set -o noclobber; echo $$ > "$PIDFILE" ) 2>/dev/null; then
@@ -26,9 +27,11 @@ if ! ( set -o noclobber; echo $$ > "$PIDFILE" ) 2>/dev/null; then
     ( set -o noclobber; echo $$ > "$PIDFILE" ) 2>/dev/null || exit 0
 fi
 cleanup(){
+    [ -n "${pd:-}" ] && kill "$pd" 2>/dev/null
     if [ "$(cat "$PIDFILE" 2>/dev/null)" = "$$" ]; then rm -f "$PIDFILE"; fi
 }
 trap cleanup EXIT
+trap 'exit 0' TERM INT
 sleep 5
 
 edp_connected(){ [ "$(cat /sys/class/drm/card*-eDP-1/status 2>/dev/null | head -1)" = "connected" ]; }
