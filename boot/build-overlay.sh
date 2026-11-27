@@ -23,8 +23,8 @@ echo "== kernel $KV (vanilla $KVER) =="
 # 1. build container (idempotent)
 docker start i915build 2>/dev/null || docker run -d --name i915build \
     --restart unless-stopped -v $B:/build debian:trixie-slim sleep infinity
-docker exec i915build bash -c 'which gcc >/dev/null || {
-    apt-get update -qq && apt-get install -y -qq gcc make flex bison bc \
+docker exec i915build bash -c 'which gcc >/dev/null && which patch >/dev/null || {
+    apt-get update -qq && apt-get install -y -qq gcc make flex bison bc patch \
         libelf-dev libssl-dev kmod xz-utils cpio curl >/dev/null; }'
 
 # 2. kernel source + Unraid config (NOTE: config file has NO leading dot)
@@ -39,6 +39,7 @@ cp "$PATCH" $B/wakeprobe.patch
 docker exec i915build bash -c "
 set -e
 cd /build/linux-$KVER
+command -v patch >/dev/null || { echo 'build-overlay.sh: patch is missing in the build container' >&2; exit 1; }
 patch -p1 -N < /build/wakeprobe.patch || true       # -N: skip if already applied
 scripts/config -m MFD_INTEL_LPSS -m MFD_INTEL_LPSS_PCI \
                -m I2C_DESIGNWARE_CORE -m I2C_DESIGNWARE_PLATFORM
